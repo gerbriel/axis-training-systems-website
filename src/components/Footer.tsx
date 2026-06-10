@@ -1,3 +1,5 @@
+const BASE = (import.meta as any).env?.BASE_URL ?? '/'
+
 const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
@@ -57,7 +59,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <img
-              src="/logo.svg"
+              src={`${BASE}logo.svg`}
               alt="Axis Training Systems"
               style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)', marginBottom: '1rem' }}
             />

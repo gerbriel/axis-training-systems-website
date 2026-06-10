@@ -41,7 +41,7 @@ export default function AdminPortal() {
       {/* Top bar */}
       <header style={{ background: '#030303', borderBottom: '1px solid #141414', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
         <a href={(import.meta as any).env?.BASE_URL ?? '/'}>
-          <img src="/logo.svg" alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
+          <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
         <span style={{ color: '#222', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
 

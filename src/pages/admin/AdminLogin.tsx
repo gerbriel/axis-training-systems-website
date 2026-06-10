@@ -23,7 +23,7 @@ export default function AdminLogin({ onDemo }: Props) {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div className="text-center mb-10">
-          <img src="/logo.svg" alt="Axis" style={{ height: 28, filter: 'brightness(0) invert(1)', margin: '0 auto 1.5rem' }} />
+          <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 28, filter: 'brightness(0) invert(1)', margin: '0 auto 1.5rem' }} />
           <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Admin</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.75rem', textTransform: 'uppercase', letterSpacing: '-.02em' }}>Sign In</h1>
         </div>

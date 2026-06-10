@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+const BASE = (import.meta as any).env?.BASE_URL ?? '/'
+
 const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
@@ -28,9 +30,9 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="inline-flex items-center">
+        <a href={BASE} className="inline-flex items-center">
           <img
-            src="/logo.svg"
+            src={`${BASE}logo.svg`}
             alt="Axis Training Systems"
             style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
           />
@@ -53,6 +55,14 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
+          <a
+            href={`${BASE}admin`}
+            style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#888')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#444')}
+          >
+            Admin
+          </a>
           <a
             href="https://www.instagram.com/axistrainingsystems/"
             target="_blank"
@@ -101,6 +111,13 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <a
+            href={`${BASE}admin`}
+            onClick={() => setMenuOpen(false)}
+            style={{ color: '#555', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
+          >
+            Admin Portal
+          </a>
           <a
             href="#apply"
             onClick={() => setMenuOpen(false)}

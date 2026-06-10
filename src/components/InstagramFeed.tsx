@@ -1,111 +1,52 @@
-// Instagram Feed Section
-// ─────────────────────────────────────────────────────────────────────────────
-// "For now" implementation: branded placeholder grid with real profile stats +
-// a CTA that links to the real account.
+// ─── Instagram Feed via Behold.so ────────────────────────────────────────────
+// Behold.so (free) serves real Instagram posts as an embeddable widget.
 //
-// UPGRADE PATH (when ready):
-//   1. Sign up free at https://behold.so
-//   2. Connect @axistrainingsystems
-//   3. Copy your feed-id from the Behold dashboard
-//   4. Replace the entire <PlaceholderGrid /> block below with:
-//        <behold-widget feed-id="YOUR_FEED_ID" />
-//      and add the script tag in index.html:
-//        <script src="https://w.behold.so/widget.js" type="module"></script>
+// TO ACTIVATE WITH REAL POSTS:
+//   1. Sign up FREE at https://behold.so
+//   2. Click "New Feed" → Connect → search @axistrainingsystems
+//   3. Customize style (dark background, square grid recommended)
+//   4. Copy the Feed ID shown in the embed code (looks like "abc123XYZ")
+//   5. Paste it as the BEHOLD_FEED_ID value below — done!
+//
+// Note: Instagram blocks direct iframes (Meta policy). Behold.so is the
+// cleanest free alternative — no API approval required.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const POST_ACCENTS = [
-  { top: '#e63e3e', bottom: '#7a1f1f' },
-  { top: '#1a1a1a', bottom: '#080808' },
-  { top: '#7a1f1f', bottom: '#e63e3e' },
-  { top: '#0d0d0d', bottom: '#1e1e1e' },
-  { top: '#e63e3e', bottom: '#0d0d0d' },
-  { top: '#1a1a1a', bottom: '#7a1f1f' },
-  { top: '#080808', bottom: '#e63e3e' },
-  { top: '#e63e3e', bottom: '#1a1a1a' },
-  { top: '#0d0d0d', bottom: '#7a1f1f' },
-]
+import React from 'react'
 
-const ICON_PATHS = [
-  // barbell
-  'M12 8H8m8 0h-3m0 0V5m0 3v3m-5-3V5m0 3v3M4 12h16M4 12v2m16-2v2M8 14H4m16 0h-4',
-  // person lifting
-  'M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6l-3 3 3 7 3-7-3-3zm-5 1h10',
-  // chart up
-  'M3 17l4-4 4 4 4-8 4 4',
-  // medal
-  'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 0v4m-3-2h6',
-  // dumbbell
-  'M4 12h16M7 8v8m10-8v8M5 9v6m14-6v6',
-  // target
-  'M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0m-4 0a6 6 0 1 0 12 0 6 6 0 0 0-12 0m-2 0a8 8 0 1 0 16 0 8 8 0 0 0-16 0',
-  // fire
-  'M12 21c-4-4-4-8 0-10-1 3 2 5 3 3 2 3 0 5-3 7z',
-  // trophy
-  'M8 21h8m-4-4v4m-6-14H4a1 1 0 0 1-1-1V5h4m14 7h2a1 1 0 0 0 1-1V5h-4m-7 12a5 5 0 0 1-5-5V5h10v7a5 5 0 0 1-5 5z',
-  // star
-  'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-]
+// ← Paste your Behold.so feed ID here once you have it
+const BEHOLD_FEED_ID = ''
 
-function PlaceholderPost({ index }: { index: number }) {
-  const accent = POST_ACCENTS[index % POST_ACCENTS.length]
-  const path = ICON_PATHS[index % ICON_PATHS.length]
+function SetupCard() {
   return (
-    <div
-      style={{
-        aspectRatio: '1',
-        background: `linear-gradient(135deg, ${accent.top}, ${accent.bottom})`,
-        borderRadius: '.375rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'opacity .2s, transform .2s',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.opacity = '.75'
-        e.currentTarget.style.transform = 'scale(1.02)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.opacity = '1'
-        e.currentTarget.style.transform = 'scale(1)'
-      }}
-      onClick={() => window.open('https://www.instagram.com/axistrainingsystems/', '_blank', 'noopener')}
-      aria-label="View on Instagram"
-    >
-      {/* diagonal texture lines */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.06) 10px, rgba(0,0,0,.06) 11px)',
-        pointerEvents: 'none',
-      }} />
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="rgba(255,255,255,.18)"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ width: '40%', height: '40%', position: 'relative' }}
-      >
-        <path d={path} />
-      </svg>
-      {/* IG hover icon */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        opacity: 0, transition: 'opacity .2s',
-      }}
-        className="ig-overlay"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" style={{ width: 28, height: 28 }}>
+    <div style={{
+      background: '#0d0d0d', border: '1px dashed #2a2a2a', borderRadius: '.5rem',
+      padding: '3rem 2rem', textAlign: 'center', maxWidth: 520, margin: '0 auto',
+    }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" strokeWidth="1.25" style={{ width: 48, height: 48 }}>
           <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
           <circle cx="12" cy="12" r="4"/>
-          <circle cx="17.5" cy="6.5" r="0" fill="#fff" strokeWidth="2"/>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       </div>
+      <p style={{ color: '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
+        Instagram feed not yet connected
+      </p>
+      <p style={{ color: '#2e2e2e', fontSize: '.82rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+        Sign up free at{' '}
+        <a href="https://behold.so" target="_blank" rel="noopener noreferrer" style={{ color: '#e63e3e' }}>behold.so</a>
+        , connect <strong style={{ color: '#444' }}>@axistrainingsystems</strong>, paste
+        the Feed ID into <code style={{ color: '#555', background: '#141414', padding: '.1rem .4rem', borderRadius: '.2rem' }}>InstagramFeed.tsx</code>.
+      </p>
+      <a
+        href="https://behold.so" target="_blank" rel="noopener noreferrer"
+        style={{ display: 'inline-block', background: 'transparent', border: '1px solid #2a2a2a', color: '#555', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.color = '#fff' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555' }}
+      >
+        Set Up at behold.so →
+      </a>
     </div>
   )
 }
@@ -125,51 +66,30 @@ export default function InstagramFeed() {
           <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1rem' }}>
             @axistrainingsystems
           </h2>
-          <p style={{ color: '#555', fontSize: '.9rem', marginBottom: '2rem' }}>
-            1,490 followers · 122 posts
-          </p>
-
-          {/* TODO: Replace <PlaceholderGrid /> below with Behold widget once configured */}
-          {/* See setup instructions in the file header comment above */}
         </div>
 
-        {/* 3×3 placeholder grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '.5rem',
-          maxWidth: 720,
-          margin: '0 auto 3rem',
-        }}>
-          {Array.from({ length: 9 }, (_, i) => (
-            <PlaceholderPost key={i} index={i} />
-          ))}
-        </div>
+        {/* Real feed when BEHOLD_FEED_ID is set, setup card otherwise */}
+        {BEHOLD_FEED_ID
+          ? React.createElement('behold-widget', { 'feed-id': BEHOLD_FEED_ID })
+          : <SetupCard />
+        }
 
         {/* CTA */}
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', marginTop: '3rem' }}>
           <a
             href="https://www.instagram.com/axistrainingsystems/"
             target="_blank"
             rel="noopener noreferrer"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '.625rem',
-              background: 'transparent',
-              border: '1.5px solid #e63e3e',
-              color: '#fff',
+              background: 'transparent', border: '1.5px solid #e63e3e', color: '#fff',
               fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase',
-              padding: '.875rem 2.25rem', borderRadius: '.25rem',
-              textDecoration: 'none',
-              transition: 'background .15s, color .15s',
+              padding: '.875rem 2.25rem', borderRadius: '.25rem', textDecoration: 'none',
+              transition: 'background .15s',
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#e63e3e'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent'
-            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#e63e3e' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
           >
-            {/* Instagram glyph */}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" style={{ width: 18, height: 18, flexShrink: 0 }}>
               <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
               <circle cx="12" cy="12" r="4"/>
