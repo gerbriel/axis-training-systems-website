@@ -14,12 +14,19 @@ export default function Coaches() {
           {COACHES.map(c => (
             <div key={c.slug} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
               {/* Avatar */}
-              <div
-                className="flex items-center justify-center mb-5"
-                style={{ width: '3rem', height: '3rem', borderRadius: '50%', background: '#141414', border: '1px solid #222', flexShrink: 0 }}
-              >
-                <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.1rem' }}>{c.firstName[0]}</span>
-              </div>
+              {c.photo ? (
+                <img
+                  src={c.photo} alt={c.name}
+                  style={{ width: '4rem', height: '4rem', borderRadius: '50%', objectFit: 'cover', marginBottom: '1.25rem', flexShrink: 0, border: '2px solid #1e1e1e' }}
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center mb-5"
+                  style={{ width: '3rem', height: '3rem', borderRadius: '50%', background: '#141414', border: '1px solid #222', flexShrink: 0 }}
+                >
+                  <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.1rem' }}>{c.firstName[0]}</span>
+                </div>
+              )}
               <p className="text-white font-bold text-sm mb-1">{c.name}</p>
               <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{c.role}</p>
               <p style={{ color: '#444', fontSize: '.75rem', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>{c.tagline}</p>

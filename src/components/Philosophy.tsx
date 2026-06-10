@@ -19,11 +19,18 @@ export default function Philosophy() {
               Coaching you can trust.
             </h2>
             <p style={{ color: '#555', fontSize: '.9rem', lineHeight: 1.8, marginBottom: '1.25rem' }}>
-              Axis Training Systems is a team of competitive powerlifters and coaches who understand the sport from the inside. Every program we write reflects how the sport actually works — with RPE, block periodization, and real data at the center.
+              Founded in 2021, Axis Training Systems was created with a mission of wholeheartedly investing in powerlifting athletes, regardless of background, level, or personality type. We believe that a strong coach-athlete rapport enables the athlete with intrinsic motivation, guidance, and support that drives them to reach their potential.
             </p>
-            <p style={{ color: '#555', fontSize: '.9rem', lineHeight: 1.8 }}>
-              We don't sell cookie-cutter plans. We work with individual athletes — your schedule, your lifts, your goals — and build programming that makes sense for where you actually are.
+            <p style={{ color: '#555', fontSize: '.9rem', lineHeight: 1.8, marginBottom: '2rem' }}>
+              We focus on evidence-based premium coaching, utilizing lifter data to create individualized training protocols and provide mentorship in building a resilient mindset. Our goal is to help lifters reach their full potential on the platform and build the next generation of the powerlifting community.
             </p>
+            {/* Real quote */}
+            <blockquote style={{ borderLeft: '3px solid #e63e3e', paddingLeft: '1.25rem' }}>
+              <p style={{ color: '#888', fontSize: '.875rem', lineHeight: 1.8, fontStyle: 'italic', marginBottom: '.5rem' }}>
+                "Our vision at Axis is one where everyone is treated equally no matter what level athlete they are. We believe coaching is more than just crunching numbers and critiquing form. We establish strong coach-athlete bonds that give the athlete a sense of intrinsic motivation."
+              </p>
+              <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>— Ronnie Vallejo, Founder</p>
+            </blockquote>
           </div>
 
           {/* Right grid */}

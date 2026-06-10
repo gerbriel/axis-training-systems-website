@@ -55,9 +55,16 @@ export default function CoachPage({ slug }: Props) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3rem', alignItems: 'flex-start' }}>
             {/* Avatar */}
             <div style={{ flexShrink: 0 }}>
-              <div style={{ width: 120, height: 120, borderRadius: '50%', background: '#141414', border: '2px solid #1e1e1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '3rem' }}>{coach.firstName[0]}</span>
-              </div>
+              {coach.photo ? (
+                <img
+                  src={coach.photo} alt={coach.name}
+                  style={{ width: 140, height: 140, borderRadius: '50%', objectFit: 'cover', border: '3px solid #1e1e1e' }}
+                />
+              ) : (
+                <div style={{ width: 120, height: 120, borderRadius: '50%', background: '#141414', border: '2px solid #1e1e1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '3rem' }}>{coach.firstName[0]}</span>
+                </div>
+              )}
             </div>
             {/* Name + role */}
             <div style={{ flex: 1, minWidth: 260 }}>

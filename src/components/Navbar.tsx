@@ -75,6 +75,17 @@ export default function Navbar() {
             @axistrainingsystems
           </a>
           <a
+            href="https://tr.ee/GruejcFSXr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
+            style={{ border: '1px solid #2a2a2a' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#e63e3e')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+          >
+            Book a Call
+          </a>
+          <a
             href="#apply"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
             style={{ background: '#e63e3e' }}
@@ -118,6 +129,15 @@ export default function Navbar() {
             style={{ color: '#555', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
           >
             Admin Portal
+          </a>
+          <a
+            href="https://tr.ee/GruejcFSXr"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenuOpen(false)}
+            style={{ color: '#fff', fontSize: '.875rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
+          >
+            Book a Call
           </a>
           <a
             href="#apply"

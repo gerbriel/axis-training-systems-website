@@ -17,6 +17,7 @@ export interface Coach {
   name: string
   firstName: string
   email: string         // used for Supabase auth + routing
+  photo?: string        // headshot URL
   role: string          // short title
   tagline: string       // one-line philosophy
   bio: string[]         // paragraphs
@@ -33,15 +34,16 @@ export const COACHES: Coach[] = [
     name: 'Ronnie Vallejo',
     firstName: 'Ronnie',
     email: 'ronnie@axistrainingsystems.com',
+    photo: 'https://static.wixstatic.com/media/e99af3_1947a325134d4dff956eb3a7a6436e0e~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/20240302_201048_edited_edited_edited.jpg',
     role: 'Head Coach & Founder',
     tagline: 'Strength built on intention, not ego.',
     bio: [
-      'Ronnie Vallejo is the founder of Axis Training Systems and the architect of its coaching philosophy. A competitive powerlifter with over a decade in the sport, he has competed across multiple federations and coached athletes from their first meet all the way to national-level competition.',
-      'His approach is grounded in evidence-based programming and honest communication. He believes every athlete deserves a plan that fits their life — not the other way around — and that transparency is the foundation of any great coaching relationship.',
-      'Outside the platform, Ronnie is a student of sport science and continues to refine his methods through ongoing research, mentorship, and competition.',
+      'Ronnie Vallejo is the founder of Axis Training Systems. He serves as Team USA Coach for Powerlifting America, Head Coach of Fresno State Powerlifting, and is an active Powerlifting America Referee — with a level of involvement in the sport that goes well beyond the gym.',
+      'His coaching philosophy centers on building genuine coach-athlete relationships. He believes intrinsic motivation — the kind that comes from trust, transparency, and real investment in the athlete — is what drives every result worth earning.',
+      'Axis was founded in 2021 on the belief that every athlete deserves the same standard of care, regardless of level, background, or personality type.',
     ],
-    coachingPhilosophy: 'The best program is the one you can actually follow. Build the habit, build the lifter.',
-    specialties: ['Full meet prep', 'Attempt selection strategy', 'Long-term strength development', 'Technique diagnosis'],
+    coachingPhilosophy: 'Coaching is more than crunching numbers and critiquing form. We establish strong coach-athlete bonds that give the athlete a sense of intrinsic motivation.',
+    specialties: ['Full meet prep', 'Attempt selection strategy', 'Team USA & national-level coaching', 'Coach mentorship & development'],
     services: [
       { name: '1:1 Coaching (Full Service)', price: '$180/mo', description: 'Weekly programming, daily check-ins via WhatsApp, video review, full meet prep, and attempt selection.' },
       { name: 'Meet Day Coaching', price: 'Contact for pricing', description: 'In-person or remote coaching on competition day — warm-up timing, attempt strategy, real-time feedback.' },
@@ -55,8 +57,8 @@ export const COACHES: Coach[] = [
       { label: 'Meets Attended', value: '20+' },
     ],
     testimonials: [
-      { quote: 'Ronnie completely rebuilt my squat in 12 weeks. I hit a 30lb PR on my total at my next meet and finally understood what I was doing wrong mechanically.', athlete: 'Marcus R.', result: '+30 lb total, USAPL SoCal 2025' },
-      { quote: 'The programming is the smartest I\'ve ever run. Not just "hard work" — intentional work. Every set has a reason.', athlete: 'Devon K.', result: 'First 600lb squat, 93kg class' },
+      { quote: 'I immensely appreciate the excellent communication, knowledgeable and specific feedback I receive on my lift videos, the constant upbeat and positive encouraging attitude that Ronnie exudes out as he shares his passion of coaching.', athlete: 'Zack Scott', result: 'Axis Training Systems Athlete' },
+      { quote: 'As an athlete, I have learned small details to become a better powerlifter overall, but as a coach myself, having Ronnie as my coach was invaluable. Since working with Ronnie, I have grown leaps and bounds as a coach.', athlete: 'Michelle Madruga', result: 'Athlete & Coach' },
       { quote: 'He told me things my previous coach never did. Blunt, honest, and exactly what I needed.', athlete: 'Priya M.', result: '4/4 National qualifier, 63kg' },
     ],
   },
@@ -65,15 +67,16 @@ export const COACHES: Coach[] = [
     name: 'Seth Burman',
     firstName: 'Seth',
     email: 'seth@axistrainingsystems.com',
-    role: 'Senior Coach',
+    photo: 'https://static.wixstatic.com/media/e99af3_c6dd9c18b5374a038d9d94d95c94ccc2~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_6895%20(1).jpg',
+    role: 'Team Axis Coach',
     tagline: 'Competitive fire, methodical preparation.',
     bio: [
-      'Seth Burman is a seasoned competitive powerlifter and one of the most technically precise coaches at Axis. He specializes in meet prep and in-person competition day coaching, having guided dozens of athletes through their first and subsequent meets.',
-      'Seth\'s background includes years of competing in the USPA and USAPL, where he developed a deep understanding of attempt selection, federation rules, and the mental side of competition. He translates that experience directly into his athletes\' preparation.',
-      'His coaching style is disciplined but personable — he pushes athletes to rise to the occasion while keeping them calm under pressure.',
+      'Seth Burman is a USAPL 100kg competitor with a Doctorate of Physical Therapy, a BS in Exercise Science, and the CSCS credential. His background spans clinical rehabilitation and strength science — a rare combination that lets him optimize performance while genuinely managing injury risk.',
+      'He specializes in meet prep and game day coaching, with experience at national-level Powerlifting America and USAPL events.',
+      'Seth brings discipline and calm to high-pressure situations — the qualities that matter most when it\'s time to step on the platform.',
     ],
     coachingPhilosophy: 'A great meet performance is won in the prep, not on the platform. Prepare obsessively, compete confidently.',
-    specialties: ['Meet day logistics', 'Attempt strategy', 'Peaking and tapering', 'Federation rules and equipment'],
+    specialties: ['Meet day logistics & attempt strategy', 'DPT & physical therapy background', 'Peaking and tapering', 'National-level competition experience'],
     services: [
       { name: '1:1 Coaching (Full Service)', price: '$175/mo', description: 'Weekly programming, WhatsApp coaching, video review, and full meet prep support.' },
       { name: 'Meet Day Coaching', price: 'Contact for pricing', description: 'On-site or remote presence at your competition — full warm-up protocol, attempt calls, handler duties.' },
@@ -97,15 +100,16 @@ export const COACHES: Coach[] = [
     name: 'Lucas Sison',
     firstName: 'Lucas',
     email: 'lucas@axistrainingsystems.com',
-    role: 'Strength & Movement Coach',
+    photo: 'https://static.wixstatic.com/media/e99af3_c0aba7590f844eddaf80c5aa96fa99e4~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Screenshot_20220826-172606_Instagram_edited.jpg',
+    role: 'Team Axis Coach',
     tagline: 'Fix the movement, free the strength.',
     bio: [
-      'Lucas Sison brings a unique blend of movement science and powerlifting coaching to Axis Training Systems. With a background in sports performance and corrective movement, he bridges the gap between athletic health and maximal strength output.',
-      'Lucas specializes in diagnosing and correcting technical inefficiencies that hold athletes back — whether that\'s a faulty hip hinge, inconsistent bar path, or a squat that falls apart under load. His athletes don\'t just get stronger; they move better.',
-      'He works with intermediate to advanced lifters who want to optimize their technique and build a foundation that will support high-level numbers for years to come.',
+      'Lucas Sison is a USAPL 75kg national-level competitor and holds a Doctorate of Pharmacy. His clinical background informs a rigorously evidence-based approach that treats the whole athlete — not just their numbers.',
+      'His specialty is identifying and correcting the technical inefficiencies that act as a ceiling on strength. Whether that\'s a hip position off the floor, bar path inconsistency, or a squat that breaks down under load — Lucas finds the root and addresses it.',
+      'His athletes don\'t just get stronger. They understand exactly why.',
     ],
     coachingPhilosophy: 'You can\'t maximize what you haven\'t optimized. Movement quality is the ceiling on your strength.',
-    specialties: ['Technical analysis and correction', 'Movement efficiency', 'Injury resilience programming', 'Intermediate to advanced development'],
+    specialties: ['Technical analysis and correction', 'USAPL 75kg national-level competitor', 'Evidence-based programming (PharmD background)', 'Intermediate to advanced development'],
     services: [
       { name: '1:1 Coaching (Full Service)', price: '$170/mo', description: 'Weekly programming, WhatsApp coaching, detailed video analysis, and technical coaching focus.' },
       { name: 'Movement Coaching', price: 'Contact for pricing', description: 'Targeted analysis of your squat, bench, or deadlift with a corrective action plan — no long-term commitment required.' },
@@ -119,8 +123,8 @@ export const COACHES: Coach[] = [
       { label: 'Movement Assessments', value: '100+' },
     ],
     testimonials: [
+      { quote: 'I have been working with Lucas for over a year now and on my first training block with him I was able to gain +115lb to my gym total.', athlete: 'Lex Funtila', result: '+115 lb gym total in first training block' },
       { quote: 'Lucas spotted a bar path issue in my bench on the first video review. Six weeks later I hit a 20lb bench PR with zero shoulder pain for the first time in years.', athlete: 'Dylan P.', result: '+20 lb bench, zero injury recurrence' },
-      { quote: 'My deadlift always fell apart at the knee. Lucas broke it down, gave me three drills, and in two training cycles it was gone.', athlete: 'Anita W.', result: '+45 lb deadlift over 12 weeks' },
       { quote: 'The movement analysis was worth every penny. I finally understood my squat instead of just grinding through it.', athlete: 'Chris M.', result: 'Technique overhaul, 83kg class' },
     ],
   },

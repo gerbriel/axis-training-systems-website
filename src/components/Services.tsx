@@ -2,23 +2,34 @@ const SERVICES = [
   {
     num: '01',
     title: ['1:1 Coaching', 'Full Service'],
-    desc: 'Full-service individualized programming. You get a dedicated coach, custom weekly training blocks built around your schedule and equipment, regular check-ins, form review, and meet prep.',
-    highlights: ['Custom RPE-based blocks', 'Weekly coach check-ins', 'Video form review', 'Full meet prep included'],
+    desc: 'The most popular service at Axis. Athletes receive daily communication, unlimited technique analysis, individualized programming, and meet day handling. A high-contact service that allows coaches and athletes to address issues as they arise — adjusting training stress or providing technique accountability in real time.',
+    highlights: ['Daily coach communication', 'Unlimited technique analysis', 'Individualized programming', 'Meet day handling included'],
     cta: 'Apply Now',
+    href: '#apply',
   },
   {
     num: '02',
-    title: ['Meet Day', 'Coaching'],
-    desc: 'An experienced Axis coach in your corner on competition day. Warm-up management, attempt selection, timing, and in-the-moment feedback — so you can focus entirely on lifting.',
-    highlights: ['Warm-up management', 'Attempt selection strategy', 'In-person or remote', 'Pre-meet strategy call'],
+    title: ['Game Day', 'Coaching'],
+    desc: 'For athletes who want an experienced Axis coach in their corner on competition day. Includes video review, scouting reports, a meet day planning call, and in-person or remote handling. Axis coaches are present at all National competitions in Powerlifting America and USAPL, and at most IPF World Championship events.',
+    highlights: ['Video review & scouting report', 'Meet day planning call', 'In-person or remote handling', 'Present at PA/USAPL Nationals & IPF Worlds'],
     cta: 'Apply Now',
+    href: '#apply',
   },
   {
     num: '03',
-    title: ['Movement', 'Coaching'],
-    desc: "Technique-focused work for lifters who want to dial in their squat, bench, or deadlift mechanics. Ideal for newer competitors or anyone working through a technique bottleneck.",
-    highlights: ['Video breakdown & cues', 'Technique correction plan', 'Accessory programming', 'Beginner-friendly'],
+    title: ['Coaching', 'Mentorship'],
+    desc: 'Designed for coaches at all levels — whether established, on the rise, or just getting started. Tailored to your specific areas of improvement, with a structured curriculum available for full development. Sessions weekly, bi-weekly, monthly, or as a one-time consultation.',
+    highlights: ['Programming & biomechanics', 'Athlete psychology', 'Building a coaching business', 'Meet day strategy & case studies'],
+    cta: 'Book a Consultation',
+    href: 'https://tr.ee/GruejcFSXr',
+  },
+  {
+    num: '04',
+    title: ['Movement', 'Consulting'],
+    desc: 'For athletes not seeking full programming or ongoing coaching, but wanting focused support on technique. We offer movement coaching and consultations to refine your lifts and optimize movement for better performance and efficiency — as standalone sessions or a short-term series.',
+    highlights: ['Video breakdown & cues', 'Technique correction plan', 'Standalone or short-term series', 'No long-term commitment required'],
     cta: 'Apply Now',
+    href: '#apply',
   },
 ]
 
@@ -42,11 +53,11 @@ export default function Services() {
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>Services</h2>
           </div>
           <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
-            Three distinct tracks — each designed for a specific stage and goal in your powerlifting journey.
+            Four distinct tracks — each designed for a specific stage and goal in your powerlifting journey.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3" style={{ gap: 1, background: '#1e1e1e' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4" style={{ gap: 1, background: '#1e1e1e' }}>
           {SERVICES.map(s => (
             <article
               key={s.num}
@@ -68,7 +79,9 @@ export default function Services() {
                 ))}
               </ul>
               <a
-                href="#apply"
+                href={s.href}
+                target={s.href.startsWith('http') ? '_blank' : undefined}
+                rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className="inline-flex items-center gap-2 text-white text-xs font-black px-6 py-3 rounded tracking-widest uppercase transition-colors"
                 style={{ border: '1px solid #2a2a2a', width: 'fit-content' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#e63e3e')}

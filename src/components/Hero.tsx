@@ -1,8 +1,8 @@
 const STATS = [
   { number: '5',    label: 'Coaches' },
-  { number: '122',  label: 'Posts' },
-  { number: '1.4K+', label: 'Followers' },
-  { number: '3',    label: 'Services' },
+  { number: '4',    label: 'Services' },
+  { number: '2021', label: 'Founded' },
+  { number: 'PA / USAPL', label: 'Federations' },
 ]
 
 export default function Hero() {
@@ -48,23 +48,25 @@ export default function Hero() {
         {/* CTAs */}
         <div className="flex flex-wrap gap-4">
           <a
-            href="#apply"
+            href="https://tr.ee/GruejcFSXr"
+            target="_blank"
+            rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
             style={{ background: '#e63e3e' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#c42e2e')}
             onMouseLeave={e => (e.currentTarget.style.background = '#e63e3e')}
           >
-            Work With Us
+            Book a Call
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
           <a
-            href="#services"
-            className="inline-flex items-center text-white text-xs font-bold px-8 py-4 rounded tracking-widest uppercase transition-colors"
+            href="#apply"
+            className="group inline-flex items-center gap-2 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
             style={{ border: '1px solid #2a2a2a' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = '#444')}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#555')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
           >
-            Our Services
+            Work With Us
           </a>
         </div>
 
