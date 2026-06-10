@@ -6,6 +6,7 @@ const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Tools',        href: '#tools' },
   { label: 'Coaches',      href: '#coaches' },
   { label: 'Apply',        href: '#apply' },
 ]
