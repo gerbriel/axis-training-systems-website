@@ -5,7 +5,6 @@ import Philosophy from './components/Philosophy'
 import Services from './components/Services'
 import HowItWorks from './components/HowItWorks'
 import Coaches from './components/Coaches'
-import InstagramFeed from './components/InstagramFeed'
 import Apply from './components/Apply'
 import Footer from './components/Footer'
 import PrivacyPolicy from './components/PrivacyPolicy'
@@ -31,7 +30,6 @@ export default function App() {
       <Services />
       <HowItWorks />
       <Coaches />
-      <InstagramFeed />
       <Apply />
       <Footer />
       {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
