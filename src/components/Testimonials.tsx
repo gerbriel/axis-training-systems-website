@@ -23,12 +23,30 @@ export default function Testimonials() {
   return (
     <section id="testimonials" style={{ padding: '6rem 2rem', background: '#030303', borderTop: '1px solid #0d0d0d' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '3.5rem' }}>
-          <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Results</p>
-          <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
-            Athletes Who<br />Made The Move
-          </h2>
+        {/* Header + feature photo */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'flex-end', gap: '2rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Results</p>
+            <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
+              Athletes Who<br />Made The Move
+            </h2>
+          </div>
+          <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '.15rem', flexShrink: 0 }}>
+            <img
+              src="https://static.wixstatic.com/media/e99af3_79e2b83391ac4e3dbd00da3383c2e8f1~mv2.jpg"
+              alt="Axis athlete competing"
+              loading="lazy"
+              style={{
+                width: 'clamp(120px, 18vw, 240px)',
+                height: 'clamp(80px, 12vw, 160px)',
+                objectFit: 'cover',
+                objectPosition: 'center 20%',
+                display: 'block',
+                filter: 'grayscale(30%) brightness(0.7)',
+              }}
+            />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(3,3,3,0.5) 0%, transparent 50%)' }} />
+          </div>
         </div>
 
         {/* Testimonial cards */}

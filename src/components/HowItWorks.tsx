@@ -46,7 +46,7 @@ export default function HowItWorks() {
   return (
     <section id="how-it-works" style={{ background: '#080808', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
             <p style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>How It Works</h2>
@@ -54,6 +54,24 @@ export default function HowItWorks() {
           <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
             Simple tools, direct communication, no bloated apps. Just you, your coach, and the work.
           </p>
+        </div>
+
+        {/* Action photo accent */}
+        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '.15rem', marginBottom: '1px' }}>
+          <img
+            src="https://static.wixstatic.com/media/c0cc37_796d8fc359f64ca8a68c705fc054c7d5~mv2.jpg"
+            alt="Axis athlete on platform"
+            loading="lazy"
+            style={{
+              width: '100%',
+              height: 'clamp(180px, 22vw, 300px)',
+              objectFit: 'cover',
+              objectPosition: 'center 25%',
+              display: 'block',
+              filter: 'grayscale(40%) brightness(0.6)',
+            }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(8,8,8,0.3), rgba(8,8,8,0.7))' }} />
         </div>
 
         {/* 4-step strip */}

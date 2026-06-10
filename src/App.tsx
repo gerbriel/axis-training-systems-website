@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import Philosophy from './components/Philosophy'
-import PhotoStrip from './components/PhotoStrip'
 import Services from './components/Services'
 import HowItWorks from './components/HowItWorks'
 import Testimonials from './components/Testimonials'
@@ -63,7 +62,6 @@ export default function App() {
       <Navbar />
       <Hero />
       <Philosophy />
-      <PhotoStrip />
       <Services />
       <HowItWorks />
       <Testimonials />

@@ -33,15 +33,34 @@ export default function Philosophy() {
             </blockquote>
           </div>
 
-          {/* Right grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {PILLARS.map(p => (
-              <div key={p.num} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem' }}>
-                <p style={{ color: '#e63e3e', fontSize: '1.75rem', fontWeight: 900, marginBottom: '.75rem' }}>{p.num}</p>
-                <p className="text-white font-bold text-sm mb-2">{p.title}</p>
-                <p style={{ color: '#444', fontSize: '.8rem', lineHeight: 1.6 }}>{p.desc}</p>
-              </div>
-            ))}
+          {/* Right column: photo + pillar grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '.15rem' }}>
+              <img
+                src="https://static.wixstatic.com/media/e99af3_5dba1d18186b43a686e4f40af779c1c1~mv2.jpg"
+                alt="Axis athlete competing"
+                loading="lazy"
+                style={{
+                  width: '100%',
+                  height: '280px',
+                  objectFit: 'cover',
+                  objectPosition: 'center 30%',
+                  display: 'block',
+                  filter: 'grayscale(30%) brightness(0.75)',
+                }}
+              />
+              {/* left-edge fade into bg */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(5,5,5,0.55) 0%, transparent 40%)' }} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {PILLARS.map(p => (
+                <div key={p.num} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem' }}>
+                  <p style={{ color: '#e63e3e', fontSize: '1.75rem', fontWeight: 900, marginBottom: '.75rem' }}>{p.num}</p>
+                  <p className="text-white font-bold text-sm mb-2">{p.title}</p>
+                  <p style={{ color: '#444', fontSize: '.8rem', lineHeight: 1.6 }}>{p.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
