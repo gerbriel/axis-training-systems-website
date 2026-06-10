@@ -12,7 +12,7 @@ import PrivacyPolicy from './components/PrivacyPolicy'
 import AdminPortal from './pages/AdminPortal'
 
 export default function App() {
-  const isAdmin = window.location.pathname.startsWith('/admin')
+  const isAdmin = window.location.pathname.includes('/admin')
   if (isAdmin) return <AdminPortal />
 
   const [showPrivacy, setShowPrivacy] = useState(false)

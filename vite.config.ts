@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // Serve index.html for all routes (SPA fallback — supports /admin)
+  // GitHub Pages base path — matches the repo name
+  base: '/axis-training-systems-website/',
   appType: 'spa',
 })
