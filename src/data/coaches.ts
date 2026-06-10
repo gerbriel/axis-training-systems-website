@@ -4,6 +4,7 @@ export interface CoachTestimonial {
   quote: string
   athlete: string
   result: string
+  photo?: string
 }
 
 export interface CoachService {
@@ -57,9 +58,24 @@ export const COACHES: Coach[] = [
       { label: 'Meets Attended', value: '20+' },
     ],
     testimonials: [
-      { quote: 'I immensely appreciate the excellent communication, knowledgeable and specific feedback I receive on my lift videos, the constant upbeat and positive encouraging attitude that Ronnie exudes out as he shares his passion of coaching.', athlete: 'Zack Scott', result: 'Axis Training Systems Athlete' },
-      { quote: 'As an athlete, I have learned small details to become a better powerlifter overall, but as a coach myself, having Ronnie as my coach was invaluable. Since working with Ronnie, I have grown leaps and bounds as a coach.', athlete: 'Michelle Madruga', result: 'Athlete & Coach' },
-      { quote: 'He told me things my previous coach never did. Blunt, honest, and exactly what I needed.', athlete: 'Priya M.', result: '4/4 National qualifier, 63kg' },
+      {
+        quote: 'My total before I met him was about 600, it\'s now at 1040 in less than a year — Ronnie added 400+ lbs in 7 months. Not only is he a great coach, he\'s a great athlete, motivator, and he\'s created a family through what he does. He\'s led me to be 7th in the nation for my class.',
+        athlete: 'Isaiah Salazar',
+        result: '+400+ lbs total in 7 months · 7th in the nation',
+        photo: 'https://static.wixstatic.com/media/e99af3_2b17679f70a445c1b3d3f497a6eed428~mv2.jpg',
+      },
+      {
+        quote: 'I immensely appreciate the excellent communication, knowledgeable and specific feedback I receive on my lift videos, the constant upbeat and positive encouraging attitude that Ronnie exudes out as he shares his passion of coaching. I am a stronger, smarter, and more prepared lifter as a result.',
+        athlete: 'Zack Scott',
+        result: '3 competitions coached & handled · national meet prep',
+        photo: 'https://static.wixstatic.com/media/e99af3_0d512540dd3b4d1d8084bbba566931e2~mv2.jpeg',
+      },
+      {
+        quote: 'As an athlete, I have learned small details to become a better powerlifter overall, but as a coach myself, having Ronnie as my coach was invaluable. Since working with Ronnie, I have grown leaps and bounds as a coach. Of any coach I\'ve ever personally met, Ronnie demonstrates the same characteristics I hold dear — knowledge, soft skills, genuine care, and personal investment.',
+        athlete: 'Michelle Madruga',
+        result: 'Competitive powerlifter & coach',
+        photo: 'https://static.wixstatic.com/media/e99af3_cc35fd3c63fc473191f2a3b7385d4bd3~mv2.jpg',
+      },
     ],
   },
   {
@@ -123,9 +139,24 @@ export const COACHES: Coach[] = [
       { label: 'Movement Assessments', value: '100+' },
     ],
     testimonials: [
-      { quote: 'I have been working with Lucas for over a year now and on my first training block with him I was able to gain +115lb to my gym total.', athlete: 'Lex Funtila', result: '+115 lb gym total in first training block' },
-      { quote: 'Lucas spotted a bar path issue in my bench on the first video review. Six weeks later I hit a 20lb bench PR with zero shoulder pain for the first time in years.', athlete: 'Dylan P.', result: '+20 lb bench, zero injury recurrence' },
-      { quote: 'The movement analysis was worth every penny. I finally understood my squat instead of just grinding through it.', athlete: 'Chris M.', result: 'Technique overhaul, 83kg class' },
+      {
+        quote: 'I have been working with Lucas for over a year now and on my first training block with him I was able to gain +115lb to my gym total. Under his wing, I was able to gain +49lb meet total and place 2nd in my division. Lucas isn\'t just a coach — he is also a student of the sport and seeks out knowledge of others in the field.',
+        athlete: 'Lex Funtila',
+        result: '+115 lb gym total · +49 lb meet total · 2nd place',
+        photo: 'https://static.wixstatic.com/media/e99af3_7dd394887fc14c8e971368b4cafc90ee~mv2.jpg',
+      },
+      {
+        quote: 'Throughout my first meet prep block we were able to increase my total from 505kg to 552.5kg. Then in a quick turnaround I was prepping two months later and we increased from 552.5kg all the way up to 597.5kg — including putting 50kgs on my deadlift in 7 months.',
+        athlete: 'Dylan Quitoriano',
+        result: '505kg → 597.5kg total · +50kg deadlift in 7 months',
+        photo: 'https://static.wixstatic.com/media/e99af3_1de65a1aa35548269955b4d8a43a615c~mv2.jpg',
+      },
+      {
+        quote: 'Lucas picked me up off the streets 8 weeks out of my first competition and with such a short amount of time to work together, he did a great job. Having a coach expedites progress and I wish I joined him from the beginning. I love Team Sison and I couldn\'t see another team as my family.',
+        athlete: 'Calvin Phan',
+        result: 'First meet prep · 2 meets together',
+        photo: 'https://static.wixstatic.com/media/e99af3_7411362124364417ad6f848f6f1d7993~mv2.jpg',
+      },
     ],
   },
   {

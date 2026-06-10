@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import Philosophy from './components/Philosophy'
+import PhotoStrip from './components/PhotoStrip'
 import Services from './components/Services'
 import HowItWorks from './components/HowItWorks'
+import Testimonials from './components/Testimonials'
 import Coaches from './components/Coaches'
 import Apply from './components/Apply'
 import Footer from './components/Footer'
@@ -60,8 +62,10 @@ export default function App() {
       <Navbar />
       <Hero />
       <Philosophy />
+      <PhotoStrip />
       <Services />
       <HowItWorks />
+      <Testimonials />
       <Coaches />
       <Apply />
       <Footer />

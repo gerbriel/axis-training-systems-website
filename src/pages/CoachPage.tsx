@@ -173,9 +173,22 @@ export default function CoachPage({ slug }: Props) {
                 {/* Quote mark */}
                 <span style={{ color: '#e63e3e', fontSize: '2rem', fontWeight: 900, lineHeight: 1, opacity: .6 }}>"</span>
                 <p style={{ color: '#aaa', fontSize: '.875rem', lineHeight: 1.8, flex: 1 }}>{t.quote}</p>
-                <div style={{ borderTop: '1px solid #141414', paddingTop: '1rem' }}>
-                  <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem', marginBottom: '.25rem' }}>{t.athlete}</p>
-                  <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>{t.result}</p>
+                <div style={{ borderTop: '1px solid #141414', paddingTop: '1rem', display: 'flex', alignItems: 'center', gap: '.875rem' }}>
+                  {t.photo ? (
+                    <img
+                      src={t.photo}
+                      alt={t.athlete}
+                      style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #1e1e1e' }}
+                    />
+                  ) : (
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#141414', border: '2px solid #1e1e1e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1rem' }}>{t.athlete[0]}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem', marginBottom: '.2rem' }}>{t.athlete}</p>
+                    <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>{t.result}</p>
+                  </div>
                 </div>
               </div>
             ))}
