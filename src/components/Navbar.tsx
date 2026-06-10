@@ -6,9 +6,9 @@ const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Tools',        href: '#tools' },
   { label: 'Coaches',      href: '#coaches' },
   { label: 'Apply',        href: '#apply' },
+  { label: 'Tools',        href: '#tools' },
 ]
 
 export default function Navbar() {
@@ -58,24 +58,6 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
           <a
-            href={adminHref()}
-            style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#888')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#444')}
-          >
-            Admin
-          </a>
-          <a
-            href="https://www.instagram.com/axistrainingsystems/"
-            target="_blank"
-            rel="noopener"
-            style={{ color: '#666', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#666')}
-          >
-            @axistrainingsystems
-          </a>
-          <a
             href="https://tr.ee/GruejcFSXr"
             target="_blank"
             rel="noopener noreferrer"
@@ -124,13 +106,6 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <a
-            href={adminHref()}
-            onClick={() => setMenuOpen(false)}
-            style={{ color: '#555', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
-          >
-            Admin Portal
-          </a>
           <a
             href="https://tr.ee/GruejcFSXr"
             target="_blank"

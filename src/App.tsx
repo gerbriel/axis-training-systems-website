@@ -65,9 +65,9 @@ export default function App() {
       <Services />
       <HowItWorks />
       <Testimonials />
-      <Tools />
       <Coaches />
       <Apply />
+      <Tools />
       <Footer />
       {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
     </div>

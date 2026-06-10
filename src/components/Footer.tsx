@@ -1,3 +1,5 @@
+import { adminHref } from '../utils/nav'
+
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 const NAV_LINKS = [
@@ -80,6 +82,7 @@ export default function Footer() {
             <p style={{ color: '#222', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               {NAV_LINKS.map(l => <FooterLink key={l.label} href={l.href}>{l.label}</FooterLink>)}
+              <FooterLink href={adminHref()}>Admin</FooterLink>
             </ul>
           </div>
 
@@ -87,7 +90,7 @@ export default function Footer() {
           <div>
             <p style={{ color: '#222', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
-              <FooterLink href="https://www.instagram.com/axistrainingsystems/">Instagram</FooterLink>
+              <FooterLink href="https://www.instagram.com/axistrainingsystems/">@axistrainingsystems</FooterLink>
               <FooterLink href="https://www.youtube.com/@axistrainingsystems">YouTube</FooterLink>
               <FooterLink href="https://linktr.ee/Axis.Training.Systems">Linktree</FooterLink>
             </ul>
