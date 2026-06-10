@@ -84,7 +84,7 @@ export default function AdminLogin({ onDemo }: Props) {
 
         <p style={{ color: '#333', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
           Admin access only.{' '}
-          <a href={import.meta.env.BASE_URL} style={{ color: '#555', textDecoration: 'underline' }}>← Back to site</a>
+          <a href={(import.meta as any).env?.BASE_URL ?? '/'} style={{ color: '#555', textDecoration: 'underline' }}>← Back to site</a>
         </p>
       </div>
     </div>
