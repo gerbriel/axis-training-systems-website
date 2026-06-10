@@ -1,10 +1,5 @@
-const COACHES = [
-  { initial: 'R', name: 'Ronnie Vallejo' },
-  { initial: 'S', name: 'Seth Burman' },
-  { initial: 'L', name: 'Lucas Sison' },
-  { initial: 'K', name: 'Kobe Pham' },
-  { initial: 'A', name: 'Aedan Nguyen' },
-]
+import { COACHES } from '../data/coaches'
+import { coachHref, applyHref } from '../utils/nav'
 
 export default function Coaches() {
   return (
@@ -17,16 +12,36 @@ export default function Coaches() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {COACHES.map(c => (
-            <div key={c.name} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem' }}>
+            <div key={c.slug} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
+              {/* Avatar */}
               <div
                 className="flex items-center justify-center mb-5"
-                style={{ width: '3rem', height: '3rem', borderRadius: '50%', background: '#141414', border: '1px solid #222' }}
+                style={{ width: '3rem', height: '3rem', borderRadius: '50%', background: '#141414', border: '1px solid #222', flexShrink: 0 }}
               >
-                <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.1rem' }}>{c.initial}</span>
+                <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.1rem' }}>{c.firstName[0]}</span>
               </div>
               <p className="text-white font-bold text-sm mb-1">{c.name}</p>
-              <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Coach</p>
-              <p style={{ color: '#444', fontSize: '.75rem', lineHeight: 1.6 }}>Competitive powerlifter &amp; full-service coach.</p>
+              <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{c.role}</p>
+              <p style={{ color: '#444', fontSize: '.75rem', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>{c.tagline}</p>
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginTop: 'auto' }}>
+                <a
+                  href={coachHref(c.slug)}
+                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid #2a2a2a', color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#888' }}
+                >
+                  View Profile
+                </a>
+                <a
+                  href={applyHref(c.slug)}
+                  style={{ display: 'block', textAlign: 'center', background: '#e63e3e', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#c42e2e' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#e63e3e' }}
+                >
+                  Apply
+                </a>
+              </div>
             </div>
           ))}
         </div>
