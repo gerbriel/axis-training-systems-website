@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { -webkit-font-smoothing: antialiased; }
+
+body {
+  background: #080808;
+  color: #fff;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+
+/* Field base */
+.field {
+  width: 100%;
+  background: #111;
+  border: 1px solid #222;
+  color: #fff;
+  padding: .75rem 1rem;
+  border-radius: .25rem;
+  font-size: .875rem;
+  outline: none;
+  transition: border-color .2s;
+  appearance: none;
+  font-family: inherit;
+}
+.field:focus { border-color: #e63e3e; }
+.field::placeholder { color: #444; }
+select.field option { background: #111; color: #fff; }
+textarea.field { resize: vertical; }
+
+/* Pill radio/checkbox */
+.pill-label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: #111;
+  border: 1px solid #222;
+  padding: .6rem 1rem;
+  border-radius: .25rem;
+  cursor: pointer;
+  font-size: .8rem;
+  color: #888;
+  transition: all .15s;
+  user-select: none;
+  white-space: nowrap;
+}
+.pill-label:hover { border-color: #444; color: #fff; }
+.pill-checked { border-color: #e63e3e !important; color: #fff !important; background: #1a0808 !important; }
+
+/* Scale button */
+.scale-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid #222;
+  border-radius: .25rem;
+  background: #111;
+  color: #666;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scale-btn:hover,
+.scale-btn.selected { border-color: #e63e3e; color: #fff; background: #1a0808; }
+
+/* Field label */
+.field-label {
+  display: block;
+  color: #666;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: .5rem;
+}
