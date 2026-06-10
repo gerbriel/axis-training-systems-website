@@ -17,15 +17,6 @@ function roundToNearest(val: number, nearest: number) {
 function toKg(lbs: number) { return lbs * 0.453592 }
 function toLbs(kg: number) { return kg * 2.20462 }
 
-function calc1RM(weight: number, reps: number) {
-  if (reps === 1) return weight
-  const epley    = weight * (1 + reps / 30)
-  const brzycki  = weight * (36 / (37 - reps))
-  const lombardi = weight * Math.pow(reps, 0.1)
-  const oconner  = weight * (1 + 0.025 * reps)
-  return (epley + brzycki + lombardi + oconner) / 4
-}
-
 // ── Shared input style ────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   background: '#0d0d0d',
@@ -60,73 +51,6 @@ const selectStyle: React.CSSProperties = {
   ...inputStyle,
   appearance: 'none',
   cursor: 'pointer',
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 1RM CALCULATOR
-// ─────────────────────────────────────────────────────────────────────────────
-function OneRMCalc() {
-  const [weight, setWeight]   = useState('')
-  const [reps, setReps]       = useState('')
-  const [unit, setUnit]       = useState<'lbs' | 'kg'>('lbs')
-
-  const w = parseFloat(weight)
-  const r = parseInt(reps)
-  const valid = !isNaN(w) && !isNaN(r) && w > 0 && r >= 1 && r <= 30
-
-  const raw1RM = valid ? calc1RM(w, r) : null
-  const display = (v: number) => unit === 'lbs'
-    ? `${Math.round(v)} lbs  /  ${toKg(v).toFixed(1)} kg`
-    : `${Math.round(v)} kg  /  ${toLbs(v).toFixed(1)} lbs`
-
-  const pcts = [100, 95, 90, 85, 80, 75, 70]
-
-  return (
-    <div>
-      <p style={{ color: '#666', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-        Enter the weight you lifted and how many reps you completed. We'll average four established formulas (Epley, Brzycki, Lombardi, O'Conner) for accuracy.
-      </p>
-      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-        <div>
-          <label style={labelStyle}>Weight</label>
-          <input style={inputStyle} type="number" min="1" placeholder="e.g. 315" value={weight} onChange={e => setWeight(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Unit</label>
-          <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
-            <option value="lbs">lbs</option>
-            <option value="kg">kg</option>
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Reps (1–30)</label>
-          <input style={inputStyle} type="number" min="1" max="30" placeholder="e.g. 5" value={reps} onChange={e => setReps(e.target.value)} />
-        </div>
-      </div>
-
-      {valid && raw1RM !== null && (
-        <div style={resultBox}>
-          <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Estimated 1RM</p>
-          <p style={{ color: '#e63e3e', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>
-            {display(raw1RM)}
-          </p>
-          <p style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Training Percentages</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '.5rem' }}>
-            {pcts.map(pct => (
-              <div key={pct} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.2rem', padding: '.6rem .875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#444', fontSize: '.65rem', fontWeight: 700 }}>{pct}%</span>
-                <span style={{ color: '#ccc', fontSize: '.8rem', fontWeight: 700 }}>
-                  {unit === 'lbs'
-                    ? `${Math.round(raw1RM * pct / 100)} lbs`
-                    : `${(raw1RM * pct / 100).toFixed(1)} kg`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -550,7 +474,6 @@ function WeightConverter() {
 // MAIN SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: '1rm',       label: '1 Rep Max',       short: '1RM' },
   { id: 'rpe',       label: 'RPE Calculator',  short: 'RPE' },
   { id: 'attempts',  label: 'Attempt Planner', short: 'Attempts' },
   { id: 'convert',   label: 'Weight Converter',short: 'Convert' },
@@ -559,7 +482,7 @@ const TABS = [
 type TabId = typeof TABS[number]['id']
 
 export default function Tools() {
-  const [active, setActive] = useState<TabId>('1rm')
+  const [active, setActive] = useState<TabId>('rpe')
 
   return (
     <section id="tools" style={{ padding: '6rem 2rem', background: '#050505', borderTop: '1px solid #0d0d0d' }}>
@@ -606,7 +529,6 @@ export default function Tools() {
 
         {/* Panel */}
         <div style={{ background: '#080808', border: '1px solid #141414', borderRadius: '.25rem', padding: '2rem' }}>
-          {active === '1rm'      && <OneRMCalc />}
           {active === 'rpe'      && <RPECalc />}
           {active === 'attempts' && <AttemptPlanner />}
           {active === 'convert'  && <WeightConverter />}
