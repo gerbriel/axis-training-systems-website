@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { href } from '../utils/nav'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
+// OPL's API doesn't send CORS headers for github.io — route through a proxy
+const oplProxy = (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`
 
 // ── OPL API types ─────────────────────────────────────────────────────────
 // OPL search returns an array of lifter name strings
@@ -85,7 +87,7 @@ export default function Rankings() {
       setLoadingSug(true)
       try {
         const res = await fetch(
-          `https://www.openpowerlifting.org/api/search/rankings?q=${encodeURIComponent(val.trim())}&lang=en&units=lbs`,
+          oplProxy(`https://www.openpowerlifting.org/api/search/rankings?q=${encodeURIComponent(val.trim())}&lang=en&units=lbs`),
           { headers: { Accept: 'application/json' } }
         )
         if (res.ok) {
@@ -114,7 +116,7 @@ export default function Rankings() {
       // OPL rankings endpoint filtered to a specific lifter name
       const slug = name.trim().replace(/\s+/g, '-').toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      const url = `https://www.openpowerlifting.org/api/rankings?start=0&end=500&q=${encodeURIComponent(name.trim())}&lang=en&units=lbs`
+      const url = oplProxy(`https://www.openpowerlifting.org/api/rankings?start=0&end=500&q=${encodeURIComponent(name.trim())}&lang=en&units=lbs`)
       const res = await fetch(url, { headers: { Accept: 'application/json' } })
       if (!res.ok) throw new Error(`API error (${res.status}) — try again shortly.`)
       const data = await res.json()
@@ -126,7 +128,7 @@ export default function Rankings() {
       if (fields.length === 0 || rows.length === 0) {
         // Fallback: try the lifter-specific endpoint
         const res2 = await fetch(
-          `https://www.openpowerlifting.org/u/${encodeURIComponent(slug)}/csv`,
+          oplProxy(`https://www.openpowerlifting.org/u/${encodeURIComponent(slug)}/csv`),
           { headers: { Accept: 'text/csv' } }
         )
         if (!res2.ok) throw new Error('No lifter found with that name. Check spelling and try again.')
