@@ -11,16 +11,18 @@
  */
 
 import { supabase, supabaseConfigured } from './supabase'
-import {
-  getPendingContent,
-  addPendingContent,
-  updateContentStatus,
-  deleteContent,
-  getApprovedPosts,
-  getApprovedMeets,
-} from '../data/pendingContent'
 import type { PendingContent, ContentStatus } from '../data/pendingContent'
 import { sanitize } from '../utils/sanitize'
+import { DEMO_CONTENT } from '../data/demoData'
+
+// ── In-memory demo store ────────────────────────────────────────────────────
+// Seeded from DEMO_CONTENT on first access. Intentionally resets on page reload.
+let _demoStore: PendingContent[] | null = null
+
+function getDemoStore(): PendingContent[] {
+  if (!_demoStore) _demoStore = DEMO_CONTENT.map(c => ({ ...c }))
+  return _demoStore
+}
 
 // ── DB ↔ app field mapping ──────────────────────────────────────────────────
 
@@ -82,7 +84,7 @@ function useDB(isDemo: boolean): boolean {
 
 /** Fetch ALL content submissions — used by admin approvals panel. */
 export async function fetchAllContent(isDemo: boolean): Promise<PendingContent[]> {
-  if (!useDB(isDemo)) return getPendingContent()
+  if (!useDB(isDemo)) return [...getDemoStore()]
   const { data, error } = await supabase
     .from('pending_content')
     .select('*')
@@ -97,7 +99,7 @@ export async function fetchMyContent(
   isDemo: boolean,
 ): Promise<PendingContent[]> {
   if (!useDB(isDemo)) {
-    return getPendingContent().filter(c => c.coachSlug === coachSlug)
+    return getDemoStore().filter(c => c.coachSlug === coachSlug)
   }
   const { data, error } = await supabase
     .from('pending_content')
@@ -113,7 +115,16 @@ export async function submitContent(
   item: Omit<PendingContent, 'id' | 'submittedAt' | 'status'>,
   isDemo: boolean,
 ): Promise<PendingContent> {
-  if (!useDB(isDemo)) return addPendingContent(item)
+  if (!useDB(isDemo)) {
+    const newItem: PendingContent = {
+      ...item,
+      id: Math.random().toString(36).slice(2, 12),
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+    }
+    getDemoStore().push(newItem)
+    return newItem
+  }
   const { data, error } = await supabase
     .from('pending_content')
     .insert([contentToRow(item)])
@@ -131,7 +142,9 @@ export async function reviewContent(
   isDemo: boolean,
 ): Promise<void> {
   if (!useDB(isDemo)) {
-    updateContentStatus(id, status, rejectionNote)
+    const store = getDemoStore()
+    const idx = store.findIndex(c => c.id === id)
+    if (idx >= 0) store[idx] = { ...store[idx], status, reviewedAt: new Date().toISOString(), ...(rejectionNote ? { rejectionNote } : {}) }
     return
   }
   const update: Record<string, unknown> = {
@@ -148,7 +161,12 @@ export async function reviewContent(
 
 /** Delete a content record (withdraw or admin cleanup). */
 export async function removeContent(id: string, isDemo: boolean): Promise<void> {
-  if (!useDB(isDemo)) { deleteContent(id); return }
+  if (!useDB(isDemo)) {
+    const store = getDemoStore()
+    const idx = store.findIndex(c => c.id === id)
+    if (idx >= 0) store.splice(idx, 1)
+    return
+  }
   const { error } = await supabase
     .from('pending_content')
     .delete()
@@ -161,14 +179,14 @@ export async function removeContent(id: string, isDemo: boolean): Promise<void> 
  * isDemo is derived from !supabaseConfigured for public pages.
  */
 export async function fetchApprovedPosts(isDemo: boolean): Promise<PendingContent[]> {
-  if (!useDB(isDemo)) return getApprovedPosts()
+  if (!useDB(isDemo)) return getDemoStore().filter(c => c.type === 'blog' && c.status === 'approved')
   const { data, error } = await supabase
     .from('pending_content')
     .select('*')
     .eq('type', 'blog')
     .eq('status', 'approved')
     .order('submitted_at', { ascending: false })
-  if (error) return getApprovedPosts() // graceful fallback
+  if (error) return getDemoStore().filter(c => c.type === 'blog' && c.status === 'approved') // graceful fallback
   return (data ?? []).map(r => rowToContent(r as Record<string, unknown>))
 }
 
@@ -177,13 +195,13 @@ export async function fetchApprovedPosts(isDemo: boolean): Promise<PendingConten
  * isDemo is derived from !supabaseConfigured for public pages.
  */
 export async function fetchApprovedMeets(isDemo: boolean): Promise<PendingContent[]> {
-  if (!useDB(isDemo)) return getApprovedMeets()
+  if (!useDB(isDemo)) return getDemoStore().filter(c => c.type === 'meet' && c.status === 'approved')
   const { data, error } = await supabase
     .from('pending_content')
     .select('*')
     .eq('type', 'meet')
     .eq('status', 'approved')
     .order('submitted_at', { ascending: false })
-  if (error) return getApprovedMeets() // graceful fallback
+  if (error) return getDemoStore().filter(c => c.type === 'meet' && c.status === 'approved') // graceful fallback
   return (data ?? []).map(r => rowToContent(r as Record<string, unknown>))
 }

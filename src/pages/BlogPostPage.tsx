@@ -1,9 +1,30 @@
+import { useState, useEffect } from 'react'
 import { getPostBySlug, BlogSection } from '../data/blog'
+import type { BlogPost } from '../data/blog'
 import { href } from '../utils/nav'
+import { fetchApprovedPosts } from '../lib/contentApi'
+import { supabaseConfigured } from '../lib/supabase'
+import type { PendingContent } from '../data/pendingContent'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 interface Props { slug: string }
+
+function pendingToPost(p: PendingContent): BlogPost {
+  return {
+    slug: p.id,
+    title: p.title ?? '',
+    subtitle: p.subtitle ?? '',
+    date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    author: p.coachName,
+    authorRole: '',
+    coachSlug: p.coachSlug,
+    coachName: p.coachName,
+    tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
+    summary: p.summary ?? '',
+    content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
+  }
+}
 
 function renderSection(s: BlogSection, i: number) {
   switch (s.type) {
@@ -64,7 +85,29 @@ function renderSection(s: BlogSection, i: number) {
 }
 
 export default function BlogPostPage({ slug }: Props) {
-  const post = getPostBySlug(slug)
+  const staticPost = getPostBySlug(slug)
+  const [dynPost, setDynPost] = useState<BlogPost | null>(null)
+  const [loading, setLoading]  = useState(!staticPost)
+
+  useEffect(() => {
+    if (staticPost) return
+    fetchApprovedPosts(!supabaseConfigured)
+      .then(approved => {
+        const found = approved.find(p => p.id === slug)
+        setDynPost(found ? pendingToPost(found) : null)
+      })
+      .catch(() => setDynPost(null))
+      .finally(() => setLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug])
+
+  const post = staticPost ?? dynPost
+
+  if (loading) return (
+    <div style={{ background: '#080808', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: '#333', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+    </div>
+  )
 
   if (!post) {
     return (
@@ -132,7 +175,7 @@ export default function BlogPostPage({ slug }: Props) {
         {/* CTA at bottom */}
         <div style={{ marginTop: '4rem', padding: '2.5rem', background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: '.25rem', textAlign: 'center' }}>
           <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Axis Training Systems</p>
-          <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.75rem' }}>Work With a Coach Like Seth</p>
+          <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.75rem' }}>Work With a Coach Like {post.author.split(' ')[0]}</p>
           <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
             Results like this don't happen by accident. They're the product of evidence-based coaching, genuine investment in the athlete, and the trust to adapt when it matters.
           </p>
