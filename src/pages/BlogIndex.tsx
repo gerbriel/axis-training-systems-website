@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { POSTS } from '../data/blog'
 import type { BlogPost } from '../data/blog'
 import { href } from '../utils/nav'
-import { getApprovedPosts } from '../data/pendingContent'
+import { fetchApprovedPosts } from '../lib/contentApi'
+import { supabaseConfigured } from '../lib/supabase'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -15,22 +16,23 @@ export default function BlogIndex() {
   const [allPosts, setAllPosts] = useState<BlogPost[]>(POSTS)
 
   useEffect(() => {
-    const localApproved = getApprovedPosts()
-    if (localApproved.length === 0) return
-    const mapped: BlogPost[] = localApproved.map(p => ({
-      slug: p.id,
-      title: p.title ?? '',
-      subtitle: p.subtitle ?? '',
-      date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      author: p.coachName,
-      authorRole: '',
-      coachSlug: p.coachSlug,
-      coachName: p.coachName,
-      tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
-      summary: p.summary ?? '',
-      content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
-    }))
-    setAllPosts([...POSTS, ...mapped])
+    fetchApprovedPosts(!supabaseConfigured).then(approved => {
+      if (approved.length === 0) return
+      const mapped: BlogPost[] = approved.map(p => ({
+        slug: p.id,
+        title: p.title ?? '',
+        subtitle: p.subtitle ?? '',
+        date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        author: p.coachName,
+        authorRole: '',
+        coachSlug: p.coachSlug,
+        coachName: p.coachName,
+        tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
+        summary: p.summary ?? '',
+        content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
+      }))
+      setAllPosts([...POSTS, ...mapped])
+    }).catch(() => { /* fallback to static only */ })
   }, [])
 
   return (

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Coach } from '../../data/coaches'
-import { addPendingContent, getPendingContent, deleteContent } from '../../data/pendingContent'
+import { fetchMyContent, submitContent, removeContent } from '../../lib/contentApi'
 import type { PendingContent } from '../../data/pendingContent'
-import { isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
+import { isRateLimited, recordFailedAttempt, formatLockRemaining } from '../../utils/sanitize'
 
 // Content submission rate limit: max 5 submissions per 30 minutes per coach
 const SUBMIT_MAX      = 5
@@ -46,10 +46,10 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   const rlScope = `content_submit_${coach.slug}`
   const [contentType, setContentType] = useState<'blog' | 'meet'>('blog')
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [items, setItems] = useState<PendingContent[]>(() =>
-    getPendingContent().filter(c => c.coachSlug === coach.slug)
-  )
+  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState<PendingContent[]>([])
 
   // Blog form state
   const [blogTitle,    setBlogTitle]    = useState('')
@@ -66,34 +66,44 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   const [meetType,     setMeetType]     = useState('National')
   const [meetNote,     setMeetNote]     = useState('')
 
-  function refreshItems() {
-    setItems(getPendingContent().filter(c => c.coachSlug === coach.slug))
-  }
+  const refreshItems = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await fetchMyContent(coach.slug, isDemo)
+      setItems(data)
+    } catch { /* silent */ } finally {
+      setLoading(false)
+    }
+  }, [coach.slug, isDemo])
 
-  function checkAndSubmit(fn: () => void) {
+  useEffect(() => { refreshItems() }, [refreshItems])
+
+  async function checkAndSubmit(fn: () => Promise<void>) {
     setSubmitError('')
     const { blocked, remainingMs } = isRateLimited(rlScope)
     if (blocked) {
       setSubmitError(`Too many submissions. Try again in ${formatLockRemaining(remainingMs)}.`)
       return
     }
-    // Count this attempt before executing — deters repeated spam even on errors
     recordFailedAttempt(rlScope, SUBMIT_MAX, SUBMIT_LOCK_MS, SUBMIT_WINDOW_MS)
+    setSubmitting(true)
     try {
-      fn()
+      await fn()
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+      setSubmitting(false)
       return
     }
+    setSubmitting(false)
     setSubmitted(true)
-    refreshItems()
+    await refreshItems()
     setTimeout(() => setSubmitted(false), 3000)
   }
 
   function submitBlog() {
     if (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) return
-    checkAndSubmit(() => {
-      addPendingContent({
+    checkAndSubmit(async () => {
+      await submitContent({
         type: 'blog',
         coachSlug: coach.slug,
         coachName: coach.name,
@@ -102,15 +112,15 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
         tags:      blogTags.trim(),
         summary:   blogSummary.trim(),
         content:   blogContent.trim(),
-      })
+      }, isDemo)
       setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary(''); setBlogContent('')
     })
   }
 
   function submitMeet() {
     if (!meetName.trim() || !meetDate.trim()) return
-    checkAndSubmit(() => {
-      addPendingContent({
+    checkAndSubmit(async () => {
+      await submitContent({
         type: 'meet',
         coachSlug: coach.slug,
         coachName: coach.name,
@@ -120,17 +130,17 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
         federation:   federation.trim(),
         meetType:     meetType,
         meetNote:     meetNote.trim(),
-      })
+      }, isDemo)
       setMeetName(''); setMeetDate(''); setMeetLocation(''); setFederation(''); setMeetNote('')
     })
   }
 
-  function handleDelete(id: string) {
-    deleteContent(id)
-    refreshItems()
+  async function handleDelete(id: string) {
+    try { await removeContent(id, isDemo) } catch { /* ignore */ }
+    await refreshItems()
   }
 
-  const myItems = items.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+  const myItems = items.slice().sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
 
   return (
     <div style={{ padding: '2rem', maxWidth: 800 }}>
@@ -207,7 +217,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 onClick={submitBlog}
-                disabled={!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()}
+                disabled={!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim() || submitting}
                 style={{
                   background: '#e63e3e',
                   border: 'none',
@@ -220,11 +230,11 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                   borderRadius: '.2rem',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  opacity: (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) ? 0.4 : 1,
+                  opacity: (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim() || submitting) ? 0.4 : 1,
                   transition: 'opacity .15s',
                 }}
               >
-                Submit for Review →
+                {submitting ? 'Submitting…' : 'Submit for Review →'}
               </button>
               {submitted && <span style={{ color: '#22c55e', fontSize: '.75rem', fontWeight: 700 }}>✓ Submitted — pending head coach review</span>}
               {submitError && <span style={{ color: '#e63e3e', fontSize: '.75rem', fontWeight: 700 }}>{submitError}</span>}
@@ -275,7 +285,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
             <button
               onClick={submitMeet}
-              disabled={!meetName.trim() || !meetDate.trim()}
+              disabled={!meetName.trim() || !meetDate.trim() || submitting}
               style={{
                 background: '#e63e3e',
                 border: 'none',
@@ -288,11 +298,11 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                 borderRadius: '.2rem',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                opacity: (!meetName.trim() || !meetDate.trim()) ? 0.4 : 1,
+                opacity: (!meetName.trim() || !meetDate.trim() || submitting) ? 0.4 : 1,
                 transition: 'opacity .15s',
               }}
             >
-              Submit for Review →
+              {submitting ? 'Submitting…' : 'Submit for Review →'}
             </button>
             {submitted && <span style={{ color: '#22c55e', fontSize: '.75rem', fontWeight: 700 }}>✓ Submitted — pending head coach review</span>}
             {submitError && <span style={{ color: '#e63e3e', fontSize: '.75rem', fontWeight: 700 }}>{submitError}</span>}
@@ -303,9 +313,11 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
       {/* ── Submission history ────────────────────────────────────────────── */}
       <div>
         <p style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Your Submissions ({myItems.length})
+          Your Submissions ({loading ? '…' : myItems.length})
         </p>
-        {myItems.length === 0 ? (
+        {loading ? (
+          <p style={{ color: '#2a2a2a', fontSize: '.8rem' }}>Loading…</p>
+        ) : myItems.length === 0 ? (
           <p style={{ color: '#2a2a2a', fontSize: '.8rem' }}>No submissions yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#111' }}>

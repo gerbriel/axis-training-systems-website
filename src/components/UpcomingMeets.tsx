@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getApprovedMeets } from '../data/pendingContent'
+import { fetchApprovedMeets } from '../lib/contentApi'
+import { supabaseConfigured } from '../lib/supabase'
 
 const STATIC_MEETS = [
   {
@@ -50,17 +51,18 @@ export default function UpcomingMeets() {
   const [meets, setMeets] = useState<Meet[]>(STATIC_MEETS)
 
   useEffect(() => {
-    const approved = getApprovedMeets()
-    if (approved.length === 0) return
-    const mapped: Meet[] = approved.map(m => ({
-      name: m.meetName ?? '',
-      date: m.meetDate ?? '',
-      location: m.meetLocation ?? '',
-      federation: m.federation ?? '',
-      type: m.meetType ?? 'Local',
-      note: m.meetNote ?? '',
-    }))
-    setMeets([...STATIC_MEETS, ...mapped])
+    fetchApprovedMeets(!supabaseConfigured).then(approved => {
+      if (approved.length === 0) return
+      const mapped: Meet[] = approved.map(m => ({
+        name: m.meetName ?? '',
+        date: m.meetDate ?? '',
+        location: m.meetLocation ?? '',
+        federation: m.federation ?? '',
+        type: m.meetType ?? 'Local',
+        note: m.meetNote ?? '',
+      }))
+      setMeets([...STATIC_MEETS, ...mapped])
+    }).catch(() => { /* fallback to static only */ })
   }, [])
 
   return (

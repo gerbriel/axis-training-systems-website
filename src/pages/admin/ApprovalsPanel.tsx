@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { getPendingContent, updateContentStatus, deleteContent } from '../../data/pendingContent'
+import { useState, useEffect, useCallback } from 'react'
+import { fetchAllContent, reviewContent, removeContent } from '../../lib/contentApi'
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
 
@@ -41,32 +41,54 @@ interface Props {
 export default function ApprovalsPanel({ isDemo = false }: Props) {
   const [filterType,   setFilterType]   = useState<FilterType>('all')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('pending')
-  const [items,        setItems]        = useState<PendingContent[]>(() => getPendingContent())
+  const [items,        setItems]        = useState<PendingContent[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [actionId,     setActionId]     = useState<string | null>(null) // tracks in-flight approve/reject/delete
   const [expandedId,   setExpandedId]   = useState<string | null>(null)
   const [rejectNotes,  setRejectNotes]  = useState<Record<string, string>>({})
   const [rejectMode,   setRejectMode]   = useState<Record<string, boolean>>({})
+  const [actionError,  setActionError]  = useState<string | null>(null)
 
-  function refresh() { setItems(getPendingContent()) }
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setActionError(null)
+    try {
+      const data = await fetchAllContent(isDemo)
+      setItems(data)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [isDemo])
 
-  function approve(id: string) {
-    updateContentStatus(id, 'approved')
-    refresh()
+  useEffect(() => { refresh() }, [refresh])
+
+  async function approve(id: string) {
+    setActionId(id)
+    try { await reviewContent(id, 'approved', undefined, isDemo) } catch (err) { setActionError(err instanceof Error ? err.message : 'Failed') }
+    setActionId(null)
+    await refresh()
   }
 
   function startReject(id: string) {
     setRejectMode(prev => ({ ...prev, [id]: true }))
   }
 
-  function confirmReject(id: string) {
+  async function confirmReject(id: string) {
     const safeNote = sanitize(rejectNotes[id] ?? '', 500)
-    updateContentStatus(id, 'rejected', safeNote)
+    setActionId(id)
+    try { await reviewContent(id, 'rejected', safeNote, isDemo) } catch (err) { setActionError(err instanceof Error ? err.message : 'Failed') }
     setRejectMode(prev => ({ ...prev, [id]: false }))
-    refresh()
+    setActionId(null)
+    await refresh()
   }
 
-  function handleDelete(id: string) {
-    deleteContent(id)
-    refresh()
+  async function handleDelete(id: string) {
+    setActionId(id)
+    try { await removeContent(id, isDemo) } catch (err) { setActionError(err instanceof Error ? err.message : 'Failed') }
+    setActionId(null)
+    await refresh()
   }
 
   const filtered = items
@@ -102,9 +124,15 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
           onClick={refresh}
           style={{ background: 'none', border: '1px solid #222', color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.45rem .9rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
         >
-          ↻ Refresh
+          {loading ? '…' : '↻ Refresh'}
         </button>
       </div>
+
+      {actionError && (
+        <div style={{ background: '#1a0808', border: '1px solid #4a1515', borderRadius: '.25rem', padding: '.75rem 1rem', marginBottom: '1.5rem', color: '#f87171', fontSize: '.8rem' }}>
+          {actionError}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -145,7 +173,11 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
       </div>
 
       {/* Items */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div style={{ background: '#0a0a0a', border: '1px solid #111', borderRadius: '.25rem', padding: '3rem 2rem', textAlign: 'center' }}>
+          <p style={{ color: '#2a2a2a', fontSize: '.875rem' }}>Loading…</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div style={{ background: '#0a0a0a', border: '1px solid #111', borderRadius: '.25rem', padding: '3rem 2rem', textAlign: 'center' }}>
           <p style={{ color: '#2a2a2a', fontSize: '.875rem' }}>
             {filterStatus === 'pending' ? 'No pending submissions.' : 'No reviewed items.'}
@@ -230,12 +262,14 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
                       <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={e => { e.stopPropagation(); approve(item.id) }}
-                          style={{ background: '#22c55e18', border: '1px solid #22c55e', color: '#22c55e', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                          disabled={actionId === item.id}
+                          style={{ background: '#22c55e18', border: '1px solid #22c55e', color: '#22c55e', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', opacity: actionId === item.id ? 0.5 : 1 }}
                         >
-                          ✓ Approve
+                          {actionId === item.id ? '…' : '✓ Approve'}
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); startReject(item.id) }}
+                          disabled={actionId === item.id}
                           style={{ background: '#e63e3e18', border: '1px solid #e63e3e', color: '#e63e3e', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           ✕ Reject
@@ -257,9 +291,10 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
                         <div style={{ display: 'flex', gap: '.5rem' }}>
                           <button
                             onClick={() => confirmReject(item.id)}
-                            style={{ background: '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                            disabled={actionId === item.id}
+                            style={{ background: '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', opacity: actionId === item.id ? 0.5 : 1 }}
                           >
-                            Confirm Reject
+                            {actionId === item.id ? 'Saving…' : 'Confirm Reject'}
                           </button>
                           <button
                             onClick={() => setRejectMode(prev => ({ ...prev, [item.id]: false }))}
@@ -273,7 +308,8 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
                     {item.status !== 'pending' && (
                       <button
                         onClick={e => { e.stopPropagation(); handleDelete(item.id) }}
-                        style={{ background: 'none', border: '1px solid #1a1a1a', color: '#333', fontWeight: 700, fontSize: '.6rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.45rem .9rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                        disabled={actionId === item.id}
+                        style={{ background: 'none', border: '1px solid #1a1a1a', color: '#333', fontWeight: 700, fontSize: '.6rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.45rem .9rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', opacity: actionId === item.id ? 0.5 : 1 }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.color = '#e63e3e' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a1a1a'; e.currentTarget.style.color = '#333' }}
                       >
