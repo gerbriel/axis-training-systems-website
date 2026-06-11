@@ -5,6 +5,9 @@ import { getCoachBySlug } from '../data/coaches'
 import { href, adminHref } from '../utils/nav'
 import CoachAdminLogin from './coach-admin/CoachAdminLogin'
 import CoachAdminDashboard from './coach-admin/CoachAdminDashboard'
+import ContentPublisher from './coach-admin/ContentPublisher'
+
+type CoachTab = 'leads' | 'content'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -15,6 +18,7 @@ export default function CoachAdmin({ slug }: Props) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDemo, setIsDemo] = useState(false)
+  const [tab, setTab] = useState<CoachTab>('leads')
 
   useEffect(() => {
     if (!supabaseConfigured) { setLoading(false); return }
@@ -74,6 +78,27 @@ export default function CoachAdmin({ slug }: Props) {
         <span style={{ color: '#2a2a2a' }}>›</span>
         <span style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>{coach.name}</span>
 
+        {/* Tabs */}
+        <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
+          {([['leads', 'Leads'], ['content', 'Publish Content']] as [CoachTab, string][]).map(([t, label]) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: tab === t ? '#fff' : '#444',
+                fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
+                borderBottom: `2px solid ${tab === t ? '#e63e3e' : 'transparent'}`,
+                paddingBottom: '1px', transition: 'color .15s', fontFamily: 'inherit',
+              }}
+              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
+              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           {isDemo && (
             <span style={{ color: '#f59e0b', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo Mode</span>
@@ -96,13 +121,14 @@ export default function CoachAdmin({ slug }: Props) {
       <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
         <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {coach.firstName}'s Leads
+          {tab === 'leads' ? `${coach.firstName}'s Leads` : 'Publish Content'}
         </h1>
       </div>
 
       {/* Content */}
       <main style={{ flex: 1, overflowX: 'auto' }}>
-        <CoachAdminDashboard coach={coach} isDemo={isDemo} />
+        {tab === 'leads'   && <CoachAdminDashboard coach={coach} isDemo={isDemo} />}
+        {tab === 'content' && <ContentPublisher coach={coach} isDemo={isDemo} />}
       </main>
     </div>
   )

@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase'
 import AdminLogin from './admin/AdminLogin'
 import AdminDashboard from './admin/AdminDashboard'
 import AdminSettings from './admin/AdminSettings'
+import ApprovalsPanel from './admin/ApprovalsPanel'
+import { getPendingContent } from '../data/pendingContent'
 
-type Tab = 'leads' | 'settings'
+type Tab = 'leads' | 'approvals' | 'settings'
 
 export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
@@ -47,7 +49,9 @@ export default function AdminPortal() {
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
-          {(['leads', 'settings'] as Tab[]).map(t => (
+        {(['leads', 'approvals', 'settings'] as Tab[]).map(t => {
+              const pendingCount = t === 'approvals' ? getPendingContent().filter(c => c.status === 'pending').length : 0
+              return (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -57,13 +61,18 @@ export default function AdminPortal() {
                 fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
                 borderBottom: `2px solid ${tab === t ? '#e63e3e' : 'transparent'}`,
                 paddingBottom: '1px', transition: 'color .15s',
+                display: 'flex', alignItems: 'center', gap: '.35rem',
               }}
               onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
               onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
             >
               {t}
+              {pendingCount > 0 && (
+                <span style={{ background: '#e63e3e', color: '#fff', fontSize: '.5rem', fontWeight: 900, borderRadius: '10rem', padding: '.1rem .4rem', lineHeight: 1.4 }}>{pendingCount}</span>
+              )}
             </button>
-          ))}
+              )
+            })}
         </nav>
 
         {/* Right side */}
@@ -85,14 +94,15 @@ export default function AdminPortal() {
       {/* Page header */}
       <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {tab === 'leads' ? 'Leads' : 'Settings'}
+          {tab === 'leads'     ? 'Leads' : tab === 'approvals' ? 'Content Approvals' : 'Settings'}
         </h1>
       </div>
 
       {/* Content */}
       <main style={{ flex: 1, overflowX: 'auto' }}>
-        {tab === 'leads'    && <AdminDashboard isDemo={isDemo} />}
-        {tab === 'settings' && <AdminSettings isDemo={isDemo} />}
+        {tab === 'leads'     && <AdminDashboard isDemo={isDemo} />}
+        {tab === 'approvals' && <ApprovalsPanel isDemo={isDemo} />}
+        {tab === 'settings'  && <AdminSettings isDemo={isDemo} />}
       </main>
     </div>
   )

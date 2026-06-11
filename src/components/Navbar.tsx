@@ -70,7 +70,7 @@ export default function Navbar() {
             Book a Call
           </a>
           <a
-            href="#apply"
+            href="#coaches"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
             style={{ background: '#e63e3e' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#c42e2e')}

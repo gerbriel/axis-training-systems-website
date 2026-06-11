@@ -1,9 +1,38 @@
+import { useState, useEffect } from 'react'
 import { POSTS } from '../data/blog'
+import type { BlogPost } from '../data/blog'
 import { href } from '../utils/nav'
+import { getApprovedPosts } from '../data/pendingContent'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
+function coachHref(slug: string) {
+  const base = (import.meta as any).env?.BASE_URL ?? '/'
+  return `${base.replace(/\/$/, '')}/coaches/${slug}`
+}
+
 export default function BlogIndex() {
+  const [allPosts, setAllPosts] = useState<BlogPost[]>(POSTS)
+
+  useEffect(() => {
+    const localApproved = getApprovedPosts()
+    if (localApproved.length === 0) return
+    const mapped: BlogPost[] = localApproved.map(p => ({
+      slug: p.id,
+      title: p.title ?? '',
+      subtitle: p.subtitle ?? '',
+      date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      author: p.coachName,
+      authorRole: '',
+      coachSlug: p.coachSlug,
+      coachName: p.coachName,
+      tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
+      summary: p.summary ?? '',
+      content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
+    }))
+    setAllPosts([...POSTS, ...mapped])
+  }, [])
+
   return (
     <div style={{ background: '#080808', minHeight: '100vh' }}>
       {/* Mini nav */}
@@ -31,7 +60,7 @@ export default function BlogIndex() {
       {/* Post list */}
       <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#111' }}>
-          {POSTS.map(post => (
+          {allPosts.map(post => (
             <a
               key={post.slug}
               href={href(`/blog/${post.slug}`)}
@@ -50,7 +79,19 @@ export default function BlogIndex() {
               <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.25rem', maxWidth: 600 }}>{post.summary}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-                  <span style={{ color: '#333', fontSize: '.7rem', fontWeight: 700 }}>{post.author}</span>
+                  {post.coachSlug ? (
+                    <a
+                      href={coachHref(post.coachSlug)}
+                      onClick={e => e.stopPropagation()}
+                      style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 700, textDecoration: 'none' }}
+                      onMouseEnter={el => el.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={el => el.currentTarget.style.textDecoration = 'none'}
+                    >
+                      {post.author}
+                    </a>
+                  ) : (
+                    <span style={{ color: '#333', fontSize: '.7rem', fontWeight: 700 }}>{post.author}</span>
+                  )}
                   <span style={{ color: '#1e1e1e' }}>·</span>
                   <span style={{ color: '#2a2a2a', fontSize: '.7rem' }}>{post.date}</span>
                 </div>

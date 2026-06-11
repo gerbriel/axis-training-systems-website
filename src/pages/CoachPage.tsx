@@ -82,6 +82,18 @@ export default function CoachPage({ slug }: Props) {
                 >
                   Apply to Work With {coach.firstName}
                 </a>
+                {coach.bookCallUrl && (
+                  <a
+                    href={coach.bookCallUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ background: 'transparent', border: '1px solid #333', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#e63e3e'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#333'}
+                  >
+                    Book a Consultation
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -223,14 +235,28 @@ export default function CoachPage({ slug }: Props) {
           <p style={{ color: '#aaa', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2.5rem', maxWidth: 480, margin: '0 auto 2.5rem' }}>
             Fill out the application form. {coach.firstName} reviews every submission personally and will reach out within 24 hours.
           </p>
-          <a
-            href={applyHref(coach.slug)}
-            style={{ display: 'inline-block', background: '#e63e3e', color: '#fff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
-            onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
-          >
-            Start Your Application →
-          </a>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', justifyContent: 'center' }}>
+            <a
+              href={applyHref(coach.slug)}
+              style={{ display: 'inline-block', background: '#e63e3e', color: '#fff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
+              onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+            >
+              Start Your Application →
+            </a>
+            {coach.bookCallUrl && (
+              <a
+                href={coach.bookCallUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', background: 'transparent', border: '1px solid rgba(255,255,255,.25)', color: '#fff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = '#e63e3e'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,.25)'}
+              >
+                Book a Consultation
+              </a>
+            )}
+          </div>
         </div>
       </section>
 

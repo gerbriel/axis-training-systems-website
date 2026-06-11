@@ -5,6 +5,8 @@ export interface BlogPost {
   date: string
   author: string
   authorRole: string
+  coachSlug?: string
+  coachName?: string
   tags: string[]
   coverImage?: string
   summary: string
@@ -26,6 +28,8 @@ export const POSTS: BlogPost[] = [
     date: 'June 10, 2026',
     author: 'Seth Burman',
     authorRole: 'Team Axis Coach · DPT, CSCS',
+    coachSlug: 'seth-burman',
+    coachName: 'Seth Burman',
     tags: ['Case Study', 'Injury Management', 'Meet Prep', 'Bench Press', 'USAPL'],
     coverImage: 'https://static.wixstatic.com/media/e99af3_c6dd9c18b5374a038d9d94d95c94ccc2~mv2.jpg',
     summary: 'A pec strain 9 weeks out from Nationals forced us to rethink Julien\'s entire meet prep. Rather than shutting training down, we used rehabilitation, ascending sets, tempo work, and symptom-guided programming to maintain momentum. Nine weeks later, Julien benched 210kg — a meet PR and the heaviest bench in the 125kg class.',

@@ -1,4 +1,7 @@
-const MEETS = [
+import { useState, useEffect } from 'react'
+import { getApprovedMeets } from '../data/pendingContent'
+
+const STATIC_MEETS = [
   {
     name: 'USAPL Raw Nationals',
     date: 'July 24–27, 2026',
@@ -25,6 +28,8 @@ const MEETS = [
   },
 ]
 
+type Meet = typeof STATIC_MEETS[number]
+
 const badgeColor: Record<string, string> = {
   National: 'rgba(230,62,62,.12)',
   World: 'rgba(255,160,0,.1)',
@@ -42,6 +47,22 @@ const badgeText: Record<string, string> = {
 }
 
 export default function UpcomingMeets() {
+  const [meets, setMeets] = useState<Meet[]>(STATIC_MEETS)
+
+  useEffect(() => {
+    const approved = getApprovedMeets()
+    if (approved.length === 0) return
+    const mapped: Meet[] = approved.map(m => ({
+      name: m.meetName ?? '',
+      date: m.meetDate ?? '',
+      location: m.meetLocation ?? '',
+      federation: m.federation ?? '',
+      type: m.meetType ?? 'Local',
+      note: m.meetNote ?? '',
+    }))
+    setMeets([...STATIC_MEETS, ...mapped])
+  }, [])
+
   return (
     <section id="upcoming-meets" style={{ background: '#030303', borderTop: '1px solid #0d0d0d', padding: '6rem 1.5rem' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -58,7 +79,7 @@ export default function UpcomingMeets() {
         </div>
 
         <div style={{ display: 'grid', gap: '1px', background: '#111' }}>
-          {MEETS.map((m, i) => (
+          {meets.map((m, i) => (
             <div
               key={i}
               style={{
