@@ -708,9 +708,9 @@ function DotsCalc() {
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'rpe',       label: 'RPE Calculator',  short: 'RPE' },
-  { id: 'attempts',  label: 'Attempt Planner', short: 'Attempts' },
   { id: 'dots',      label: 'Dots Score',      short: 'Dots' },
   { id: 'convert',   label: 'Weight Converter',short: 'Convert' },
+  { id: 'attempts',  label: 'Attempt Planner', short: 'Attempts' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
