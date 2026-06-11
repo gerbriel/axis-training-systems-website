@@ -19,6 +19,7 @@ export interface Coach {
   firstName: string
   email: string         // used for Supabase auth + routing
   photo?: string        // headshot URL
+  ctaBg?: string        // CTA section background photo
   role: string          // short title
   tagline: string       // one-line philosophy
   bio: string[]         // paragraphs
@@ -36,6 +37,7 @@ export const COACHES: Coach[] = [
     firstName: 'Ronnie',
     email: 'ronnie@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_1947a325134d4dff956eb3a7a6436e0e~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/20240302_201048_edited_edited_edited.jpg',
+    ctaBg: 'https://static.wixstatic.com/media/e99af3_78afea37a86d42b59c9a5885e5909905~mv2.jpg',
     role: 'Head Coach & Founder',
     tagline: 'Strength built on intention, not ego.',
     bio: [
@@ -84,6 +86,7 @@ export const COACHES: Coach[] = [
     firstName: 'Seth',
     email: 'seth@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_c6dd9c18b5374a038d9d94d95c94ccc2~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_6895%20(1).jpg',
+    ctaBg: 'https://static.wixstatic.com/media/c0cc37_22d0ada4e59a43e68d265f53b7ff6219~mv2.jpg',
     role: 'Team Axis Coach',
     tagline: 'Competitive fire, methodical preparation.',
     bio: [
@@ -117,6 +120,7 @@ export const COACHES: Coach[] = [
     firstName: 'Lucas',
     email: 'lucas@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_c0aba7590f844eddaf80c5aa96fa99e4~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Screenshot_20220826-172606_Instagram_edited.jpg',
+    ctaBg: 'https://static.wixstatic.com/media/e99af3_8188e795483040e68ca52efc20c469ca~mv2.jpg',
     role: 'Team Axis Coach',
     tagline: 'Fix the movement, free the strength.',
     bio: [
@@ -164,6 +168,7 @@ export const COACHES: Coach[] = [
     name: 'Kobe Pham',
     firstName: 'Kobe',
     email: 'kobe@axistrainingsystems.com',
+    ctaBg: 'https://static.wixstatic.com/media/e99af3_33b79dddeb93448a8e7ddb66b45fd5aa~mv2.jpg',
     role: 'Performance Coach',
     tagline: 'Consistency compounds. Show up and do the work.',
     bio: [
@@ -196,6 +201,7 @@ export const COACHES: Coach[] = [
     name: 'Aedan Nguyen',
     firstName: 'Aedan',
     email: 'aedan@axistrainingsystems.com',
+    ctaBg: 'https://static.wixstatic.com/media/e99af3_c7a9a45668c649ae84984977f3b7603a~mv2.jpg',
     role: 'Development Coach',
     tagline: 'Every elite athlete was once a beginner. Start right.',
     bio: [

@@ -197,13 +197,30 @@ export default function CoachPage({ slug }: Props) {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '6rem 2rem', background: '#050505' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+      <section style={{ position: 'relative', padding: '7rem 2rem', overflow: 'hidden' }}>
+        {/* Background image */}
+        {coach.ctaBg && (
+          <img
+            src={coach.ctaBg}
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: 'center 30%',
+              filter: 'grayscale(50%) brightness(0.35)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+        {/* Dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.75) 60%, rgba(5,5,5,0.95) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready to Start?</p>
           <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>
             Apply to Work With {coach.name}
           </h2>
-          <p style={{ color: '#555', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2.5rem', maxWidth: 480, margin: '0 auto 2.5rem' }}>
+          <p style={{ color: '#aaa', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2.5rem', maxWidth: 480, margin: '0 auto 2.5rem' }}>
             Fill out the application form. {coach.firstName} reviews every submission personally and will reach out within 24 hours.
           </p>
           <a
