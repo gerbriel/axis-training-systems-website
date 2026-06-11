@@ -59,9 +59,7 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
           <a
-            href="https://calendly.com/ronnie-axistrainingsystems"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#coaches"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
             style={{ border: '1px solid #2a2a2a' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#e63e3e')}
@@ -108,9 +106,7 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="https://calendly.com/ronnie-axistrainingsystems"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#coaches"
             onClick={() => setMenuOpen(false)}
             style={{ color: '#fff', fontSize: '.875rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
           >

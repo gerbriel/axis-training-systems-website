@@ -21,7 +21,7 @@ const SERVICES = [
     desc: 'Designed for coaches at all levels — whether established, on the rise, or just getting started. Tailored to your specific areas of improvement, with a structured curriculum available for full development. Sessions weekly, bi-weekly, monthly, or as a one-time consultation.',
     highlights: ['Programming & biomechanics', 'Athlete psychology', 'Building a coaching business', 'Meet day strategy & case studies'],
     cta: 'Book a Consultation',
-    href: 'https://calendly.com/ronnie-axistrainingsystems',
+    href: '#coaches',
   },
   {
     num: '04',

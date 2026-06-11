@@ -48,9 +48,7 @@ export default function Hero() {
         {/* CTAs */}
         <div className="flex flex-wrap gap-4">
           <a
-            href="https://calendly.com/ronnie-axistrainingsystems"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#coaches"
             className="group inline-flex items-center gap-2 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
             style={{ background: '#e63e3e' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#c42e2e')}
