@@ -359,16 +359,21 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
                           <button onClick={e=>{e.stopPropagation();openEdit(item)}}
                             style={{background:'transparent',border:'1px solid #2a2a2a',color:'#888',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
                             onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#555';(e.currentTarget as HTMLButtonElement).style.color='#fff'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#2a2a2a';(e.currentTarget as HTMLButtonElement).style.color='#888'}}>Edit</button>
-                          {item.status==='pending'&&!rejectMode[item.id]&&(
+                          {!rejectMode[item.id]&&(
                             <>
-                              <button onClick={e=>{e.stopPropagation();approve(item.id)}} disabled={actionId===item.id}
+                              {item.status!=='approved'&&<button onClick={e=>{e.stopPropagation();approve(item.id)}} disabled={actionId===item.id}
                                 style={{background:'#22c55e18',border:'1px solid #22c55e',color:'#22c55e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}>
-                                {actionId===item.id?'...':'Approve'}</button>
-                              <button onClick={e=>{e.stopPropagation();setRejectMode(p=>({...p,[item.id]:true}))}}
-                                style={{background:'#e63e3e18',border:'1px solid #e63e3e',color:'#e63e3e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Reject</button>
+                                {actionId===item.id?'...':'Approve'}</button>}
+                              {item.status!=='rejected'&&<button onClick={e=>{e.stopPropagation();setRejectMode(p=>({...p,[item.id]:true}))}}
+                                style={{background:'#e63e3e18',border:'1px solid #e63e3e',color:'#e63e3e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Reject</button>}
+                              {item.status==='approved'&&<button onClick={e=>{e.stopPropagation();setRejectMode(p=>({...p,[item.id]:true}))}}
+                                style={{background:'#e63e3e18',border:'1px solid #e63e3e',color:'#e63e3e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Unpublish / Reject</button>}
+                              {item.status==='rejected'&&<button onClick={e=>{e.stopPropagation();approve(item.id)}} disabled={actionId===item.id}
+                                style={{background:'#22c55e18',border:'1px solid #22c55e',color:'#22c55e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}>
+                                {actionId===item.id?'...':'Re-Approve'}</button>}
                             </>
                           )}
-                          {item.status==='pending'&&rejectMode[item.id]&&(
+                          {rejectMode[item.id]&&(
                             <div onClick={e=>e.stopPropagation()} style={{display:'flex',flexDirection:'column',gap:'.6rem',width:'100%',maxWidth:440}}>
                               <div><label style={lbl}>Rejection Note (visible to coach)</label><input style={inp} maxLength={500} placeholder="Explain why..." value={rejectNotes[item.id]??''} onChange={e=>setRejectNotes(p=>({...p,[item.id]:e.target.value}))}/></div>
                               <div style={{display:'flex',gap:'.5rem'}}>
