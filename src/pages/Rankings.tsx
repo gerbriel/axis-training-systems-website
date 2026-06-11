@@ -57,7 +57,7 @@ const AGE_CLASSES = [
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface RankRow {
-  name: string; federation: string; date: string; country: string
+  name: string; slug: string; federation: string; date: string; country: string
   division: string; weightClassKg: string; bodyweightKg: string
   equipment: string; best3SquatKg: string; best3BenchKg: string
   best3DeadliftKg: string; totalKg: string; place: string
@@ -66,30 +66,46 @@ interface RankRow {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const toNum = (v: string | undefined) => parseFloat(v || '0') || 0
+// OPL API already returns values in the requested unit — just display, no conversion needed
 const fmt = (v: string | undefined, unit: 'lbs' | 'kg') => {
   const n = toNum(v); if (!n) return '—'
-  return unit === 'lbs' ? String(Math.round(n * 2.20462)) : String(n)
+  return unit === 'lbs' ? String(Math.round(n)) : String(Math.round(n * 10) / 10)
 }
 const fmtScore = (v: string | undefined) => {
   const n = toNum(v); return n > 0 ? n.toFixed(2) : '—'
 }
-function parseRows(data: { fieldnames?: string[]; rows?: unknown[][] }): RankRow[] {
-  const fields: string[] = data?.fieldnames ?? []
+// OPL returns rows as positional arrays — no fieldnames key in response
+// Positions: [0]=idx [1]=rank [2]=name [3]=slug [4]=social [5]=badge
+// [6]=country [7]=state-code [8]=fed [9]=date [10]=country [11]=state
+// [12]=meet-path [13]=sex [14]=equip [15]=age [16]=division
+// [17]=wt-class-kg [18]=bw-kg [19]=squat [20]=bench [21]=dead [22]=total [23]=dots
+function parseRows(data: { rows?: unknown[][] }): RankRow[] {
   const rows: unknown[][] = data?.rows ?? []
-  const idx = (col: string) => fields.findIndex(f => f.toLowerCase() === col.toLowerCase())
-  const get = (row: unknown[], col: string) => {
-    const i = idx(col); return i >= 0 ? String((row as string[])[i] ?? '') : ''
-  }
-  return rows.map(row => ({
-    name: get(row, 'Name'), federation: get(row, 'Federation'), date: get(row, 'Date'),
-    country: get(row, 'Country'), division: get(row, 'Division'),
-    weightClassKg: get(row, 'WeightClassKg'), bodyweightKg: get(row, 'BodyweightKg'),
-    equipment: get(row, 'Equipment'), best3SquatKg: get(row, 'Best3SquatKg'),
-    best3BenchKg: get(row, 'Best3BenchKg'), best3DeadliftKg: get(row, 'Best3DeadliftKg'),
-    totalKg: get(row, 'TotalKg'), place: get(row, 'Place'), dots: get(row, 'Dots'),
-    wilks: get(row, 'Wilks'), age: get(row, 'Age'), sex: get(row, 'Sex'),
-    meetName: get(row, 'MeetName'),
-  }))
+  return rows.map(row => {
+    const r = row as (string | number | null)[]
+    const s = (i: number) => r[i] != null ? String(r[i]) : ''
+    return {
+      name:            s(2),
+      slug:            s(3),
+      federation:      s(8),
+      date:            s(9),
+      country:         s(10),
+      division:        s(16),
+      weightClassKg:   s(17),
+      bodyweightKg:    s(18),
+      equipment:       s(14),
+      best3SquatKg:    s(19),
+      best3BenchKg:    s(20),
+      best3DeadliftKg: s(21),
+      totalKg:         s(22),
+      place:           '',
+      dots:            s(23),
+      wilks:           '',
+      age:             s(15),
+      sex:             s(13),
+      meetName:        s(12),
+    }
+  })
 }
 
 const SEL: React.CSSProperties = {
@@ -334,7 +350,7 @@ export default function Rankings() {
                                     <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
                                       {row.name} — {histRows.length} entries
                                     </p>
-                                    <a href={'https://www.openpowerlifting.org/lifters/' + row.name.toLowerCase().replace(/\s+/g, '-').normalize('NFD').replace(/[\u0300-\u036f]/g, '')}
+                                    <a href={'https://www.openpowerlifting.org/u/' + row.slug}
                                       target="_blank" rel="noopener noreferrer"
                                       style={{ color: '#e63e3e', fontSize: '.65rem', textDecoration: 'none' }}
                                       onClick={e => e.stopPropagation()}>View on OPL ↗</a>
