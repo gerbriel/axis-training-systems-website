@@ -17,6 +17,7 @@ import CoachAdmin from './pages/CoachAdmin'
 import BlogIndex from './pages/BlogIndex'
 import BlogPostPage from './pages/BlogPostPage'
 import GuidesPage from './pages/GuidesPage'
+import Rankings from './pages/Rankings'
 
 // ── Routing ────────────────────────────────────────────────────────────────
 // Strip BASE_URL prefix so we always work with a clean path like /coaches/slug
@@ -50,6 +51,9 @@ function getRoute() {
   // /guides
   if (path === '/guides') return { type: 'guides' }
 
+  // /rankings
+  if (path === '/rankings') return { type: 'rankings' }
+
   return { type: 'home' }
 }
 
@@ -63,6 +67,7 @@ export default function App() {
   if (route.type === 'blog') return <BlogIndex />
   if (route.type === 'blog-post') return <BlogPostPage slug={route.slug!} />
   if (route.type === 'guides') return <GuidesPage />
+  if (route.type === 'rankings') return <Rankings />
 
   // ── Home ──────────────────────────────────────────────────────────────────
   const [showPrivacy, setShowPrivacy] = useState(false)
