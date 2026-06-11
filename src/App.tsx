@@ -7,7 +7,6 @@ import HowItWorks from './components/HowItWorks'
 import Testimonials from './components/Testimonials'
 import Tools from './components/Tools'
 import Coaches from './components/Coaches'
-import Apply from './components/Apply'
 import Footer from './components/Footer'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import AdminPortal from './pages/AdminPortal'
@@ -66,7 +65,6 @@ export default function App() {
       <HowItWorks />
       <Testimonials />
       <Coaches />
-      <Apply />
       <Tools />
       <Footer />
       {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
