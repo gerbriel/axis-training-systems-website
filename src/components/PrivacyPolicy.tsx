@@ -67,6 +67,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li>Goals and expectations: coaching goals, weak points, areas for improvement</Li>
           </ul>
           <p style={{ marginTop: '.75rem' }}>We do not collect payment information directly. Billing is handled by Zen Planner under their own privacy policy.</p>
+          <p style={{ marginTop: '.75rem' }}>We do not automatically collect browsing data, IP addresses, device identifiers, or behavioral analytics from visitors to this website. No cookies are set and no session data is stored by Axis Training Systems.</p>
         </Section>
 
         <Section title="3. How We Use Your Information">
@@ -77,11 +78,33 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li>Communicate with you via WhatsApp and email regarding your program</Li>
             <Li>Improve our coaching methodology and service quality</Li>
           </ul>
-          <p style={{ marginTop: '.75rem' }}>We do not use your information for automated decision-making or profiling beyond the direct coaching relationship.</p>
+          <p style={{ marginTop: '.75rem' }}>We do not use your information for automated decision-making or profiling beyond the direct coaching relationship. We do not use your information to serve you targeted advertisements on any platform.</p>
         </Section>
 
-        <Section title="4. How We Share Your Information">
-          <p style={{ marginBottom: '.75rem' }}>We do not sell, rent, or trade your personal information. We share data only with:</p>
+        <Section title="4. Tracking Technologies, Advertising & Analytics">
+          <p style={{ marginBottom: '.75rem' }}>
+            Axis Training Systems does <strong style={{ color: '#fff' }}>not</strong> engage in the tracking and advertising practices common to digital marketing companies. Specifically, we do not use:
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            <Li><strong style={{ color: '#aaa' }}>Analytics platforms</strong> — We do not use Google Analytics, Adobe Analytics, Mixpanel, Heap, or any other website traffic or behavior analytics service.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Advertising pixels</strong> — We do not install or fire Meta (Facebook/Instagram) Pixel, TikTok Pixel, Twitter/X Pixel, Pinterest Tag, Snapchat Pixel, or any other ad network tracking pixel on this website.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Retargeting & remarketing</strong> — We do not build custom audiences from site visitors or run retargeting ad campaigns on any platform.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Email tracking</strong> — We do not use email open tracking pixels, click tracking links, or marketing automation platforms (e.g., Mailchimp, Klaviyo, HubSpot) that monitor engagement with our emails.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Behavioral profiling</strong> — We do not build or purchase data profiles on visitors or applicants for advertising or lead scoring purposes.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Session recording & heatmaps</strong> — We do not use tools such as Hotjar, FullStory, or Microsoft Clarity that record user sessions or mouse behavior.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Cookies for advertising</strong> — We do not set first-party or third-party cookies for advertising identification, cross-site tracking, or audience segmentation.</Li>
+          </ul>
+          <p style={{ marginTop: '.75rem' }}>
+            This website is hosted on GitHub Pages. GitHub may collect limited server-level data (such as IP addresses) as part of their standard infrastructure operations. This is governed by{' '}
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>GitHub's Privacy Statement</a>, not by Axis Training Systems.
+          </p>
+          <p style={{ marginTop: '.75rem' }}>
+            Our social media profiles (Instagram, YouTube) are operated by their respective platforms, which may collect data according to their own policies when you visit or interact with those pages.
+          </p>
+        </Section>
+
+        <Section title="5. How We Share Your Information">
+          <p style={{ marginBottom: '.75rem' }}>We do not sell, rent, or trade your personal information. We do not share data with advertising networks, data brokers, or marketing platforms. We share data only with:</p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             <Li><strong style={{ color: '#aaa' }}>Formspree</strong> — processes application form submissions on our behalf (formspree.io). Subject to their privacy policy.</Li>
             <Li><strong style={{ color: '#aaa' }}>Zen Planner</strong> — used for billing and client management. Subject to their privacy policy.</Li>
@@ -90,7 +113,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
           <p style={{ marginTop: '.75rem' }}>All third parties are required to handle your data securely and only for the purposes described above.</p>
         </Section>
 
-        <Section title="5. California Privacy Rights (CCPA / CPRA)">
+        <Section title="6. California Privacy Rights (CCPA / CPRA)">
           <p style={{ marginBottom: '.75rem' }}>
             As a California resident, you have the following rights under the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA):
           </p>
@@ -98,7 +121,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li><strong style={{ color: '#aaa' }}>Right to Know</strong> — You may request disclosure of the categories and specific pieces of personal information we have collected about you.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Delete</strong> — You may request deletion of personal information we have collected, subject to certain exceptions.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Correct</strong> — You may request correction of inaccurate personal information we maintain about you.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale</strong> — We do not sell your personal information. No opt-out is required.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale / Sharing</strong> — We do not sell your personal information and do not share it for cross-context behavioral advertising. No opt-out is required.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Non-Discrimination</strong> — We will not discriminate against you for exercising any of your privacy rights.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Limit Use of Sensitive Information</strong> — We only use sensitive personal information (health data, etc.) to provide the coaching services you requested.</Li>
           </ul>
@@ -109,23 +132,23 @@ export default function PrivacyPolicy({ onClose }: Props) {
           </p>
         </Section>
 
-        <Section title="6. Data Retention">
+        <Section title="7. Data Retention">
           <p>We retain your application data for the duration of the coaching relationship plus 12 months. If your application is not accepted, data is deleted within 90 days. You may request earlier deletion at any time.</p>
         </Section>
 
-        <Section title="7. Security">
+        <Section title="8. Security">
           <p>We take reasonable measures to protect your personal information. Application data is transmitted securely via HTTPS. Communication occurs through WhatsApp, which provides end-to-end encryption. However, no method of transmission over the internet is 100% secure.</p>
         </Section>
 
-        <Section title="8. Children's Privacy">
+        <Section title="9. Children's Privacy">
           <p>Our services are not directed to individuals under the age of 18. We do not knowingly collect personal information from minors. If you believe we have inadvertently collected such information, please contact us immediately.</p>
         </Section>
 
-        <Section title="9. Changes to This Policy">
+        <Section title="10. Changes to This Policy">
           <p>We may update this Privacy Policy periodically. The "Last Updated" date at the top of this page reflects the most recent revision. Continued use of our services after changes constitutes acceptance of the updated policy.</p>
         </Section>
 
-        <Section title="10. Contact Us">
+        <Section title="11. Contact Us">
           <p>
             For privacy-related questions, requests, or complaints, contact:<br />
             <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#e63e3e' }}>coach@axistrainingsystems.com</a>
