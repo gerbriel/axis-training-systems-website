@@ -471,11 +471,192 @@ function WeightConverter() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DOTS CALCULATOR
+// ─────────────────────────────────────────────────────────────────────────────
+// Dots is the official IPF / USAPL coefficient since 2019.
+// Formula: Dots = 500 / poly(bw_kg) × total_kg
+const DOTS_M = { a: -0.000001093, b: 0.0007391293, c: -0.1918759221, d: 24.0900756, e: -307.75076 }
+const DOTS_F = { a: -0.0000010706, b: 0.0005158568, c: -0.1126655495, d: 13.6175032, e: -57.96288 }
+
+function calcDots(bwKg: number, totalKg: number, sex: 'm' | 'f') {
+  const c = sex === 'm' ? DOTS_M : DOTS_F
+  const w = bwKg
+  const denom = c.a * w**4 + c.b * w**3 + c.c * w**2 + c.d * w + c.e
+  if (denom <= 0) return null
+  return (500 / denom) * totalKg
+}
+
+const DOTS_BENCHMARKS = [
+  { label: 'Beginner',      range: '< 200' },
+  { label: 'Intermediate',  range: '200 – 300' },
+  { label: 'Advanced',      range: '300 – 380' },
+  { label: 'Elite',         range: '380 – 450' },
+  { label: 'World-class',   range: '450+' },
+]
+
+function DotsCalc() {
+  const [sex,   setSex]   = useState<'m' | 'f'>('m')
+  const [unit,  setUnit]  = useState<'lbs' | 'kg'>('lbs')
+  const [bw,    setBw]    = useState('')
+  const [squat, setSquat] = useState('')
+  const [bench, setBench] = useState('')
+  const [dead,  setDead]  = useState('')
+
+  const toKgVal = (v: string) => {
+    const n = parseFloat(v)
+    if (isNaN(n) || n <= 0) return null
+    return unit === 'lbs' ? n * 0.453592 : n
+  }
+
+  const bwKg    = toKgVal(bw)
+  const squatKg = toKgVal(squat)
+  const benchKg = toKgVal(bench)
+  const deadKg  = toKgVal(dead)
+
+  const totalKg = (squatKg ?? 0) + (benchKg ?? 0) + (deadKg ?? 0)
+  const hasTotal = totalKg > 0 && bwKg !== null && bwKg > 0
+  const dots = hasTotal ? calcDots(bwKg!, totalKg, sex) : null
+
+  const tier = dots === null ? null
+    : dots < 200 ? 'Beginner'
+    : dots < 300 ? 'Intermediate'
+    : dots < 380 ? 'Advanced'
+    : dots < 450 ? 'Elite'
+    : 'World-class'
+
+  const tierColor = (t: string | null) =>
+    t === 'World-class' ? '#e63e3e'
+    : t === 'Elite'     ? '#ff7043'
+    : t === 'Advanced'  ? '#ffb74d'
+    : '#888'
+
+  return (
+    <div>
+      <p style={{ color: '#666', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+        The Dots coefficient is the official IPF and USAPL scoring standard for comparing powerlifting totals across all bodyweights and between sexes. Higher is better — enter your lifts to see where you stack up.
+      </p>
+
+      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', marginBottom: '1.5rem' }}>
+        <div>
+          <label style={labelStyle}>Sex</label>
+          <select style={selectStyle} value={sex} onChange={e => setSex(e.target.value as 'm' | 'f')}>
+            <option value="m">Male</option>
+            <option value="f">Female</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Unit</label>
+          <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
+            <option value="lbs">lbs</option>
+            <option value="kg">kg</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Bodyweight</label>
+          <input style={inputStyle} type="number" min="1" placeholder={unit === 'lbs' ? 'e.g. 220' : 'e.g. 100'} value={bw} onChange={e => setBw(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+        {[
+          { label: 'Squat', val: squat, set: setSquat, placeholder: unit === 'lbs' ? 'e.g. 405' : 'e.g. 185' },
+          { label: 'Bench', val: bench, set: setBench, placeholder: unit === 'lbs' ? 'e.g. 275' : 'e.g. 125' },
+          { label: 'Deadlift', val: dead, set: setDead, placeholder: unit === 'lbs' ? 'e.g. 500' : 'e.g. 225' },
+        ].map(({ label, val, set, placeholder }) => (
+          <div key={label}>
+            <label style={labelStyle}>{label}</label>
+            <input style={inputStyle} type="number" min="1" placeholder={placeholder} value={val} onChange={e => set(e.target.value)} />
+          </div>
+        ))}
+      </div>
+
+      {dots !== null && (
+        <div style={resultBox}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
+              <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Dots Score</p>
+              <p style={{ color: '#e63e3e', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-.02em', lineHeight: 1 }}>
+                {dots.toFixed(2)}
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Level</p>
+              <p style={{ color: tierColor(tier), fontWeight: 900, fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>{tier}</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.5rem' }}>
+            <div>
+              <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Total</p>
+              <p style={{ color: '#ccc', fontSize: '.9rem', fontWeight: 700 }}>
+                {unit === 'lbs'
+                  ? `${Math.round(totalKg / 0.453592)} lbs  ·  ${totalKg.toFixed(1)} kg`
+                  : `${totalKg.toFixed(1)} kg  ·  ${Math.round(totalKg * 2.20462)} lbs`
+                }
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Bodyweight</p>
+              <p style={{ color: '#ccc', fontSize: '.9rem', fontWeight: 700 }}>
+                {unit === 'lbs'
+                  ? `${bw} lbs  ·  ${bwKg!.toFixed(2)} kg`
+                  : `${bw} kg`
+                }
+              </p>
+            </div>
+          </div>
+
+          {/* Visual bar */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ height: 4, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min(dots / 500 * 100, 100)}%`,
+                background: 'linear-gradient(to right, #e63e3e, #ff7043)',
+                borderRadius: 2,
+                transition: 'width .4s ease',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.3rem' }}>
+              <span style={{ color: '#333', fontSize: '.6rem' }}>0</span>
+              <span style={{ color: '#333', fontSize: '.6rem' }}>500+</span>
+            </div>
+          </div>
+
+          {/* Benchmarks */}
+          <p style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Score Ranges</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '.4rem' }}>
+            {DOTS_BENCHMARKS.map(b => (
+              <div
+                key={b.label}
+                style={{
+                  background: tier === b.label ? 'rgba(230,62,62,.12)' : '#0d0d0d',
+                  border: `1px solid ${tier === b.label ? 'rgba(230,62,62,.4)' : '#1a1a1a'}`,
+                  borderRadius: '.2rem',
+                  padding: '.5rem .75rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ color: tier === b.label ? '#fff' : '#444', fontSize: '.65rem', fontWeight: 700 }}>{b.label}</span>
+                <span style={{ color: tier === b.label ? '#e63e3e' : '#333', fontSize: '.65rem', fontWeight: 700 }}>{b.range}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'rpe',       label: 'RPE Calculator',  short: 'RPE' },
   { id: 'attempts',  label: 'Attempt Planner', short: 'Attempts' },
+  { id: 'dots',      label: 'Dots Score',      short: 'Dots' },
   { id: 'convert',   label: 'Weight Converter',short: 'Convert' },
 ] as const
 
@@ -531,6 +712,7 @@ export default function Tools() {
         <div style={{ background: '#080808', border: '1px solid #141414', borderRadius: '.25rem', padding: '2rem' }}>
           {active === 'rpe'      && <RPECalc />}
           {active === 'attempts' && <AttemptPlanner />}
+          {active === 'dots'     && <DotsCalc />}
           {active === 'convert'  && <WeightConverter />}
         </div>
       </div>
