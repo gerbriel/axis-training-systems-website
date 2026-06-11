@@ -18,7 +18,8 @@ export default function Coaches() {
               {c.photo ? (
                 <img
                   src={c.photo} alt={c.name}
-                  style={{ width: '4rem', height: '4rem', borderRadius: '50%', objectFit: 'cover', marginBottom: '1.25rem', flexShrink: 0, border: '2px solid #1e1e1e' }}
+                  style={{ width: '4rem', height: '4rem', borderRadius: '50%', objectFit: 'cover', marginBottom: '1.25rem', flexShrink: 0, border: '2px solid #1e1e1e', background: '#1a1a1a' }}
+                  loading="lazy"
                 />
               ) : (
                 <div

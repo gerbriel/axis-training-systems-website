@@ -88,7 +88,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
       <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <input
           className="field" placeholder="Search name or email…"
-          value={search} onChange={e => setSearch(e.target.value)}
+          value={search} onChange={e => { setSearch(e.target.value); if (e.target.value) setFilterStatus('all') }}
           style={{ maxWidth: 280, flex: 1 }}
         />
 

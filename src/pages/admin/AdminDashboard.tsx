@@ -78,7 +78,7 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
         {/* Search */}
         <input
           className="field" placeholder="Search name, email, coach…"
-          value={search} onChange={e => setSearch(e.target.value)}
+          value={search} onChange={e => { setSearch(e.target.value); if (e.target.value) setFilterStatus('all') }}
           style={{ maxWidth: 280, flex: 1 }}
         />
 
