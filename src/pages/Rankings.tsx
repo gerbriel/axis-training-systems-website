@@ -72,6 +72,20 @@ interface RankRow {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
+
+async function oplFetch(url: string, signal?: AbortSignal): Promise<any> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, signal ? { signal } : undefined)
+    if (res.status === 429) {
+      if (attempt < 3) { await sleep(1200 * (attempt + 1)); continue }
+      throw new Error('Rate limited (429). Wait a few seconds, then search again.')
+    }
+    if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
+    return res.json()
+  }
+}
+
 const toNum = (v: string | undefined) => parseFloat(v || '0') || 0
 // We always fetch units=kg from the API and convert here for display
 const fmt = (v: string | undefined, unit: 'lbs' | 'kg') => {
@@ -200,20 +214,19 @@ export default function Rankings() {
     const hasFilter = !!(name.trim() || weightClass || ageClass)
     try {
       if (hasFilter) {
-        // Batch scan: 100 rows/request (API max), filter client-side, stop when page is full.
-        // With sex server-filtered the pool is 174k–442k instead of 617k.
+        // Batch scan: 100 rows/request, filter client-side, stop when page is full.
+        // Sleep 150ms between batches to stay under corsproxy.io rate limits.
         const BATCH = 100
-        const MAX_BATCHES = 300  // scan up to 30 000 server rows
+        const MAX_BATCHES = 100  // scan up to 10 000 server rows
         const need  = (pg + 1) * PAGE_SIZE
         const accumulated: RankRow[] = []
         let serverOffset = 0
         let serverTotal  = Infinity
         let batches      = 0
         while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_BATCHES) {
+          if (batches > 0) await sleep(150)
           const q = new URLSearchParams({ ...BASE_Q, start: String(serverOffset), end: String(serverOffset + BATCH - 1) })
-          const res = await fetch(opl(path + '?' + q.toString()), { signal })
-          if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
-          const data = await res.json()
+          const data = await oplFetch(opl(path + '?' + q.toString()), signal)
           serverTotal = data?.total_length ?? serverTotal
           accumulated.push(...applyClientFilters(parseRows(data)))
           serverOffset += BATCH
@@ -227,9 +240,7 @@ export default function Rankings() {
         // No filters — simple paginated fetch
         const start = pg * PAGE_SIZE
         const q = new URLSearchParams({ ...BASE_Q, start: String(start), end: String(start + PAGE_SIZE - 1) })
-        const res = await fetch(opl(path + '?' + q.toString()), { signal })
-        if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
-        const data = await res.json()
+        const data = await oplFetch(opl(path + '?' + q.toString()), signal)
         setRows(parseRows(data))
         setTotalCount(data?.total_length ?? 0)
       }
@@ -260,31 +271,30 @@ export default function Rankings() {
     if (expanded === key) { setExpanded(null); setHistRows([]); return }
     setExpanded(key); setLoadingHist(true); setHistError('')
     try {
-      // Step 1: collect all row indices for this lifter via sequential search calls (no parallel = no 429)
+      // Step 1: collect all row indices for this lifter via sequential search calls
       const indices: number[] = []
       let searchStart = 0
       while (indices.length < 150) {
         const sq = new URLSearchParams({ q: row.name, start: String(searchStart), end: '999999' })
-        const sres = await fetch(opl('/api/search/rankings?' + sq.toString()))
-        if (!sres.ok) break
-        const sdata = await sres.json()
-        if (sdata.next_index == null) break
-        indices.push(Number(sdata.next_index))
-        searchStart = Number(sdata.next_index) + 1
+        try {
+          const sdata = await oplFetch(opl('/api/search/rankings?' + sq.toString()))
+          if (sdata?.next_index == null) break
+          indices.push(Number(sdata.next_index))
+          searchStart = Number(sdata.next_index) + 1
+          await sleep(100)
+        } catch { break }
       }
       if (indices.length === 0) { setHistRows([]); return }
-      // Step 2: fetch rows in small sequential batches (5 at a time) to stay within rate limits
+      // Step 2: fetch rows one at a time with a small delay to stay under rate limits
       const allRows: RankRow[] = []
       const BASE_Q = { lang: 'en', units: 'kg' } as const
-      for (let c = 0; c < indices.length; c += 5) {
-        const chunk = indices.slice(c, c + 5)
-        for (const idx of chunk) {
-          const rq = new URLSearchParams({ ...BASE_Q, start: String(idx), end: String(idx) })
-          try {
-            const res = await fetch(opl('/api/rankings?' + rq.toString()))
-            if (res.ok) allRows.push(...parseRows(await res.json()))
-          } catch { /* skip failed row */ }
-        }
+      for (const idx of indices) {
+        const rq = new URLSearchParams({ ...BASE_Q, start: String(idx), end: String(idx) })
+        try {
+          const data = await oplFetch(opl('/api/rankings?' + rq.toString()))
+          allRows.push(...parseRows(data))
+          await sleep(100)
+        } catch { /* skip failed row */ }
       }
       const nl = row.name.toLowerCase()
       setHistRows(allRows.filter(r => r.name.toLowerCase() === nl).sort((a, b) => b.date.localeCompare(a.date)))
