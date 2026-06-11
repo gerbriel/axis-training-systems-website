@@ -43,6 +43,16 @@ export default function Coaches() {
                   View Profile
                 </a>
                 <a
+                  href={c.bookCallUrl ?? 'https://calendly.com/ronnie-axistrainingsystems'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid rgba(230,62,62,.25)', color: '#e63e3e', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, background .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.background = 'rgba(230,62,62,.08)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(230,62,62,.25)'; e.currentTarget.style.background = 'transparent' }}
+                >
+                  Book a Call
+                </a>
+                <a
                   href={applyHref(c.slug)}
                   style={{ display: 'block', textAlign: 'center', background: '#e63e3e', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#c42e2e' }}
