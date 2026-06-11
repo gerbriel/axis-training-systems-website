@@ -73,10 +73,11 @@ interface RankRow {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const toNum = (v: string | undefined) => parseFloat(v || '0') || 0
-// OPL API already returns values in the requested unit — just display, no conversion needed
+// We always fetch units=kg from the API and convert here for display
 const fmt = (v: string | undefined, unit: 'lbs' | 'kg') => {
   const n = toNum(v); if (!n) return '—'
-  return unit === 'lbs' ? String(Math.round(n)) : String(Math.round(n * 10) / 10)
+  const d = unit === 'lbs' ? n * 2.20462 : n
+  return unit === 'lbs' ? String(Math.round(d)) : String(Math.round(d * 10) / 10)
 }
 const fmtScore = (v: string | undefined) => {
   const n = toNum(v); return n > 0 ? n.toFixed(2) : '—'
@@ -154,8 +155,8 @@ export default function Rankings() {
   const [histError,   setHistError]   = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  // Fed/equip/year → path segments (the only server-side filters OPL supports).
-  // Name → ?q= (server-side). Sex, weight class, age class → client-side loop.
+  // Fed/equip/year → path segments. Name → /api/search/rankings (2-step).
+  // Sex, weight class, age class → client-side. Always fetch units=kg.
   const buildPath = useCallback(() => {
     const parts: string[] = []
     if (federation) parts.push(federation.toLowerCase())
@@ -184,6 +185,22 @@ export default function Rankings() {
     })
   }, [sex, weightClass, ageClass])
 
+  // Collect row indices for a name query via /api/search/rankings (the only OPL name search that works)
+  const searchIndices = useCallback(async (nameQuery: string, signal: AbortSignal): Promise<number[]> => {
+    const indices: number[] = []
+    let searchStart = 0
+    while (indices.length < PAGE_SIZE) {
+      const sq = new URLSearchParams({ q: nameQuery.trim(), start: String(searchStart), end: '999999' })
+      const sres = await fetch(opl('/api/search/rankings?' + sq.toString()), { signal })
+      if (!sres.ok) break
+      const sdata = await sres.json()
+      if (sdata.next_index == null) break
+      indices.push(Number(sdata.next_index))
+      searchStart = Number(sdata.next_index) + 1
+    }
+    return indices
+  }, [])
+
   const fetchPage = useCallback(async (pg: number) => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
@@ -191,57 +208,67 @@ export default function Rankings() {
     const signal = abortRef.current.signal
     const path   = buildPath()
     const hasClientFilter = !!(sex || weightClass || ageClass)
-    console.log('[Rankings] fetchPage', { pg, path, name, sex, equipment, weightClass, ageClass, year, unit, hasClientFilter })
+    // Always request kg — weight class (index 18) will be in kg and match our dropdown values
+    const BASE_Q = { lang: 'en', units: 'kg' } as const
     try {
-      if (!hasClientFilter) {
-        // No client-side filters — single request, fully server-handled
-        const start = pg * PAGE_SIZE
-        const q = new URLSearchParams({ start: String(start), end: String(start + PAGE_SIZE - 1), lang: 'en', units: unit })
-        if (name.trim()) q.set('q', name.trim())
-        const fullUrl = opl(path + '?' + q.toString())
-        console.log('[Rankings] fetching (simple):', path + '?' + q.toString())
-        const res = await fetch(fullUrl, { signal })
-        if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
-        const data = await res.json()
-        const parsed = parseRows(data)
-        console.log('[Rankings] response: total_length=', data?.total_length, 'rows=', parsed.length, 'first row wt/bw/sex:', parsed[0]?.weightClassKg, parsed[0]?.bodyweightKg, parsed[0]?.sex, parsed[0]?.name)
-        setRows(parsed)
-        setTotalCount(data?.total_length ?? 0)
-      } else {
-        // Client filters active — loop over 500-row batches until we accumulate
-        // (pg+1)*PAGE_SIZE filtered rows, then slice out the requested page.
-        const BATCH     = 500
-        const MAX_FETCH = 8            // caps at 4 000 server rows per search
-        const need      = (pg + 1) * PAGE_SIZE
+      if (name.trim()) {
+        // Step 1: find row indices via search API (?q= is ignored on /api/rankings)
+        const indices = await searchIndices(name, signal)
+        if (indices.length === 0) {
+          setRows([]); setTotalCount(0); setPage(pg); setSearched(true); return
+        }
+        // Step 2: fetch each matched row (parallel in chunks of 10)
+        const CHUNK = 10
+        const allRows: RankRow[] = []
+        for (let c = 0; c < indices.length; c += CHUNK) {
+          const chunk = indices.slice(c, c + CHUNK)
+          const fetches = chunk.map(idx => {
+            const rq = new URLSearchParams({ ...BASE_Q, start: String(idx), end: String(idx) })
+            return fetch(opl(path + '?' + rq.toString()), { signal })
+              .then(r => r.json()).then(parseRows).catch(() => [] as RankRow[])
+          })
+          allRows.push(...(await Promise.all(fetches)).flat())
+        }
+        const filtered = hasClientFilter ? applyClientFilters(allRows) : allRows
+        setRows(filtered.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
+        setTotalCount(filtered.length)
+      } else if (hasClientFilter) {
+        // Client-side filters only — scan batches of 100 (API max per request)
+        const BATCH = 100
+        const MAX_BATCHES = 30 // scan up to 3 000 server rows
+        const need = (pg + 1) * PAGE_SIZE
         const accumulated: RankRow[] = []
         let serverOffset = 0
         let serverTotal  = Infinity
         let batches      = 0
-        while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_FETCH) {
-          const q = new URLSearchParams({ start: String(serverOffset), end: String(serverOffset + BATCH - 1), lang: 'en', units: unit })
-          if (name.trim()) q.set('q', name.trim())
-          console.log('[Rankings] fetching (loop batch', batches, '):', path + '?' + q.toString())
+        while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_BATCHES) {
+          const q = new URLSearchParams({ ...BASE_Q, start: String(serverOffset), end: String(serverOffset + BATCH - 1) })
           const res = await fetch(opl(path + '?' + q.toString()), { signal })
           if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
           const data = await res.json()
           serverTotal = data?.total_length ?? serverTotal
-          const parsed = parseRows(data)
-          const afterFilter = applyClientFilters(parsed)
-          console.log('[Rankings] batch', batches, ': serverTotal=', serverTotal, 'parsed=', parsed.length, 'afterFilter=', afterFilter.length, 'sample wt:', parsed[0]?.weightClassKg, 'filter wt:', weightClass)
-          accumulated.push(...afterFilter)
+          accumulated.push(...applyClientFilters(parseRows(data)))
           serverOffset += BATCH
           batches++
         }
-        console.log('[Rankings] loop done: accumulated=', accumulated.length, 'showing', accumulated.slice(pg * PAGE_SIZE, (pg+1)*PAGE_SIZE).length)
         setRows(accumulated.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
         setTotalCount(accumulated.length)
+      } else {
+        // Simple paginated fetch — no name, no client filters
+        const start = pg * PAGE_SIZE
+        const q = new URLSearchParams({ ...BASE_Q, start: String(start), end: String(start + PAGE_SIZE - 1) })
+        const res = await fetch(opl(path + '?' + q.toString()), { signal })
+        if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
+        const data = await res.json()
+        setRows(parseRows(data))
+        setTotalCount(data?.total_length ?? 0)
       }
       setPage(pg); setSearched(true)
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Failed to load rankings. Try again.')
     } finally { setLoading(false) }
-  }, [name, federation, sex, equipment, weightClass, ageClass, year, unit, buildPath, applyClientFilters])
+  }, [name, sex, weightClass, ageClass, buildPath, searchIndices, applyClientFilters])
 
   const handleSearch = () => fetchPage(0)
 
@@ -249,15 +276,32 @@ export default function Rankings() {
     if (expanded === key) { setExpanded(null); setHistRows([]); return }
     setExpanded(key); setLoadingHist(true); setHistError('')
     try {
-      const p = new URLSearchParams({ start: '0', end: '999', q: row.name, lang: 'en', units: unit })
-      const res = await fetch(opl('/api/rankings?' + p.toString()))
-      if (!res.ok) throw new Error('API ' + res.status)
-      const data = await res.json()
-      const all = parseRows(data)
+      // Use search API to find all entries for this lifter (q= is ignored on /api/rankings)
+      const indices: number[] = []
+      let searchStart = 0
+      while (indices.length < 200) {
+        const sq = new URLSearchParams({ q: row.name, start: String(searchStart), end: '999999' })
+        const sres = await fetch(opl('/api/search/rankings?' + sq.toString()))
+        if (!sres.ok) break
+        const sdata = await sres.json()
+        if (sdata.next_index == null) break
+        indices.push(Number(sdata.next_index))
+        searchStart = Number(sdata.next_index) + 1
+      }
+      if (indices.length === 0) { setHistRows([]); return }
+      const CHUNK = 10
+      const allRows: RankRow[] = []
+      for (let c = 0; c < indices.length; c += CHUNK) {
+        const chunk = indices.slice(c, c + CHUNK)
+        const fetches = chunk.map(idx => {
+          const rq = new URLSearchParams({ start: String(idx), end: String(idx), lang: 'en', units: 'kg' })
+          return fetch(opl('/api/rankings?' + rq.toString()))
+            .then(r => r.json()).then(parseRows).catch(() => [] as RankRow[])
+        })
+        allRows.push(...(await Promise.all(fetches)).flat())
+      }
       const nl = row.name.toLowerCase()
-      const filtered = all.filter(r => r.name.toLowerCase() === nl)
-                          .sort((a, b) => b.date.localeCompare(a.date))
-      setHistRows(filtered.length > 0 ? filtered : all.sort((a, b) => b.date.localeCompare(a.date)))
+      setHistRows(allRows.filter(r => r.name.toLowerCase() === nl).sort((a, b) => b.date.localeCompare(a.date)))
     } catch { setHistError('Could not load competition history.') }
     finally { setLoadingHist(false) }
   }
@@ -402,7 +446,7 @@ export default function Rankings() {
                           <td style={{ ...TD, color: '#555' }}>{row.federation || '—'}</td>
                           <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
                           <td style={{ ...TD, color: '#555' }}>{row.equipment || '—'}</td>
-                          <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? row.weightClassKg + 'kg' : '—'}</td>
+                          <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
                           <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3SquatKg, unit)}</td>
                           <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3BenchKg, unit)}</td>
                           <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3DeadliftKg, unit)}</td>
@@ -446,7 +490,7 @@ export default function Rankings() {
                                             <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
                                             <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
                                             <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.division || '—'}</td>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? hr.weightClassKg + 'kg' : '—'}</td>
+                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
                                             <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.bodyweightKg ? hr.bodyweightKg + 'kg' : '—'}</td>
                                             <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
                                             <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
