@@ -154,6 +154,8 @@ export default function Rankings() {
   const [loadingHist, setLoadingHist] = useState(false)
   const [histError,   setHistError]   = useState('')
   const [hitScanLimit, setHitScanLimit] = useState(false)
+  const [sortKey,      setSortKey]      = useState<string>('dots')
+  const [sortDir,      setSortDir]      = useState<'asc'|'desc'>('desc')
   const abortRef = useRef<AbortController | null>(null)
 
   // Fed/equip/sex/year → path segments (server-side). Weight class, age, name → client-side.
@@ -239,6 +241,20 @@ export default function Rankings() {
   }, [name, weightClass, ageClass, buildPath, applyClientFilters])
 
   const handleSearch = () => fetchPage(0)
+
+  const handleSort = (key: string) => {
+    if (key === sortKey) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sortedRows = [...rows].sort((a, b) => {
+    const n = (v: string) => parseFloat(v) || 0
+    let diff = 0
+    if (sortKey === 'age')           diff = n(a.age) - n(b.age)
+    else if (sortKey === 'bodyweightKg') diff = n(a.bodyweightKg) - n(b.bodyweightKg)
+    else diff = n((a as any)[sortKey]) - n((b as any)[sortKey])
+    return sortDir === 'desc' ? -diff : diff
+  })
 
   const toggleHistory = async (row: RankRow, key: string) => {
     if (expanded === key) { setExpanded(null); setHistRows([]); return }
@@ -388,15 +404,33 @@ export default function Rankings() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.78rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #111' }}>
-                    {['#', 'Name', 'Fed', 'Sex', 'Equip', 'Wt Class',
-                      'Squat (' + unit + ')', 'Bench (' + unit + ')', 'Dead (' + unit + ')',
-                      'Total (' + unit + ')', 'Dots', 'Date'].map(h => (
-                      <th key={h} style={TH}>{h}</th>
+                    {([
+                      ['#',                  null],
+                      ['Name',               null],
+                      ['Fed',                null],
+                      ['Sex',                null],
+                      ['Equip',              null],
+                      ['Wt Class',           null],
+                      ['BW',                 'bodyweightKg'],
+                      ['Age',                'age'],
+                      ['Squat (' + unit + ')','best3SquatKg'],
+                      ['Bench (' + unit + ')','best3BenchKg'],
+                      ['Dead ('  + unit + ')','best3DeadliftKg'],
+                      ['Total (' + unit + ')','totalKg'],
+                      ['Dots',               'dots'],
+                      ['Date',               null],
+                    ] as [string, string|null][]).map(([label, key]) => (
+                      <th key={label} style={{ ...TH, cursor: key ? 'pointer' : 'default',
+                        color: key && key === sortKey ? '#e63e3e' : '#333',
+                        userSelect: 'none' }}
+                        onClick={() => key && handleSort(key)}>
+                        {label}{key && key === sortKey ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, i) => {
+                  {sortedRows.map((row, i) => {
                     const rk = row.name + '|' + i
                     const isExp = expanded === rk
                     const rank = page * PAGE_SIZE + i + 1
@@ -416,6 +450,8 @@ export default function Rankings() {
                           <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
                           <td style={{ ...TD, color: '#555' }}>{row.equipment || '—'}</td>
                           <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
+                          <td style={{ ...TD, color: '#444' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                          <td style={{ ...TD, color: '#444' }}>{row.age ? row.age.replace('~','') : '—'}</td>
                           <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3SquatKg, unit)}</td>
                           <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3BenchKg, unit)}</td>
                           <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3DeadliftKg, unit)}</td>
@@ -426,7 +462,7 @@ export default function Rankings() {
 
                         {isExp && (
                           <tr key={'hist-' + rk} style={{ background: '#080808' }}>
-                            <td colSpan={12} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #0d0d0d' }}>
+                            <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #0d0d0d' }}>
                               {loadingHist && <p style={{ color: '#2a2a2a', fontSize: '.75rem' }}>Loading competition history…</p>}
                               {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
                               {!loadingHist && !histError && histRows.length > 0 && (
@@ -460,7 +496,7 @@ export default function Rankings() {
                                             <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
                                             <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.division || '—'}</td>
                                             <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
-                                            <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.bodyweightKg ? hr.bodyweightKg + 'kg' : '—'}</td>
+                                            <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
                                             <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
                                             <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
                                             <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
