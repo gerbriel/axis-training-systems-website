@@ -153,22 +153,24 @@ export default function Rankings() {
   const [histRows,    setHistRows]    = useState<RankRow[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
   const [histError,   setHistError]   = useState('')
+  const [hitScanLimit, setHitScanLimit] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Fed/equip/year → path segments (server-side). Everything else → client-side batch scan.
+  // Fed/equip/sex/year → path segments (server-side). Weight class, age, name → client-side.
   // Always fetch units=kg so weight class values match our dropdown (kg-based).
   const buildPath = useCallback(() => {
     const parts: string[] = []
     if (federation) parts.push(federation.toLowerCase())
     if (equipment)  parts.push(equipment)
-    if (year)       parts.push(year)
+    if (sex === 'M') parts.push('men')
+    else if (sex === 'F') parts.push('women')
+    if (year) parts.push(year)
     return '/api/rankings' + (parts.length ? '/' + parts.join('/') : '')
-  }, [federation, equipment, year])
+  }, [federation, equipment, sex, year])
 
   const applyClientFilters = useCallback((rows: RankRow[]) => {
     return rows.filter(row => {
       if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
-      if (sex && row.sex !== sex) return false
       if (weightClass) {
         const rowWt = row.weightClassKg.replace(/\.0$/, '')
         const selWt = weightClass.replace(/\.0$/, '')
@@ -183,21 +185,23 @@ export default function Rankings() {
       }
       return true
     })
-  }, [name, sex, weightClass, ageClass])
+  }, [name, weightClass, ageClass])
 
   const fetchPage = useCallback(async (pg: number) => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
-    setLoading(true); setError(''); setExpanded(null); setHistRows([])
+    setLoading(true); setError(''); setExpanded(null); setHistRows([]); setHitScanLimit(false)
     const signal  = abortRef.current.signal
     const path    = buildPath()
     const BASE_Q  = { lang: 'en', units: 'kg' } as const
-    const hasFilter = !!(name.trim() || sex || weightClass || ageClass)
+    // sex is now a path segment; only wt/age/name require client-side batch scanning
+    const hasFilter = !!(name.trim() || weightClass || ageClass)
     try {
       if (hasFilter) {
-        // Batch scan: fetch 100 rows at a time, filter client-side, stop when page is full
+        // Batch scan: 100 rows/request (API max), filter client-side, stop when page is full.
+        // With sex server-filtered the pool is 174k–442k instead of 617k.
         const BATCH = 100
-        const MAX_BATCHES = 40   // max 4 000 server rows scanned
+        const MAX_BATCHES = 300  // scan up to 30 000 server rows
         const need  = (pg + 1) * PAGE_SIZE
         const accumulated: RankRow[] = []
         let serverOffset = 0
@@ -213,6 +217,8 @@ export default function Rankings() {
           serverOffset += BATCH
           batches++
         }
+        const capped = batches >= MAX_BATCHES && serverOffset < serverTotal
+        setHitScanLimit(capped)
         setRows(accumulated.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
         setTotalCount(accumulated.length)
       } else {
@@ -230,7 +236,7 @@ export default function Rankings() {
       if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Failed to load rankings. Try again.')
     } finally { setLoading(false) }
-  }, [name, sex, weightClass, ageClass, buildPath, applyClientFilters])
+  }, [name, weightClass, ageClass, buildPath, applyClientFilters])
 
   const handleSearch = () => fetchPage(0)
 
@@ -238,20 +244,34 @@ export default function Rankings() {
     if (expanded === key) { setExpanded(null); setHistRows([]); return }
     setExpanded(key); setLoadingHist(true); setHistError('')
     try {
-      // Scan up to 2 000 rows around this lifter's rank position, filter by exact name
-      const BASE_Q = { lang: 'en', units: 'kg' } as const
-      const allRows: RankRow[] = []
-      for (let batch = 0; batch < 20; batch++) {
-        const start = batch * 100
-        const q = new URLSearchParams({ ...BASE_Q, start: String(start), end: String(start + 99) })
-        const res = await fetch(opl('/api/rankings?' + q.toString()))
-        if (!res.ok) break
-        const data = await res.json()
-        const parsed = parseRows(data)
-        allRows.push(...parsed.filter(r => r.name.toLowerCase() === row.name.toLowerCase()))
-        if (allRows.length >= 50) break
+      // Step 1: collect all row indices for this lifter via sequential search calls (no parallel = no 429)
+      const indices: number[] = []
+      let searchStart = 0
+      while (indices.length < 150) {
+        const sq = new URLSearchParams({ q: row.name, start: String(searchStart), end: '999999' })
+        const sres = await fetch(opl('/api/search/rankings?' + sq.toString()))
+        if (!sres.ok) break
+        const sdata = await sres.json()
+        if (sdata.next_index == null) break
+        indices.push(Number(sdata.next_index))
+        searchStart = Number(sdata.next_index) + 1
       }
-      setHistRows(allRows.sort((a, b) => b.date.localeCompare(a.date)))
+      if (indices.length === 0) { setHistRows([]); return }
+      // Step 2: fetch rows in small sequential batches (5 at a time) to stay within rate limits
+      const allRows: RankRow[] = []
+      const BASE_Q = { lang: 'en', units: 'kg' } as const
+      for (let c = 0; c < indices.length; c += 5) {
+        const chunk = indices.slice(c, c + 5)
+        for (const idx of chunk) {
+          const rq = new URLSearchParams({ ...BASE_Q, start: String(idx), end: String(idx) })
+          try {
+            const res = await fetch(opl('/api/rankings?' + rq.toString()))
+            if (res.ok) allRows.push(...parseRows(await res.json()))
+          } catch { /* skip failed row */ }
+        }
+      }
+      const nl = row.name.toLowerCase()
+      setHistRows(allRows.filter(r => r.name.toLowerCase() === nl).sort((a, b) => b.date.localeCompare(a.date)))
     } catch { setHistError('Could not load competition history.') }
     finally { setLoadingHist(false) }
   }
@@ -348,7 +368,7 @@ export default function Rankings() {
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
               <span style={{ color: '#2a2a2a', fontSize: '.72rem', marginLeft: 'auto' }}>
-                {totalCount.toLocaleString()} results
+                {totalCount.toLocaleString()}{hitScanLimit ? '+' : ''} results
               </span>
             )}
           </div>
