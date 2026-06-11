@@ -154,27 +154,16 @@ export default function Rankings() {
   const [histError,   setHistError]   = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  // Build the OPL API URL. Fed/equip/year are path segments (only server-side filters
-  // that actually work). Name uses ?q=. Sex, wt class, age class are client-side only.
-  const buildUrl = useCallback((pg: number) => {
-    // Fetch extra rows when client-side filters are active so we fill the page
-    const hasClientFilter = !!(sex || weightClass || ageClass)
-    const batchSize = hasClientFilter ? 500 : PAGE_SIZE
-    const start = pg * PAGE_SIZE  // logical page offset (server fetches ahead)
-    const pathParts: string[] = []
-    if (federation) pathParts.push(federation.toLowerCase())
-    if (equipment)  pathParts.push(equipment) // already lowercase
-    if (year)       pathParts.push(year)
-    const path = '/api/rankings' + (pathParts.length ? '/' + pathParts.join('/') : '')
-    const q = new URLSearchParams()
-    q.set('start', String(start))
-    q.set('end',   String(start + batchSize - 1))
-    if (name.trim()) q.set('q', name.trim())
-    q.set('lang', 'en'); q.set('units', unit)
-    return { path, query: q.toString(), hasClientFilter, batchSize }
-  }, [name, federation, sex, equipment, weightClass, ageClass, year, unit])
+  // Fed/equip/year → path segments (the only server-side filters OPL supports).
+  // Name → ?q= (server-side). Sex, weight class, age class → client-side loop.
+  const buildPath = useCallback(() => {
+    const parts: string[] = []
+    if (federation) parts.push(federation.toLowerCase())
+    if (equipment)  parts.push(equipment)
+    if (year)       parts.push(year)
+    return '/api/rankings' + (parts.length ? '/' + parts.join('/') : '')
+  }, [federation, equipment, year])
 
-  // Client-side filter applied after rows are parsed
   const applyClientFilters = useCallback((rows: RankRow[]) => {
     return rows.filter(row => {
       if (sex && row.sex !== sex) return false
@@ -194,22 +183,50 @@ export default function Rankings() {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
     setLoading(true); setError(''); setExpanded(null); setHistRows([])
+    const signal = abortRef.current.signal
+    const path   = buildPath()
+    const hasClientFilter = !!(sex || weightClass || ageClass)
     try {
-      const { path, query, hasClientFilter } = buildUrl(pg)
-      const res = await fetch(opl(path + '?' + query), { signal: abortRef.current.signal })
-      if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
-      const data = await res.json()
-      const all = parseRows(data)
-      const filtered = hasClientFilter ? applyClientFilters(all) : all
-      // When client-filtering, take PAGE_SIZE rows from the filtered batch
-      setRows(hasClientFilter ? filtered.slice(0, PAGE_SIZE) : filtered)
-      setTotalCount(data?.total_length ?? all.length)
+      if (!hasClientFilter) {
+        // No client-side filters — single request, fully server-handled
+        const start = pg * PAGE_SIZE
+        const q = new URLSearchParams({ start: String(start), end: String(start + PAGE_SIZE - 1), lang: 'en', units: unit })
+        if (name.trim()) q.set('q', name.trim())
+        const res = await fetch(opl(path + '?' + q.toString()), { signal })
+        if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
+        const data = await res.json()
+        setRows(parseRows(data))
+        setTotalCount(data?.total_length ?? 0)
+      } else {
+        // Client filters active — loop over 500-row batches until we accumulate
+        // (pg+1)*PAGE_SIZE filtered rows, then slice out the requested page.
+        const BATCH     = 500
+        const MAX_FETCH = 8            // caps at 4 000 server rows per search
+        const need      = (pg + 1) * PAGE_SIZE
+        const accumulated: RankRow[] = []
+        let serverOffset = 0
+        let serverTotal  = Infinity
+        let batches      = 0
+        while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_FETCH) {
+          const q = new URLSearchParams({ start: String(serverOffset), end: String(serverOffset + BATCH - 1), lang: 'en', units: unit })
+          if (name.trim()) q.set('q', name.trim())
+          const res = await fetch(opl(path + '?' + q.toString()), { signal })
+          if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
+          const data = await res.json()
+          serverTotal = data?.total_length ?? serverTotal
+          accumulated.push(...applyClientFilters(parseRows(data)))
+          serverOffset += BATCH
+          batches++
+        }
+        setRows(accumulated.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
+        setTotalCount(accumulated.length)
+      }
       setPage(pg); setSearched(true)
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Failed to load rankings. Try again.')
     } finally { setLoading(false) }
-  }, [buildUrl, applyClientFilters])
+  }, [name, federation, sex, equipment, weightClass, ageClass, year, unit, buildPath, applyClientFilters])
 
   const handleSearch = () => fetchPage(0)
 
