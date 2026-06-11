@@ -14,13 +14,43 @@ import { supabase, supabaseConfigured } from './supabase'
 import type { PendingContent, ContentStatus } from '../data/pendingContent'
 import { sanitize } from '../utils/sanitize'
 import { DEMO_CONTENT } from '../data/demoData'
+import { POSTS } from '../data/blog'
+
+// ── Static live-site content as PendingContent entries ──────────────────────
+// These mirror exactly what the public blog page and upcoming meets section show,
+// so the demo admin panel displays the same content the live site does.
+
+const LIVE_BLOG_POSTS: PendingContent[] = POSTS.map(p => ({
+  id: p.slug,
+  type: 'blog',
+  coachSlug: p.coachSlug ?? 'admin',
+  coachName: p.coachName ?? 'Axis Admin',
+  status: 'approved',
+  submittedAt: new Date(p.date).toISOString(),
+  reviewedAt:  new Date(p.date).toISOString(),
+  title:    p.title,
+  subtitle: p.subtitle,
+  summary:  p.summary,
+  tags:     p.tags.join(', '),
+  content:  JSON.stringify(p.content),
+}))
+
+const LIVE_MEETS: PendingContent[] = [
+  { id: 'static-meet-usapl-nationals-2026', type: 'meet', coachSlug: 'admin', coachName: 'Axis Admin', status: 'approved', submittedAt: '2026-01-01T00:00:00.000Z', reviewedAt: '2026-01-01T00:00:00.000Z', meetName: 'USAPL Raw Nationals', meetDate: 'July 24\u201327, 2026', meetLocation: 'Reno, NV', federation: 'USAPL', meetType: 'National', meetNote: 'Axis coaches attending & handling' },
+  { id: 'static-meet-pa-nationals-2026',    type: 'meet', coachSlug: 'admin', coachName: 'Axis Admin', status: 'approved', submittedAt: '2026-01-02T00:00:00.000Z', reviewedAt: '2026-01-02T00:00:00.000Z', meetName: 'Powerlifting America Nationals', meetDate: 'August 2026', meetLocation: 'TBD', federation: 'PA', meetType: 'National', meetNote: 'Axis coaches attending & handling' },
+  { id: 'static-meet-ipf-worlds-2026',      type: 'meet', coachSlug: 'admin', coachName: 'Axis Admin', status: 'approved', submittedAt: '2026-01-03T00:00:00.000Z', reviewedAt: '2026-01-03T00:00:00.000Z', meetName: 'IPF World Classic Championships', meetDate: 'September 2026', meetLocation: 'TBD', federation: 'IPF', meetType: 'World', meetNote: 'Team Axis athletes competing' },
+]
 
 // ── In-memory demo store ────────────────────────────────────────────────────
-// Seeded from DEMO_CONTENT on first access. Intentionally resets on page reload.
+// Seeded from live static content + DEMO_CONTENT on first access. Resets on reload.
 let _demoStore: PendingContent[] | null = null
 
 function getDemoStore(): PendingContent[] {
-  if (!_demoStore) _demoStore = DEMO_CONTENT.map(c => ({ ...c }))
+  if (!_demoStore) _demoStore = [
+    ...LIVE_BLOG_POSTS.map(c => ({ ...c })),
+    ...LIVE_MEETS.map(c => ({ ...c })),
+    ...DEMO_CONTENT.map(c => ({ ...c })),
+  ]
   return _demoStore
 }
 
