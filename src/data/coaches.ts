@@ -39,7 +39,7 @@ export const COACHES: Coach[] = [
     email: 'ronnie@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_1947a325134d4dff956eb3a7a6436e0e~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/20240302_201048_edited_edited_edited.jpg',
     ctaBg: 'https://static.wixstatic.com/media/e99af3_78afea37a86d42b59c9a5885e5909905~mv2.jpg',
-    bookCallUrl: 'https://tr.ee/GruejcFSXr',
+    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Head Coach & Founder',
     tagline: 'Strength built on intention, not ego.',
     bio: [

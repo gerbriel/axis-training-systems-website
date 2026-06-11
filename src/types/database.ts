@@ -44,6 +44,7 @@ export interface CoachRouting {
   coach_name: string
   email: string
   notify: boolean
+  calendly_url: string | null
   updated_at: string
 }
 

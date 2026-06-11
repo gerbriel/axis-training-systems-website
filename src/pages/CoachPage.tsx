@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { getCoachBySlug } from '../data/coaches'
 import { href, applyHref, adminHref } from '../utils/nav'
+import { supabase, supabaseConfigured } from '../lib/supabase'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -7,6 +9,23 @@ interface Props { slug: string }
 
 export default function CoachPage({ slug }: Props) {
   const coach = getCoachBySlug(slug)
+
+  // Start with static default; upgrade to live Supabase value if available
+  const [bookCallUrl, setBookCallUrl] = useState<string | undefined>(coach?.bookCallUrl)
+
+  useEffect(() => {
+    if (!coach) return
+    if (!supabaseConfigured) { setBookCallUrl(coach.bookCallUrl); return }
+    supabase
+      .from('coach_routing')
+      .select('calendly_url')
+      .eq('coach_name', coach.name)
+      .maybeSingle()
+      .then(({ data }) => {
+        const url = (data as { calendly_url?: string | null } | null)?.calendly_url
+        setBookCallUrl(url ?? coach.bookCallUrl)
+      })
+  }, [coach?.name]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!coach) {
     return (
@@ -82,9 +101,9 @@ export default function CoachPage({ slug }: Props) {
                 >
                   Apply to Work With {coach.firstName}
                 </a>
-                {coach.bookCallUrl && (
+                {bookCallUrl && (
                   <a
-                    href={coach.bookCallUrl}
+                    href={bookCallUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ background: 'transparent', border: '1px solid #333', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
@@ -244,9 +263,9 @@ export default function CoachPage({ slug }: Props) {
             >
               Start Your Application →
             </a>
-            {coach.bookCallUrl && (
+            {bookCallUrl && (
               <a
-                href={coach.bookCallUrl}
+                href={bookCallUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ display: 'inline-block', background: 'transparent', border: '1px solid rgba(255,255,255,.25)', color: '#fff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}

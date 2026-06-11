@@ -58,7 +58,7 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
           <a
-            href="https://tr.ee/GruejcFSXr"
+            href="https://calendly.com/ronnie-axistrainingsystems"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
@@ -107,7 +107,7 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="https://tr.ee/GruejcFSXr"
+            href="https://calendly.com/ronnie-axistrainingsystems"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMenuOpen(false)}

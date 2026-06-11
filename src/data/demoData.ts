@@ -138,12 +138,12 @@ export const DEMO_LEADS: Lead[] = [
 
 // ── Mock Routing ───────────────────────────────────────────────────────────
 export const DEMO_ROUTING: CoachRouting[] = [
-  { id: 'r1', coach_name: 'Ronnie Vallejo', email: 'ronnie@axistrainingsystems.com', notify: true, updated_at: new Date().toISOString() },
-  { id: 'r2', coach_name: 'Seth Burman',    email: 'seth@axistrainingsystems.com',   notify: true, updated_at: new Date().toISOString() },
-  { id: 'r3', coach_name: 'Lucas Sison',    email: 'lucas@axistrainingsystems.com',  notify: true, updated_at: new Date().toISOString() },
-  { id: 'r4', coach_name: 'Kobe Pham',      email: 'kobe@axistrainingsystems.com',   notify: true, updated_at: new Date().toISOString() },
-  { id: 'r5', coach_name: 'Aedan Nguyen',   email: 'aedan@axistrainingsystems.com',  notify: false, updated_at: new Date().toISOString() },
-  { id: 'r6', coach_name: 'No Preference',  email: 'admin@axistrainingsystems.com',  notify: true, updated_at: new Date().toISOString() },
+  { id: 'r1', coach_name: 'Ronnie Vallejo', email: 'ronnie@axistrainingsystems.com', notify: true,  calendly_url: 'https://calendly.com/ronnie-axistrainingsystems', updated_at: new Date().toISOString() },
+  { id: 'r2', coach_name: 'Seth Burman',    email: 'seth@axistrainingsystems.com',   notify: true,  calendly_url: null, updated_at: new Date().toISOString() },
+  { id: 'r3', coach_name: 'Lucas Sison',    email: 'lucas@axistrainingsystems.com',  notify: true,  calendly_url: null, updated_at: new Date().toISOString() },
+  { id: 'r4', coach_name: 'Kobe Pham',      email: 'kobe@axistrainingsystems.com',   notify: true,  calendly_url: null, updated_at: new Date().toISOString() },
+  { id: 'r5', coach_name: 'Aedan Nguyen',   email: 'aedan@axistrainingsystems.com',  notify: false, calendly_url: null, updated_at: new Date().toISOString() },
+  { id: 'r6', coach_name: 'No Preference',  email: 'admin@axistrainingsystems.com',  notify: true,  calendly_url: null, updated_at: new Date().toISOString() },
 ]
 
 // ── Mock Config ────────────────────────────────────────────────────────────

@@ -60,7 +60,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
     const updates = routes.map(r =>
       supabase.from('coach_routing')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ email: r.email, notify: r.notify, updated_at: new Date().toISOString() } as any)
+        .update({ email: r.email, notify: r.notify, calendly_url: r.calendly_url ?? null, updated_at: new Date().toISOString() } as any)
         .eq('id', r.id)
     )
     const results = await Promise.all(updates)
@@ -117,7 +117,16 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <p style={{ color: '#444', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
           When an athlete selects a coach preference, their application is emailed to that coach's address.
           Enable/disable per coach. Leave email blank to skip.
+          The <strong style={{ color: '#888' }}>Calendly URL</strong> is shown as a “Book a Consultation” button on each coach's public profile — leave blank to hide it.
         </p>
+
+        {/* Column headers */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0 1.25rem', marginBottom: '.5rem' }}>
+          <span style={{ width: '2.25rem', flexShrink: 0 }} />
+          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
+          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
+          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {routes.map(r => (
@@ -146,7 +155,15 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
                 type="email" className="field" placeholder="coach@example.com"
                 value={r.email} onChange={e => updateRoute(r.id, 'email', e.target.value)}
                 disabled={!r.notify}
-                style={{ flex: 1, minWidth: 200, opacity: r.notify ? 1 : 0.4 }}
+                style={{ flex: 1, minWidth: 180, opacity: r.notify ? 1 : 0.4 }}
+              />
+
+              {/* Calendly URL */}
+              <input
+                type="url" className="field" placeholder="https://calendly.com/their-link (optional)"
+                value={r.calendly_url ?? ''}
+                onChange={e => updateRoute(r.id, 'calendly_url', e.target.value)}
+                style={{ flex: 2, minWidth: 220 }}
               />
             </div>
           ))}

@@ -48,7 +48,7 @@ export default function Hero() {
         {/* CTAs */}
         <div className="flex flex-wrap gap-4">
           <a
-            href="https://tr.ee/GruejcFSXr"
+            href="https://calendly.com/ronnie-axistrainingsystems"
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
