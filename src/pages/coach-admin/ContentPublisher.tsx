@@ -2,6 +2,12 @@ import { useState } from 'react'
 import type { Coach } from '../../data/coaches'
 import { addPendingContent, getPendingContent, deleteContent } from '../../data/pendingContent'
 import type { PendingContent } from '../../data/pendingContent'
+import { isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
+
+// Content submission rate limit: max 5 submissions per 30 minutes per coach
+const SUBMIT_MAX      = 5
+const SUBMIT_LOCK_MS  = 30 * 60 * 1000
+const SUBMIT_WINDOW_MS = 30 * 60 * 1000
 
 const inputStyle: React.CSSProperties = {
   background: '#0d0d0d',
@@ -37,8 +43,10 @@ interface Props {
 }
 
 export default function ContentPublisher({ coach, isDemo = false }: Props) {
+  const rlScope = `content_submit_${coach.slug}`
   const [contentType, setContentType] = useState<'blog' | 'meet'>('blog')
   const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [items, setItems] = useState<PendingContent[]>(() =>
     getPendingContent().filter(c => c.coachSlug === coach.slug)
   )
@@ -62,41 +70,59 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
     setItems(getPendingContent().filter(c => c.coachSlug === coach.slug))
   }
 
-  function submitBlog() {
-    if (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) return
-    addPendingContent({
-      type: 'blog',
-      coachSlug: coach.slug,
-      coachName: coach.name,
-      title:     blogTitle.trim(),
-      subtitle:  blogSubtitle.trim(),
-      tags:      blogTags.trim(),
-      summary:   blogSummary.trim(),
-      content:   blogContent.trim(),
-    })
-    setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary(''); setBlogContent('')
+  function checkAndSubmit(fn: () => void) {
+    setSubmitError('')
+    const { blocked, remainingMs } = isRateLimited(rlScope)
+    if (blocked) {
+      setSubmitError(`Too many submissions. Try again in ${formatLockRemaining(remainingMs)}.`)
+      return
+    }
+    // Count this attempt before executing — deters repeated spam even on errors
+    recordFailedAttempt(rlScope, SUBMIT_MAX, SUBMIT_LOCK_MS, SUBMIT_WINDOW_MS)
+    try {
+      fn()
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+      return
+    }
     setSubmitted(true)
     refreshItems()
     setTimeout(() => setSubmitted(false), 3000)
   }
 
+  function submitBlog() {
+    if (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) return
+    checkAndSubmit(() => {
+      addPendingContent({
+        type: 'blog',
+        coachSlug: coach.slug,
+        coachName: coach.name,
+        title:     blogTitle.trim(),
+        subtitle:  blogSubtitle.trim(),
+        tags:      blogTags.trim(),
+        summary:   blogSummary.trim(),
+        content:   blogContent.trim(),
+      })
+      setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary(''); setBlogContent('')
+    })
+  }
+
   function submitMeet() {
     if (!meetName.trim() || !meetDate.trim()) return
-    addPendingContent({
-      type: 'meet',
-      coachSlug: coach.slug,
-      coachName: coach.name,
-      meetName:     meetName.trim(),
-      meetDate:     meetDate.trim(),
-      meetLocation: meetLocation.trim(),
-      federation:   federation.trim(),
-      meetType:     meetType,
-      meetNote:     meetNote.trim(),
+    checkAndSubmit(() => {
+      addPendingContent({
+        type: 'meet',
+        coachSlug: coach.slug,
+        coachName: coach.name,
+        meetName:     meetName.trim(),
+        meetDate:     meetDate.trim(),
+        meetLocation: meetLocation.trim(),
+        federation:   federation.trim(),
+        meetType:     meetType,
+        meetNote:     meetNote.trim(),
+      })
+      setMeetName(''); setMeetDate(''); setMeetLocation(''); setFederation(''); setMeetNote('')
     })
-    setMeetName(''); setMeetDate(''); setMeetLocation(''); setFederation(''); setMeetNote('')
-    setSubmitted(true)
-    refreshItems()
-    setTimeout(() => setSubmitted(false), 3000)
   }
 
   function handleDelete(id: string) {
@@ -148,20 +174,21 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
               <label style={labelStyle}>Title <span style={{ color: '#e63e3e' }}>*</span></label>
-              <input style={inputStyle} placeholder="e.g. Meet Recap — USAPL Raw Nationals 2026" value={blogTitle} onChange={e => setBlogTitle(e.target.value)} />
+              <input style={inputStyle} maxLength={200} placeholder="e.g. Meet Recap — USAPL Raw Nationals 2026" value={blogTitle} onChange={e => setBlogTitle(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Subtitle</label>
-              <input style={inputStyle} placeholder="One-line description for the post header" value={blogSubtitle} onChange={e => setBlogSubtitle(e.target.value)} />
+              <input style={inputStyle} maxLength={300} placeholder="One-line description for the post header" value={blogSubtitle} onChange={e => setBlogSubtitle(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Tags <span style={{ color: '#444', fontWeight: 400 }}>(comma-separated)</span></label>
-              <input style={inputStyle} placeholder="e.g. Meet Recap, USAPL, Case Study" value={blogTags} onChange={e => setBlogTags(e.target.value)} />
+              <input style={inputStyle} maxLength={200} placeholder="e.g. Meet Recap, USAPL, Case Study" value={blogTags} onChange={e => setBlogTags(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Summary <span style={{ color: '#e63e3e' }}>*</span></label>
               <textarea
                 style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
+                maxLength={1000}
                 placeholder="2-3 sentence summary shown on the blog listing page…"
                 value={blogSummary}
                 onChange={e => setBlogSummary(e.target.value)}
@@ -171,6 +198,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               <label style={labelStyle}>Content <span style={{ color: '#e63e3e' }}>*</span> <span style={{ color: '#333', fontWeight: 400 }}>— separate paragraphs with a blank line</span></label>
               <textarea
                 style={{ ...inputStyle, minHeight: 260, resize: 'vertical', lineHeight: 1.7 }}
+                maxLength={8000}
                 placeholder="Write the full post here. Use a blank line to separate paragraphs."
                 value={blogContent}
                 onChange={e => setBlogContent(e.target.value)}
@@ -199,6 +227,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                 Submit for Review →
               </button>
               {submitted && <span style={{ color: '#22c55e', fontSize: '.75rem', fontWeight: 700 }}>✓ Submitted — pending head coach review</span>}
+              {submitError && <span style={{ color: '#e63e3e', fontSize: '.75rem', fontWeight: 700 }}>{submitError}</span>}
             </div>
           </div>
         </div>
@@ -211,19 +240,19 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
           <div style={{ display: 'grid', gap: '1.25rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Meet Name <span style={{ color: '#e63e3e' }}>*</span></label>
-              <input style={inputStyle} placeholder="e.g. USAPL Raw Nationals 2026" value={meetName} onChange={e => setMeetName(e.target.value)} />
+              <input style={inputStyle} maxLength={200} placeholder="e.g. USAPL Raw Nationals 2026" value={meetName} onChange={e => setMeetName(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Date <span style={{ color: '#e63e3e' }}>*</span></label>
-              <input style={inputStyle} placeholder="e.g. July 24–27, 2026" value={meetDate} onChange={e => setMeetDate(e.target.value)} />
+              <input style={inputStyle} maxLength={100} placeholder="e.g. July 24–27, 2026" value={meetDate} onChange={e => setMeetDate(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Location</label>
-              <input style={inputStyle} placeholder="e.g. Reno, NV" value={meetLocation} onChange={e => setMeetLocation(e.target.value)} />
+              <input style={inputStyle} maxLength={200} placeholder="e.g. Reno, NV" value={meetLocation} onChange={e => setMeetLocation(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Federation</label>
-              <input style={inputStyle} placeholder="e.g. USAPL" value={federation} onChange={e => setFederation(e.target.value)} />
+              <input style={inputStyle} maxLength={50} placeholder="e.g. USAPL" value={federation} onChange={e => setFederation(e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>Type</label>
@@ -240,7 +269,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Note <span style={{ color: '#444', fontWeight: 400 }}>(shown on site)</span></label>
-              <input style={inputStyle} placeholder="e.g. Axis coaches attending & handling" value={meetNote} onChange={e => setMeetNote(e.target.value)} />
+              <input style={inputStyle} maxLength={300} placeholder="e.g. Axis coaches attending & handling" value={meetNote} onChange={e => setMeetNote(e.target.value)} />
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
@@ -266,6 +295,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               Submit for Review →
             </button>
             {submitted && <span style={{ color: '#22c55e', fontSize: '.75rem', fontWeight: 700 }}>✓ Submitted — pending head coach review</span>}
+            {submitError && <span style={{ color: '#e63e3e', fontSize: '.75rem', fontWeight: 700 }}>{submitError}</span>}
           </div>
         </div>
       )}

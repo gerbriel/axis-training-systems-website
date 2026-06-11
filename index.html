@@ -5,6 +5,35 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Solution focused. Evidence based. Transparent. Everybody eats. Powerlifting coaching from Axis Training Systems." />
+
+    <!-- ── Security headers (meta equivalents) ──────────────────────────── -->
+    <!--
+      Content-Security-Policy:
+        script-src 'self'           — only serve our own bundled JS (no eval, no inline scripts)
+        style-src  'self' 'unsafe-inline' — inline styles needed by React/Tailwind; Google Fonts CSS
+        font-src   — Google Fonts files
+        img-src    — self + Wix CDN used for coach/athlete photos
+        connect-src — Supabase REST + realtime WebSocket
+        base-uri / form-action — prevent base-tag injection and form hijacking
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://static.wixstatic.com https://i.imgur.com https://*.googleusercontent.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com;
+      base-uri 'self';
+      form-action 'self';
+      object-src 'none';
+    " />
+    <!-- Prevent this page from being embedded in a frame (clickjacking defence) -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <!-- Prevent MIME-type sniffing -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <!-- Only send origin as referrer on same-origin and HTTPS downgrades -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <title>Axis Training Systems — Powerlifting Coaching</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

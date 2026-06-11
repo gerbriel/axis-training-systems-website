@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getPendingContent, updateContentStatus, deleteContent } from '../../data/pendingContent'
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
+import { sanitize } from '../../utils/sanitize'
 
 const STATUS_COLORS: Record<ContentStatus, string> = {
   pending:  '#f59e0b',
@@ -57,7 +58,8 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
   }
 
   function confirmReject(id: string) {
-    updateContentStatus(id, 'rejected', rejectNotes[id] ?? '')
+    const safeNote = sanitize(rejectNotes[id] ?? '', 500)
+    updateContentStatus(id, 'rejected', safeNote)
     setRejectMode(prev => ({ ...prev, [id]: false }))
     refresh()
   }
@@ -246,6 +248,7 @@ export default function ApprovalsPanel({ isDemo = false }: Props) {
                           <label style={labelStyle}>Rejection Note <span style={{ color: '#444', fontWeight: 400 }}>(visible to coach)</span></label>
                           <input
                             style={inputStyle}
+                            maxLength={500}
                             placeholder="Explain why this is being rejected…"
                             value={rejectNotes[item.id] ?? ''}
                             onChange={e => setRejectNotes(prev => ({ ...prev, [item.id]: e.target.value }))}

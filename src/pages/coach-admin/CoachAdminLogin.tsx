@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Coach } from '../../data/coaches'
 import { href } from '../../utils/nav'
+import { sanitizeEmail, isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSignOut }: Props) {
+  const rlScope = `coach_login_${coach.slug}`
   const [email, setEmail] = useState(coach.email)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,18 +22,43 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
     ? `This portal is for ${coach.name} only. Please sign in with ${coach.email}.`
     : ''
   )
+  const [lockRemaining, setLockRemaining] = useState(0)
+
+  useEffect(() => {
+    const tick = () => {
+      const { blocked, remainingMs } = isRateLimited(rlScope)
+      setLockRemaining(blocked ? remainingMs : 0)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [rlScope])
+
+  const isBlocked = lockRemaining > 0
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isBlocked) return
     setLoading(true)
     setError('')
-    if (email.toLowerCase() !== coach.email.toLowerCase()) {
+    const cleanEmail = sanitizeEmail(email)
+    if (cleanEmail.toLowerCase() !== coach.email.toLowerCase()) {
+      recordFailedAttempt(rlScope)
       setError(`This portal is for ${coach.name} only (${coach.email}).`)
       setLoading(false)
       return
     }
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) setError(err.message)
+    const { error: err } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+    if (err) {
+      const result = recordFailedAttempt(rlScope)
+      if (result.blocked) {
+        setError(`Too many failed attempts. Locked for ${formatLockRemaining(result.lockedUntil! - Date.now())}.`)
+      } else {
+        setError(`${err.message} (${result.attempts}/5 attempts)`)
+      }
+    } else {
+      clearRateLimit(rlScope)
+    }
     setLoading(false)
   }
 
@@ -76,17 +103,22 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
             />
           </div>
 
-          {error && (
+          {isBlocked && (
+            <div style={{ background: '#1a0a00', border: '1px solid #5c3000', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f59e0b', fontSize: '.8rem' }}>
+              Too many failed attempts. Try again in {formatLockRemaining(lockRemaining)}.
+            </div>
+          )}
+          {error && !isBlocked && (
             <div style={{ background: '#1a0808', border: '1px solid #4a1515', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f87171', fontSize: '.8rem' }}>
               {error}
             </div>
           )}
 
           <button
-            type="submit" disabled={loading}
-            style={{ background: loading ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#c42e2e' }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#e63e3e' }}
+            type="submit" disabled={loading || isBlocked}
+            style={{ background: loading || isBlocked ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading || isBlocked ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
+            onMouseEnter={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#c42e2e' }}
+            onMouseLeave={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#e63e3e' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>

@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { sanitizeEmail, isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
+
+const RL_SCOPE = 'admin_login'
 
 interface Props { onDemo?: () => void }
 
@@ -8,13 +11,38 @@ export default function AdminLogin({ onDemo }: Props) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [lockRemaining, setLockRemaining] = useState(0)
+
+  // Poll lockout countdown every second
+  useEffect(() => {
+    const tick = () => {
+      const { blocked, remainingMs } = isRateLimited(RL_SCOPE)
+      setLockRemaining(blocked ? remainingMs : 0)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const isBlocked = lockRemaining > 0
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isBlocked) return
     setLoading(true)
     setError('')
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) setError(err.message)
+    const cleanEmail = sanitizeEmail(email)
+    const { error: err } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+    if (err) {
+      const result = recordFailedAttempt(RL_SCOPE)
+      if (result.blocked) {
+        setError(`Too many failed attempts. Locked for ${formatLockRemaining(result.lockedUntil! - Date.now())}.`)
+      } else {
+        setError(`${err.message} (${result.attempts}/5 attempts)`)
+      }
+    } else {
+      clearRateLimit(RL_SCOPE)
+    }
     setLoading(false)
   }
 
@@ -46,14 +74,19 @@ export default function AdminLogin({ onDemo }: Props) {
             />
           </div>
 
-          {error && (
+          {isBlocked && (
+            <div style={{ background: '#1a0a00', border: '1px solid #5c3000', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f59e0b', fontSize: '.8rem' }}>
+              Too many failed attempts. Try again in {formatLockRemaining(lockRemaining)}.
+            </div>
+          )}
+          {error && !isBlocked && (
             <div style={{ background: '#1a0808', border: '1px solid #4a1515', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f87171', fontSize: '.8rem' }}>
               {error}
             </div>
           )}
 
           <button
-            type="submit" disabled={loading}
+            type="submit" disabled={loading || isBlocked}
             style={{ background: loading ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
             onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#c42e2e' }}
             onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#e63e3e' }}
