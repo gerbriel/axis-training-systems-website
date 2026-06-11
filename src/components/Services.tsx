@@ -5,7 +5,7 @@ const SERVICES = [
     desc: 'The most popular service at Axis. Athletes receive daily communication, unlimited technique analysis, individualized programming, and meet day handling. A high-contact service that allows coaches and athletes to address issues as they arise — adjusting training stress or providing technique accountability in real time.',
     highlights: ['Daily coach communication', 'Unlimited technique analysis', 'Individualized programming', 'Meet day handling included'],
     cta: 'Apply Now',
-    href: '#apply',
+    href: '#coaches',
   },
   {
     num: '02',
@@ -13,7 +13,7 @@ const SERVICES = [
     desc: 'For athletes who want an experienced Axis coach in their corner on competition day. Includes video review, scouting reports, a meet day planning call, and in-person or remote handling. Axis coaches are present at all National competitions in Powerlifting America and USAPL, and at most IPF World Championship events.',
     highlights: ['Video review & scouting report', 'Meet day planning call', 'In-person or remote handling', 'Present at PA/USAPL Nationals & IPF Worlds'],
     cta: 'Apply Now',
-    href: '#apply',
+    href: '#coaches',
   },
   {
     num: '03',
@@ -29,7 +29,7 @@ const SERVICES = [
     desc: 'For athletes not seeking full programming or ongoing coaching, but wanting focused support on technique. We offer movement coaching and consultations to refine your lifts and optimize movement for better performance and efficiency — as standalone sessions or a short-term series.',
     highlights: ['Video breakdown & cues', 'Technique correction plan', 'Standalone or short-term series', 'No long-term commitment required'],
     cta: 'Apply Now',
-    href: '#apply',
+    href: '#coaches',
   },
 ]
 

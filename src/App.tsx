@@ -7,12 +7,15 @@ import HowItWorks from './components/HowItWorks'
 import Testimonials from './components/Testimonials'
 import Tools from './components/Tools'
 import Coaches from './components/Coaches'
+import UpcomingMeets from './components/UpcomingMeets'
 import Footer from './components/Footer'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import AdminPortal from './pages/AdminPortal'
 import CoachPage from './pages/CoachPage'
 import ApplyPage from './pages/ApplyPage'
 import CoachAdmin from './pages/CoachAdmin'
+import BlogIndex from './pages/BlogIndex'
+import BlogPostPage from './pages/BlogPostPage'
 
 // ── Routing ────────────────────────────────────────────────────────────────
 // Strip BASE_URL prefix so we always work with a clean path like /coaches/slug
@@ -36,6 +39,13 @@ function getRoute() {
   const applyMatch = path.match(/^\/apply\/([^/]+)/)
   if (applyMatch) return { type: 'apply', slug: applyMatch[1] }
 
+  // /blog/:slug
+  const blogPostMatch = path.match(/^\/blog\/([^/]+)/)
+  if (blogPostMatch) return { type: 'blog-post', slug: blogPostMatch[1] }
+
+  // /blog
+  if (path === '/blog') return { type: 'blog' }
+
   return { type: 'home' }
 }
 
@@ -46,6 +56,8 @@ export default function App() {
   if (route.type === 'admin') return <AdminPortal />
   if (route.type === 'coach') return <CoachPage slug={route.slug!} />
   if (route.type === 'apply') return <ApplyPage slug={route.slug!} />
+  if (route.type === 'blog') return <BlogIndex />
+  if (route.type === 'blog-post') return <BlogPostPage slug={route.slug!} />
 
   // ── Home ──────────────────────────────────────────────────────────────────
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -64,6 +76,7 @@ export default function App() {
       <Services />
       <HowItWorks />
       <Testimonials />
+      <UpcomingMeets />
       <Coaches />
       <Tools />
       <Footer />

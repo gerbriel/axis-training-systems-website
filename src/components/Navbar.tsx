@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Coaches',      href: '#coaches' },
+  { label: 'Blog',         href: href('/blog') },
   { label: 'Apply',        href: '#coaches' },
   { label: 'Tools',        href: '#tools' },
 ]
@@ -116,7 +117,7 @@ export default function Navbar() {
             Book a Call
           </a>
           <a
-            href="#apply"
+            href="#coaches"
             onClick={() => setMenuOpen(false)}
             className="text-white text-xs font-black px-5 py-3 rounded text-center tracking-widest uppercase"
             style={{ background: '#e63e3e' }}

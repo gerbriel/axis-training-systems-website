@@ -1,4 +1,4 @@
-import { adminHref } from '../utils/nav'
+import { adminHref, href } from '../utils/nav'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Our Coaches',  href: '#coaches' },
+  { label: 'Blog',         href: href('/blog') },
   { label: 'Apply',        href: '#coaches' },
 ]
 
