@@ -7,9 +7,9 @@ const NAV_LINKS = [
   { label: 'Services',     href: '#services' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Coaches',      href: '#coaches' },
+  { label: 'Tools',        href: '#tools' },
   { label: 'Blog',         href: href('/blog') },
   { label: 'Free Guides',  href: href('/guides') },
-  { label: 'Tools',        href: '#tools' },
 ]
 
 export default function Navbar() {
