@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { href } from '../utils/nav'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
@@ -145,7 +145,8 @@ const LBL: React.CSSProperties = {
   color: '#333', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.15em',
   textTransform: 'uppercase', display: 'block', marginBottom: '.4rem',
 }
-const PAGE_SIZE = 100
+
+const LOAD_SIZE = 100  // rows to add per scroll trigger
 
 // ── Component ─────────────────────────────────────────────────────────────
 export default function Rankings() {
@@ -158,22 +159,30 @@ export default function Rankings() {
   const [year,        setYear]        = useState('')
   const [unit,        setUnit]        = useState<'lbs' | 'kg'>('lbs')
   const [rows,        setRows]        = useState<RankRow[]>([])
-  const [totalCount,  setTotalCount]  = useState(0)
-  const [page,        setPage]        = useState(0)
+  const [totalHint,   setTotalHint]   = useState(0)   // server's total_length for the display hint
+  const [hasMore,     setHasMore]     = useState(false)
   const [loading,     setLoading]     = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error,       setError]       = useState('')
   const [searched,    setSearched]    = useState(false)
   const [expanded,    setExpanded]    = useState<string | null>(null)
   const [histRows,    setHistRows]    = useState<RankRow[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
   const [histError,   setHistError]   = useState('')
-  const [hitScanLimit, setHitScanLimit] = useState(false)
-  const [sortKey,      setSortKey]      = useState<string>('dots')
-  const [sortDir,      setSortDir]      = useState<'asc'|'desc'>('desc')
-  const abortRef = useRef<AbortController | null>(null)
+  const [sortKey,     setSortKey]     = useState<string>('dots')
+  const [sortDir,     setSortDir]     = useState<'asc'|'desc'>('desc')
 
-  // Fed/equip/sex/year → path segments (server-side). Weight class, age, name → client-side.
-  // Always fetch units=kg so weight class values match our dropdown (kg-based).
+  const abortRef        = useRef<AbortController | null>(null)
+  const sentinelRef     = useRef<HTMLDivElement | null>(null)
+  // batch-scan state (for non-name searches)
+  const serverOffsetRef = useRef(0)
+  const serverTotalRef  = useRef(Infinity)
+  // name-search state (for name searches via /api/search/rankings)
+  const nameSearchStart = useRef(0)
+  const nameSearchDone  = useRef(false)
+  // guard against concurrent loadChunk calls
+  const isLoadingRef    = useRef(false)
+
   const buildPath = useCallback(() => {
     const parts: string[] = []
     if (federation) parts.push(federation.toLowerCase())
@@ -184,8 +193,9 @@ export default function Rankings() {
     return '/api/rankings' + (parts.length ? '/' + parts.join('/') : '')
   }, [federation, equipment, sex, year])
 
-  const applyClientFilters = useCallback((rows: RankRow[]) => {
-    return rows.filter(row => {
+  // Client-side filters: weight class, age class (and name as a post-filter for batch scan)
+  const applyClientFilters = useCallback((r: RankRow[]) => {
+    return r.filter(row => {
       if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
       if (weightClass) {
         const rowWt = row.weightClassKg.replace(/\.0$/, '')
@@ -203,55 +213,113 @@ export default function Rankings() {
     })
   }, [name, weightClass, ageClass])
 
-  const fetchPage = useCallback(async (pg: number) => {
-    if (abortRef.current) abortRef.current.abort()
-    abortRef.current = new AbortController()
-    setLoading(true); setError(''); setExpanded(null); setHistRows([]); setHitScanLimit(false)
-    const signal  = abortRef.current.signal
-    const path    = buildPath()
-    const BASE_Q  = { lang: 'en', units: 'kg' } as const
-    // sex is now a path segment; only wt/age/name require client-side batch scanning
-    const hasFilter = !!(name.trim() || weightClass || ageClass)
+  // Core load function. isInit=true resets the table; false appends (infinite scroll).
+  const loadChunk = useCallback(async (isInit: boolean) => {
+    if (isLoadingRef.current) return
+    isLoadingRef.current = true
+    if (isInit) setLoading(true); else setLoadingMore(true)
+    setError('')
+
+    const ctrl   = abortRef.current!
+    const signal = ctrl.signal
+    const path   = buildPath()
+    const BASE_Q = { lang: 'en', units: 'kg' } as const
+
     try {
-      if (hasFilter) {
-        // Batch scan: 100 rows/request, filter client-side, stop when page is full.
-        // Sleep 150ms between batches to stay under corsproxy.io rate limits.
-        const BATCH = 100
-        const MAX_BATCHES = 100  // scan up to 10 000 server rows
-        const need  = (pg + 1) * PAGE_SIZE
-        const accumulated: RankRow[] = []
-        let serverOffset = 0
-        let serverTotal  = Infinity
-        let batches      = 0
-        while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_BATCHES) {
-          if (batches > 0) await sleep(150)
-          const q = new URLSearchParams({ ...BASE_Q, start: String(serverOffset), end: String(serverOffset + BATCH - 1) })
-          const data = await oplFetch(opl(path + '?' + q.toString()), signal)
-          serverTotal = data?.total_length ?? serverTotal
-          accumulated.push(...applyClientFilters(parseRows(data)))
-          serverOffset += BATCH
-          batches++
+      const newRows: RankRow[] = []
+
+      if (name.trim()) {
+        // ── Name search: use OPL's search/rankings API which walks the FULL database ──
+        // Each call returns the next matching row index; we fetch that row and apply
+        // remaining client-side filters (weight class, age class).
+        let start = nameSearchStart.current
+        while (newRows.length < LOAD_SIZE && !nameSearchDone.current) {
+          if (signal.aborted) return
+          const sq = new URLSearchParams({ q: name.trim(), start: String(start), end: '9999999' })
+          let sdata: any
+          try { sdata = await oplFetch(opl('/api/search/rankings?' + sq), signal) }
+          catch { nameSearchDone.current = true; break }
+          if (sdata?.next_index == null) { nameSearchDone.current = true; break }
+          const idx = Number(sdata.next_index)
+          start = idx + 1
+          // Fetch the actual row from the (possibly filtered) rankings path
+          const rq = new URLSearchParams({ ...BASE_Q, start: String(idx), end: String(idx) })
+          try {
+            const rdata = await oplFetch(opl('/api/rankings?' + rq), signal)
+            const filtered = applyClientFilters(parseRows(rdata))
+            newRows.push(...filtered)
+          } catch { /* skip individual row errors */ }
+          await sleep(80)
         }
-        const capped = batches >= MAX_BATCHES && serverOffset < serverTotal
-        setHitScanLimit(capped)
-        setRows(accumulated.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
-        setTotalCount(accumulated.length)
+        nameSearchStart.current = start
+        if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
+        setHasMore(!nameSearchDone.current)
+
       } else {
-        // No filters — simple paginated fetch
-        const start = pg * PAGE_SIZE
-        const q = new URLSearchParams({ ...BASE_Q, start: String(start), end: String(start + PAGE_SIZE - 1) })
-        const data = await oplFetch(opl(path + '?' + q.toString()), signal)
-        setRows(parseRows(data))
-        setTotalCount(data?.total_length ?? 0)
+        // ── Batch scan: fetch ranked rows in 100-row pages, filter client-side ──
+        // Used for weight class / age class / unfiltered browsing.
+        while (newRows.length < LOAD_SIZE && serverOffsetRef.current < serverTotalRef.current) {
+          if (signal.aborted) return
+          const q = new URLSearchParams({
+            ...BASE_Q,
+            start: String(serverOffsetRef.current),
+            end:   String(serverOffsetRef.current + 99),
+          })
+          const data = await oplFetch(opl(path + '?' + q), signal)
+          const total = data?.total_length ?? serverTotalRef.current
+          serverTotalRef.current = total
+          if (isInit && serverOffsetRef.current === 0) setTotalHint(total)
+          const hasClientFilter = !!(weightClass || ageClass)
+          newRows.push(...(hasClientFilter ? applyClientFilters(parseRows(data)) : parseRows(data)))
+          serverOffsetRef.current += 100
+          if (newRows.length < LOAD_SIZE) await sleep(150)
+        }
+        if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
+        setHasMore(serverOffsetRef.current < serverTotalRef.current)
       }
-      setPage(pg); setSearched(true)
+
+      setSearched(true)
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Failed to load rankings. Try again.')
-    } finally { setLoading(false) }
+    } finally {
+      isLoadingRef.current = false
+      if (isInit) setLoading(false); else setLoadingMore(false)
+    }
   }, [name, weightClass, ageClass, buildPath, applyClientFilters])
 
-  const handleSearch = () => fetchPage(0)
+  const handleSearch = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort()
+    abortRef.current = new AbortController()
+    // Reset all scroll/scan state
+    serverOffsetRef.current = 0
+    serverTotalRef.current  = Infinity
+    nameSearchStart.current = 0
+    nameSearchDone.current  = false
+    isLoadingRef.current    = false
+    setRows([])
+    setHasMore(false)
+    setTotalHint(0)
+    setExpanded(null)
+    setHistRows([])
+    loadChunk(true)
+  }, [loadChunk])
+
+  // IntersectionObserver: fires loadChunk(false) when the sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingRef.current) {
+          loadChunk(false)
+        }
+      },
+      { rootMargin: '600px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadChunk])
 
   const handleSort = (key: string) => {
     if (key === sortKey) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
@@ -301,9 +369,6 @@ export default function Rankings() {
     } catch { setHistError('Could not load competition history.') }
     finally { setLoadingHist(false) }
   }
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const canNext = (page + 1) * PAGE_SIZE < totalCount
 
   return (
     <div style={{ minHeight: '100vh', background: '#050505', color: '#fff', fontFamily: 'inherit' }}>
@@ -394,7 +459,10 @@ export default function Rankings() {
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
               <span style={{ color: '#2a2a2a', fontSize: '.72rem', marginLeft: 'auto' }}>
-                {totalCount.toLocaleString()}{hitScanLimit ? '+' : ''} results
+                {rows.length.toLocaleString()} loaded
+                {!name.trim() && totalHint > 0 && (
+                  <span style={{ color: '#1a1a1a' }}> / {totalHint.toLocaleString()} total</span>
+                )}
               </span>
             )}
           </div>
@@ -409,151 +477,145 @@ export default function Rankings() {
 
         {/* ── Results table ─────────────────────────────────────────────── */}
         {rows.length > 0 && (
-          <>
-            <div style={{ overflowX: 'auto', border: '1px solid #111', borderRadius: '.35rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.78rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #111' }}>
-                    {([
-                      ['#',                  null],
-                      ['Name',               null],
-                      ['Fed',                null],
-                      ['Sex',                null],
-                      ['Equip',              null],
-                      ['Wt Class',           null],
-                      ['BW',                 'bodyweightKg'],
-                      ['Age',                'age'],
-                      ['Squat (' + unit + ')','best3SquatKg'],
-                      ['Bench (' + unit + ')','best3BenchKg'],
-                      ['Dead ('  + unit + ')','best3DeadliftKg'],
-                      ['Total (' + unit + ')','totalKg'],
-                      ['Dots',               'dots'],
-                      ['Date',               null],
-                    ] as [string, string|null][]).map(([label, key]) => (
-                      <th key={label} style={{ ...TH, cursor: key ? 'pointer' : 'default',
-                        color: key && key === sortKey ? '#e63e3e' : '#333',
-                        userSelect: 'none' }}
-                        onClick={() => key && handleSort(key)}>
-                        {label}{key && key === sortKey ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedRows.map((row, i) => {
-                    const rk = row.name + '|' + i
-                    const isExp = expanded === rk
-                    const rank = page * PAGE_SIZE + i + 1
-                    return (
-                      <>
-                        <tr key={rk}
-                          style={{ borderBottom: '1px solid #0a0a0a', cursor: 'pointer', background: isExp ? '#0e0e0e' : 'transparent' }}
-                          onClick={() => toggleHistory(row, rk)}
-                          onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#0d0d0d' }}
-                          onMouseLeave={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
-                        >
-                          <td style={{ ...TD, color: '#333', width: 36 }}>{rank}</td>
-                          <td style={{ ...TD, color: '#e63e3e', fontWeight: 700, minWidth: 160 }}>
-                            {row.name}<span style={{ color: '#1a1a1a', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
-                          </td>
-                          <td style={{ ...TD, color: '#555' }}>{row.federation || '—'}</td>
-                          <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
-                          <td style={{ ...TD, color: '#555' }}>{row.equipment || '—'}</td>
-                          <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
-                          <td style={{ ...TD, color: '#444' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
-                          <td style={{ ...TD, color: '#444' }}>{row.age ? row.age.replace('~','') : '—'}</td>
-                          <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3SquatKg, unit)}</td>
-                          <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3BenchKg, unit)}</td>
-                          <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3DeadliftKg, unit)}</td>
-                          <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#222', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
-                          <td style={{ ...TD, color: '#444' }}>{fmtScore(row.dots)}</td>
-                          <td style={{ ...TD, color: '#333' }}>{row.date || '—'}</td>
-                        </tr>
+          <div style={{ overflowX: 'auto', border: '1px solid #111', borderRadius: '.35rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.78rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #111' }}>
+                  {([
+                    ['#',                  null],
+                    ['Name',               null],
+                    ['Fed',                null],
+                    ['Sex',                null],
+                    ['Equip',              null],
+                    ['Wt Class',           null],
+                    ['BW',                 'bodyweightKg'],
+                    ['Age',                'age'],
+                    ['Squat (' + unit + ')','best3SquatKg'],
+                    ['Bench (' + unit + ')','best3BenchKg'],
+                    ['Dead ('  + unit + ')','best3DeadliftKg'],
+                    ['Total (' + unit + ')','totalKg'],
+                    ['Dots',               'dots'],
+                    ['Date',               null],
+                  ] as [string, string|null][]).map(([label, key]) => (
+                    <th key={label} style={{ ...TH, cursor: key ? 'pointer' : 'default',
+                      color: key && key === sortKey ? '#e63e3e' : '#333',
+                      userSelect: 'none' }}
+                      onClick={() => key && handleSort(key)}>
+                      {label}{key && key === sortKey ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((row, i) => {
+                  const rk = row.name + '|' + i
+                  const isExp = expanded === rk
+                  return (
+                    <>
+                      <tr key={rk}
+                        style={{ borderBottom: '1px solid #0a0a0a', cursor: 'pointer', background: isExp ? '#0e0e0e' : 'transparent' }}
+                        onClick={() => toggleHistory(row, rk)}
+                        onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#0d0d0d' }}
+                        onMouseLeave={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
+                      >
+                        <td style={{ ...TD, color: '#333', width: 36 }}>{i + 1}</td>
+                        <td style={{ ...TD, color: '#e63e3e', fontWeight: 700, minWidth: 160 }}>
+                          {row.name}<span style={{ color: '#1a1a1a', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
+                        </td>
+                        <td style={{ ...TD, color: '#555' }}>{row.federation || '—'}</td>
+                        <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
+                        <td style={{ ...TD, color: '#555' }}>{row.equipment || '—'}</td>
+                        <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: '#444' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: '#444' }}>{row.age ? row.age.replace('~','') : '—'}</td>
+                        <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3SquatKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3BenchKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#222' }}>{fmt(row.best3DeadliftKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#222', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
+                        <td style={{ ...TD, color: '#444' }}>{fmtScore(row.dots)}</td>
+                        <td style={{ ...TD, color: '#333' }}>{row.date || '—'}</td>
+                      </tr>
 
-                        {isExp && (
-                          <tr key={'hist-' + rk} style={{ background: '#080808' }}>
-                            <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #0d0d0d' }}>
-                              {loadingHist && <p style={{ color: '#2a2a2a', fontSize: '.75rem' }}>Loading competition history…</p>}
-                              {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
-                              {!loadingHist && !histError && histRows.length > 0 && (
-                                <>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                                    <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
-                                      {row.name} — {histRows.length} entries
-                                    </p>
-                                    <a href={'https://www.openpowerlifting.org/u/' + row.slug}
-                                      target="_blank" rel="noopener noreferrer"
-                                      style={{ color: '#e63e3e', fontSize: '.65rem', textDecoration: 'none' }}
-                                      onClick={e => e.stopPropagation()}>View on OPL ↗</a>
-                                  </div>
-                                  <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.73rem' }}>
-                                      <thead>
-                                        <tr>
-                                          {['Date', 'Meet', 'Fed', 'Equip', 'Div', 'Wt', 'BW',
-                                            'SQ (' + unit + ')', 'BP (' + unit + ')', 'DL (' + unit + ')',
-                                            'Total (' + unit + ')', 'Dots', 'Place'].map(h => (
-                                            <th key={h} style={{ ...TH, fontSize: '.5rem', background: '#0a0a0a' }}>{h}</th>
-                                          ))}
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {histRows.map((hr, hi) => (
-                                          <tr key={hi} style={{ borderBottom: '1px solid #0d0d0d' }}>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.date || '—'}</td>
-                                            <td style={{ ...TD, color: '#999', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
-                                            <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.division || '—'}</td>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
-                                            <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
-                                            <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
-                                            <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
-                                            <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
-                                            <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#222', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
-                                            <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
-                                            <td style={{ ...TD, fontWeight: 700, color: hr.place === '1' ? '#e63e3e' : '#666', fontSize: '.72rem' }}>
-                                              {hr.place === '1' ? '🥇 1' : (hr.place || '—')}
-                                            </td>
-                                          </tr>
+                      {isExp && (
+                        <tr key={'hist-' + rk} style={{ background: '#080808' }}>
+                          <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #0d0d0d' }}>
+                            {loadingHist && <p style={{ color: '#2a2a2a', fontSize: '.75rem' }}>Loading competition history…</p>}
+                            {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
+                            {!loadingHist && !histError && histRows.length > 0 && (
+                              <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.5rem' }}>
+                                  <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
+                                    {row.name} — {histRows.length} entries
+                                  </p>
+                                  <a href={'https://www.openpowerlifting.org/u/' + row.slug}
+                                    target="_blank" rel="noopener noreferrer"
+                                    style={{ color: '#e63e3e', fontSize: '.65rem', textDecoration: 'none' }}
+                                    onClick={e => e.stopPropagation()}>View on OPL ↗</a>
+                                </div>
+                                <div style={{ overflowX: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.73rem' }}>
+                                    <thead>
+                                      <tr>
+                                        {['Date', 'Meet', 'Fed', 'Equip', 'Div', 'Wt', 'BW',
+                                          'SQ (' + unit + ')', 'BP (' + unit + ')', 'DL (' + unit + ')',
+                                          'Total (' + unit + ')', 'Dots', 'Place'].map(h => (
+                                          <th key={h} style={{ ...TH, fontSize: '.5rem', background: '#0a0a0a' }}>{h}</th>
                                         ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </>
-                              )}
-                              {!loadingHist && !histError && histRows.length === 0 && (
-                                <p style={{ color: '#333', fontSize: '.75rem' }}>No competition history found.</p>
-                              )}
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {histRows.map((hr, hi) => (
+                                        <tr key={hi} style={{ borderBottom: '1px solid #0d0d0d' }}>
+                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.date || '—'}</td>
+                                          <td style={{ ...TD, color: '#999', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
+                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
+                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
+                                          <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.division || '—'}</td>
+                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
+                                          <td style={{ ...TD, color: '#333', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#222', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#222', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
+                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
+                                          <td style={{ ...TD, fontWeight: 700, color: hr.place === '1' ? '#e63e3e' : '#666', fontSize: '.72rem' }}>
+                                            {hr.place === '1' ? '🥇 1' : (hr.place || '—')}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </>
+                            )}
+                            {!loadingHist && !histError && histRows.length === 0 && (
+                              <p style={{ color: '#333', fontSize: '.75rem' }}>No competition history found.</p>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-            {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '.75rem' }}>
-              <button onClick={() => fetchPage(page - 1)} disabled={page === 0 || loading} style={{
-                background: page === 0 ? '#0a0a0a' : '#1a1a1a', border: '1px solid #1e1e1e',
-                color: page === 0 ? '#222' : '#888', borderRadius: '.3rem', padding: '.55rem 1.25rem',
-                fontWeight: 700, fontSize: '.65rem', letterSpacing: '.1em', textTransform: 'uppercase',
-                cursor: page === 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-              }}>← Prev</button>
-              <span style={{ color: '#333', fontSize: '.72rem' }}>
-                Page {page + 1}{totalPages > 0 ? ' of ' + totalPages.toLocaleString() : ''}
-                <span style={{ color: '#1e1e1e', marginLeft: '1rem' }}>{totalCount.toLocaleString()} total</span>
-              </span>
-              <button onClick={() => fetchPage(page + 1)} disabled={!canNext || loading} style={{
-                background: !canNext ? '#0a0a0a' : '#1a1a1a', border: '1px solid #1e1e1e',
-                color: !canNext ? '#222' : '#888', borderRadius: '.3rem', padding: '.55rem 1.25rem',
-                fontWeight: 700, fontSize: '.65rem', letterSpacing: '.1em', textTransform: 'uppercase',
-                cursor: !canNext ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-              }}>Next →</button>
-            </div>
+        {/* ── Infinite scroll sentinel + loading indicator ───────────────── */}
+        {searched && (
+          <>
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {loadingMore && (
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#2a2a2a', fontSize: '.75rem', letterSpacing: '.1em' }}>
+                Loading more…
+              </div>
+            )}
+            {!loadingMore && !hasMore && rows.length > 0 && (
+              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#1a1a1a', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
+                — {rows.length.toLocaleString()} results —
+              </div>
+            )}
           </>
         )}
 
