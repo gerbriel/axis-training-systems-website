@@ -8,7 +8,6 @@ const NAV_LINKS = [
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Coaches',      href: '#coaches' },
   { label: 'Tools',        href: '#tools' },
-  { label: 'Rankings',     href: href('/rankings') },
   { label: 'Blog',         href: href('/blog') },
   { label: 'Free Guides',  href: href('/guides') },
 ]

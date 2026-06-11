@@ -67,7 +67,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li>Goals and expectations: coaching goals, weak points, areas for improvement</Li>
           </ul>
           <p style={{ marginTop: '.75rem' }}>We do not collect payment information directly. Billing is handled by Zen Planner under their own privacy policy.</p>
-          <p style={{ marginTop: '.75rem' }}>We do not automatically collect browsing data, IP addresses, device identifiers, or behavioral analytics from visitors to this website. No cookies are set and no session data is stored by Axis Training Systems.</p>
+          <p style={{ marginTop: '.75rem' }}>Third-party advertising and analytics tools we use (see Section 4 below) may set cookies or collect browsing data such as IP addresses and page-visit events when you visit this website. Axis Training Systems does not directly store this data — it is collected and processed by the respective platforms under their own privacy policies.</p>
         </Section>
 
         <Section title="3. How We Use Your Information">
@@ -78,25 +78,32 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li>Communicate with you via WhatsApp and email regarding your program</Li>
             <Li>Improve our coaching methodology and service quality</Li>
           </ul>
-          <p style={{ marginTop: '.75rem' }}>We do not use your information for automated decision-making or profiling beyond the direct coaching relationship. We do not use your information to serve you targeted advertisements on any platform.</p>
+          <p style={{ marginTop: '.75rem' }}>We do not use your information for automated decision-making or profiling beyond the direct coaching relationship. Website visitor data collected via tracking technologies described in Section 4 may be used to show Axis Training Systems advertisements to people who have previously visited this site (retargeting) on platforms such as Meta (Facebook/Instagram) and Google.</p>
         </Section>
 
         <Section title="4. Tracking Technologies, Advertising & Analytics">
           <p style={{ marginBottom: '.75rem' }}>
-            Axis Training Systems does <strong style={{ color: '#fff' }}>not</strong> engage in the tracking and advertising practices common to digital marketing companies. Specifically, we do not use:
+            Axis Training Systems uses industry-standard advertising and tracking technologies to measure the performance of our marketing campaigns and to show relevant ads to people who have previously visited this website. These technologies include:
           </p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <Li><strong style={{ color: '#aaa' }}>Analytics platforms</strong> — We do not use Google Analytics, Adobe Analytics, Mixpanel, Heap, or any other website traffic or behavior analytics service.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Advertising pixels</strong> — We do not install or fire Meta (Facebook/Instagram) Pixel, TikTok Pixel, Twitter/X Pixel, Pinterest Tag, Snapchat Pixel, or any other ad network tracking pixel on this website.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Retargeting & remarketing</strong> — We do not build custom audiences from site visitors or run retargeting ad campaigns on any platform.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Email tracking</strong> — We do not use email open tracking pixels, click tracking links, or marketing automation platforms (e.g., Mailchimp, Klaviyo, HubSpot) that monitor engagement with our emails.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Behavioral profiling</strong> — We do not build or purchase data profiles on visitors or applicants for advertising or lead scoring purposes.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Session recording & heatmaps</strong> — We do not use tools such as Hotjar, FullStory, or Microsoft Clarity that record user sessions or mouse behavior.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Cookies for advertising</strong> — We do not set first-party or third-party cookies for advertising identification, cross-site tracking, or audience segmentation.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Meta Pixel (Facebook/Instagram Pixel)</strong> — We use the Meta Pixel to track website events (page views, form submissions) and to build custom audiences for retargeting ads on Facebook and Instagram. Meta may use this data in accordance with its{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Data Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Google Ads & Google Analytics</strong> — We use Google Ads conversion tracking and remarketing tags (via Google Tag Manager) to measure ad performance and serve retargeting ads across Google Search, YouTube, and the Google Display Network. Governed by{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Google's Privacy Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Retargeting & Custom Audiences</strong> — Using data collected by the above pixels, we may build custom audiences (people who visited this site) and lookalike audiences to run paid ad campaigns on Meta and Google platforms. If you visited this website, you may see Axis Training Systems ads on those platforms.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Cookies for advertising</strong> — Third-party advertising platforms (Meta, Google) set first-party and third-party cookies on your browser to identify your visit, attribute conversions, and enable retargeting. These cookies persist across browsing sessions as governed by each platform's cookie policies.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Session recording & heatmaps</strong> — We do not currently use session-recording tools such as Hotjar, FullStory, or Microsoft Clarity.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Email marketing tracking</strong> — We do not currently use marketing automation platforms that track email open rates or click behaviour.</Li>
           </ul>
           <p style={{ marginTop: '.75rem' }}>
-            This website is hosted on GitHub Pages. GitHub may collect limited server-level data (such as IP addresses) as part of their standard infrastructure operations. This is governed by{' '}
-            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>GitHub's Privacy Statement</a>, not by Axis Training Systems.
+            <strong style={{ color: '#fff' }}>Opt out of ad targeting:</strong> You can limit ad tracking through your device settings, your browser's cookie controls, or directly via platform opt-outs:{' '}
+            <a href="https://www.facebook.com/settings/?tab=ads" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Meta Ad Preferences</a>
+            {' · '}
+            <a href="https://adssettings.google.com/" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Google Ad Settings</a>
+            {' · '}
+            <a href="https://optout.aboutads.info/" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>DAA Opt-Out</a>
+          </p>
+          <p style={{ marginTop: '.75rem' }}>
+            This website is hosted on GitHub Pages. GitHub may collect limited server-level data (such as IP addresses) as part of their standard infrastructure operations. Governed by{' '}
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>GitHub's Privacy Statement</a>.
           </p>
           <p style={{ marginTop: '.75rem' }}>
             Our social media profiles (Instagram, YouTube) are operated by their respective platforms, which may collect data according to their own policies when you visit or interact with those pages.
@@ -104,13 +111,15 @@ export default function PrivacyPolicy({ onClose }: Props) {
         </Section>
 
         <Section title="5. How We Share Your Information">
-          <p style={{ marginBottom: '.75rem' }}>We do not sell, rent, or trade your personal information. We do not share data with advertising networks, data brokers, or marketing platforms. We share data only with:</p>
+          <p style={{ marginBottom: '.75rem' }}>We do not sell or rent your personal information. We share data with the following categories of third parties:</p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
+            <Li><strong style={{ color: '#aaa' }}>Meta Platforms, Inc.</strong> — website visitor event data is shared with Meta via the Meta Pixel for ad measurement and retargeting. Subject to{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Meta's Data Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Google LLC</strong> — website visitor event data is shared with Google via Google Ads tags for conversion tracking and remarketing. Subject to{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>Google's Privacy Policy</a>.</Li>
             <Li><strong style={{ color: '#aaa' }}>Formspree</strong> — processes application form submissions on our behalf (formspree.io). Subject to their privacy policy.</Li>
             <Li><strong style={{ color: '#aaa' }}>Zen Planner</strong> — used for billing and client management. Subject to their privacy policy.</Li>
             <Li><strong style={{ color: '#aaa' }}>Assigned Coach</strong> — your application data is shared with your assigned Axis coach to deliver services.</Li>
           </ul>
-          <p style={{ marginTop: '.75rem' }}>All third parties are required to handle your data securely and only for the purposes described above.</p>
+          <p style={{ marginTop: '.75rem' }}>We do not share your personal information (name, email, application data) with ad platforms. Only anonymized or hashed website event data is shared for advertising purposes. All third parties are required to handle your data securely and only for the purposes described.</p>
         </Section>
 
         <Section title="6. California Privacy Rights (CCPA / CPRA)">
@@ -121,7 +130,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li><strong style={{ color: '#aaa' }}>Right to Know</strong> — You may request disclosure of the categories and specific pieces of personal information we have collected about you.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Delete</strong> — You may request deletion of personal information we have collected, subject to certain exceptions.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Correct</strong> — You may request correction of inaccurate personal information we maintain about you.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale / Sharing</strong> — We do not sell your personal information and do not share it for cross-context behavioral advertising. No opt-out is required.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale / Sharing</strong> — We do not sell your personal information. We do share anonymized website visitor data with Meta and Google for cross-context behavioral advertising (retargeting). California residents have the right to opt out of this sharing. To exercise this right, contact us at <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#e63e3e' }}>coach@axistrainingsystems.com</a> or use the platform opt-out links in Section 4.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Non-Discrimination</strong> — We will not discriminate against you for exercising any of your privacy rights.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Limit Use of Sensitive Information</strong> — We only use sensitive personal information (health data, etc.) to provide the coaching services you requested.</Li>
           </ul>
