@@ -47,7 +47,7 @@ export default function Coaches() {
                   onMouseEnter={e => { e.currentTarget.style.background = '#c42e2e' }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#e63e3e' }}
                 >
-                  Apply
+                  Choose This Coach
                 </a>
               </div>
             </div>

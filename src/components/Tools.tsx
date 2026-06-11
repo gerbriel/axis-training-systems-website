@@ -66,6 +66,17 @@ function RPECalc() {
   const [targetRpe, setTargetRpe]   = useState('8')
   const [unit, setUnit]       = useState<'lbs' | 'kg'>('lbs')
 
+  function switchUnit(next: 'lbs' | 'kg') {
+    const factor = next === 'kg' ? 0.453592 : 2.20462
+    const conv = (v: string) => {
+      const n = parseFloat(v)
+      return isNaN(n) || v === '' ? '' : String(parseFloat((n * factor).toFixed(2)))
+    }
+    setWeight(w => conv(w))
+    setOneRM(o => conv(o))
+    setUnit(next)
+  }
+
   const rpeOptions  = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
   const repsOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -139,7 +150,7 @@ function RPECalc() {
             </div>
             <div>
               <label style={labelStyle}>Unit</label>
-              <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
+              <select style={selectStyle} value={unit} onChange={e => switchUnit(e.target.value as 'lbs' | 'kg')}>
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>
@@ -176,7 +187,7 @@ function RPECalc() {
             </div>
             <div>
               <label style={labelStyle}>Unit</label>
-              <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
+              <select style={selectStyle} value={unit} onChange={e => switchUnit(e.target.value as 'lbs' | 'kg')}>
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>
@@ -225,6 +236,18 @@ function AttemptPlanner() {
   const [dead,  setDead]    = useState('')
   const [style, setStyle]   = useState<'conservative' | 'aggressive'>('conservative')
 
+  function switchUnit(next: 'lbs' | 'kg') {
+    const factor = next === 'kg' ? 0.453592 : 2.20462
+    const conv = (v: string) => {
+      const n = parseFloat(v)
+      return isNaN(n) || v === '' ? '' : String(parseFloat((n * factor).toFixed(2)))
+    }
+    setSquat(conv)
+    setBench(conv)
+    setDead(conv)
+    setUnit(next)
+  }
+
   const profiles = {
     conservative: { open: 0.90, second: 0.96, third: 1.00 },
     aggressive:   { open: 0.91, second: 0.97, third: 1.03 },
@@ -268,7 +291,7 @@ function AttemptPlanner() {
       <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', marginBottom: '1.5rem' }}>
         <div>
           <label style={labelStyle}>Unit</label>
-          <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
+          <select style={selectStyle} value={unit} onChange={e => switchUnit(e.target.value as 'lbs' | 'kg')}>
             <option value="lbs">lbs</option>
             <option value="kg">kg</option>
           </select>
@@ -360,6 +383,13 @@ function WeightConverter() {
     const n = parseFloat(v)
     setLbsVal(isNaN(n) || v === '' ? '' : (n * 2.20462).toFixed(3))
   }
+  function swapValues() {
+    // Take whatever is in the lbs field, treat it as kg, and vice versa
+    const prevLbs = lbsVal
+    const prevKg  = kgVal
+    setLbsVal(prevKg)
+    setKgVal(prevLbs)
+  }
 
   // Common plate / barbell reference weights
   const barWeights = [
@@ -399,7 +429,15 @@ function WeightConverter() {
           />
         </div>
         <div style={{ textAlign: 'center', paddingTop: '1.4rem' }}>
-          <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.25rem' }}>⇄</span>
+          <button
+            onClick={swapValues}
+            title="Swap values"
+            style={{ background: 'transparent', border: '1px solid #222', borderRadius: '.2rem', color: '#e63e3e', fontWeight: 900, fontSize: '1.25rem', width: '2.25rem', height: '2.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .15s, background .15s', fontFamily: 'inherit' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.background = 'rgba(230,62,62,.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.background = 'transparent' }}
+          >
+            ⇄
+          </button>
         </div>
         <div>
           <label style={labelStyle}>Kilograms (kg)</label>
@@ -502,6 +540,19 @@ function DotsCalc() {
   const [bench, setBench] = useState('')
   const [dead,  setDead]  = useState('')
 
+  function switchUnit(next: 'lbs' | 'kg') {
+    const factor = next === 'kg' ? 0.453592 : 2.20462
+    const conv = (v: string) => {
+      const n = parseFloat(v)
+      return isNaN(n) || v === '' ? '' : String(parseFloat((n * factor).toFixed(2)))
+    }
+    setBw(conv)
+    setSquat(conv)
+    setBench(conv)
+    setDead(conv)
+    setUnit(next)
+  }
+
   const toKgVal = (v: string) => {
     const n = parseFloat(v)
     if (isNaN(n) || n <= 0) return null
@@ -546,7 +597,7 @@ function DotsCalc() {
         </div>
         <div>
           <label style={labelStyle}>Unit</label>
-          <select style={selectStyle} value={unit} onChange={e => setUnit(e.target.value as 'lbs' | 'kg')}>
+          <select style={selectStyle} value={unit} onChange={e => switchUnit(e.target.value as 'lbs' | 'kg')}>
             <option value="lbs">lbs</option>
             <option value="kg">kg</option>
           </select>
