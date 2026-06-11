@@ -98,8 +98,8 @@ function parseRows(data: { rows?: unknown[][] }): RankRow[] {
       date:            s(9),
       country:         s(10),
       division:        s(16),
-      weightClassKg:   s(17),
-      bodyweightKg:    s(18),
+      weightClassKg:   s(18),
+      bodyweightKg:    s(17),
       equipment:       s(14),
       best3SquatKg:    s(19),
       best3BenchKg:    s(20),
@@ -167,7 +167,12 @@ export default function Rankings() {
   const applyClientFilters = useCallback((rows: RankRow[]) => {
     return rows.filter(row => {
       if (sex && row.sex !== sex) return false
-      if (weightClass && row.weightClassKg !== weightClass) return false
+      if (weightClass) {
+        // Normalize both sides: strip trailing ".0" and compare
+        const rowWt  = row.weightClassKg.replace(/\.0$/, '')
+        const selWt  = weightClass.replace(/\.0$/, '')
+        if (rowWt !== selWt) return false
+      }
       if (ageClass) {
         const age = parseFloat(row.age)
         if (!isNaN(age)) {
