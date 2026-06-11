@@ -191,16 +191,21 @@ export default function Rankings() {
     const signal = abortRef.current.signal
     const path   = buildPath()
     const hasClientFilter = !!(sex || weightClass || ageClass)
+    console.log('[Rankings] fetchPage', { pg, path, name, sex, equipment, weightClass, ageClass, year, unit, hasClientFilter })
     try {
       if (!hasClientFilter) {
         // No client-side filters — single request, fully server-handled
         const start = pg * PAGE_SIZE
         const q = new URLSearchParams({ start: String(start), end: String(start + PAGE_SIZE - 1), lang: 'en', units: unit })
         if (name.trim()) q.set('q', name.trim())
-        const res = await fetch(opl(path + '?' + q.toString()), { signal })
+        const fullUrl = opl(path + '?' + q.toString())
+        console.log('[Rankings] fetching (simple):', path + '?' + q.toString())
+        const res = await fetch(fullUrl, { signal })
         if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
         const data = await res.json()
-        setRows(parseRows(data))
+        const parsed = parseRows(data)
+        console.log('[Rankings] response: total_length=', data?.total_length, 'rows=', parsed.length, 'first row wt/bw/sex:', parsed[0]?.weightClassKg, parsed[0]?.bodyweightKg, parsed[0]?.sex, parsed[0]?.name)
+        setRows(parsed)
         setTotalCount(data?.total_length ?? 0)
       } else {
         // Client filters active — loop over 500-row batches until we accumulate
@@ -215,14 +220,19 @@ export default function Rankings() {
         while (accumulated.length < need && serverOffset < serverTotal && batches < MAX_FETCH) {
           const q = new URLSearchParams({ start: String(serverOffset), end: String(serverOffset + BATCH - 1), lang: 'en', units: unit })
           if (name.trim()) q.set('q', name.trim())
+          console.log('[Rankings] fetching (loop batch', batches, '):', path + '?' + q.toString())
           const res = await fetch(opl(path + '?' + q.toString()), { signal })
           if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
           const data = await res.json()
           serverTotal = data?.total_length ?? serverTotal
-          accumulated.push(...applyClientFilters(parseRows(data)))
+          const parsed = parseRows(data)
+          const afterFilter = applyClientFilters(parsed)
+          console.log('[Rankings] batch', batches, ': serverTotal=', serverTotal, 'parsed=', parsed.length, 'afterFilter=', afterFilter.length, 'sample wt:', parsed[0]?.weightClassKg, 'filter wt:', weightClass)
+          accumulated.push(...afterFilter)
           serverOffset += BATCH
           batches++
         }
+        console.log('[Rankings] loop done: accumulated=', accumulated.length, 'showing', accumulated.slice(pg * PAGE_SIZE, (pg+1)*PAGE_SIZE).length)
         setRows(accumulated.slice(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE))
         setTotalCount(accumulated.length)
       }
