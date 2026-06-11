@@ -1,5 +1,6 @@
 import type { Lead, CoachRouting, AdminConfig } from '../types/database'
 import type { PendingContent } from './pendingContent'
+import type { NewsletterLead } from '../types/newsletter'
 
 // ── Mock Leads ─────────────────────────────────────────────────────────────
 export const DEMO_LEADS: Lead[] = [
@@ -282,4 +283,14 @@ export const DEMO_CONTENT: PendingContent[] = [
     meetType:     'National',
     meetNote:     'Team Axis sending multiple national qualifiers. Full team presence.',
   },
+]
+
+// ── Mock Newsletter Leads ──────────────────────────────────────────────────
+export const DEMO_NEWSLETTER_LEADS: NewsletterLead[] = [
+  { id: 'nl01', firstName: 'Tyler',   lastName: 'Barnes',   email: 'tyler.b@gmail.com',      source: 'attempt_planner', createdAt: new Date(Date.now() - 3  * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'nl02', firstName: 'Mia',     lastName: 'Chen',     email: 'mia.chen@icloud.com',     source: 'guides_page',     createdAt: new Date(Date.now() - 5  * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'nl03', firstName: 'DeShawn', lastName: 'Harris',   email: 'dh.lifts@gmail.com',      source: 'meet_checklist',  createdAt: new Date(Date.now() - 8  * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'nl04', firstName: 'Sophie',  lastName: 'Wallace',  email: 'sophiewallace@outlook.com', source: 'quiz',           createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'nl05', firstName: 'Caleb',   lastName: 'Morrison', email: 'c.morrison@proton.me',    source: 'rpe_guide',       createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'nl06', firstName: 'Priya',   lastName: 'Nair',     email: 'priya.n@gmail.com',       source: 'audit_worksheet', createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString() },
 ]

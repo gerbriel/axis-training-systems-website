@@ -4,6 +4,30 @@ import { fetchMyContent, submitContent, removeContent } from '../../lib/contentA
 import type { PendingContent } from '../../data/pendingContent'
 import { isRateLimited, recordFailedAttempt, formatLockRemaining } from '../../utils/sanitize'
 
+// ── Section editor types ─────────────────────────────────────────────────────
+
+type SectionType = 'paragraph' | 'heading' | 'subheading' | 'list' | 'callout' | 'week' | 'divider'
+
+interface EditorSection {
+  _id:   string
+  type:  SectionType
+  text?: string
+  items?: string  // newline-separated items for list/week
+  label?: string  // week label
+}
+
+function uid() { return Math.random().toString(36).slice(2, 12) }
+
+function serializeSections(sections: EditorSection[]): string {
+  const normalized = sections.map(({ _id: _i, ...s }) => {
+    if (s.type === 'list' || s.type === 'week') {
+      return { ...s, items: (s.items ?? '').split('\n').map(i => i.trim()).filter(Boolean) }
+    }
+    return s
+  })
+  return JSON.stringify(normalized)
+}
+
 // Content submission rate limit: max 5 submissions per 30 minutes per coach
 const SUBMIT_MAX      = 5
 const SUBMIT_LOCK_MS  = 30 * 60 * 1000
@@ -56,7 +80,28 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   const [blogSubtitle, setBlogSubtitle] = useState('')
   const [blogTags,     setBlogTags]     = useState('')
   const [blogSummary,  setBlogSummary]  = useState('')
-  const [blogContent,  setBlogContent]  = useState('')
+  const [blogSections, setBlogSections] = useState<EditorSection[]>([
+    { _id: uid(), type: 'paragraph', text: '' },
+  ])
+
+  function addSection(type: SectionType) {
+    setBlogSections(prev => [...prev, { _id: uid(), type, text: '', items: '', label: '' }])
+  }
+  function updateSection(id: string, patch: Partial<EditorSection>) {
+    setBlogSections(prev => prev.map(s => s._id === id ? { ...s, ...patch } : s))
+  }
+  function removeSection(id: string) {
+    setBlogSections(prev => prev.filter(s => s._id !== id))
+  }
+  function moveSection(id: string, dir: -1 | 1) {
+    setBlogSections(prev => {
+      const idx = prev.findIndex(s => s._id === id)
+      if (idx < 0 || idx + dir < 0 || idx + dir >= prev.length) return prev
+      const next = [...prev]
+      ;[next[idx], next[idx + dir]] = [next[idx + dir], next[idx]]
+      return next
+    })
+  }
 
   // Meet form state
   const [meetName,     setMeetName]     = useState('')
@@ -101,7 +146,8 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   }
 
   function submitBlog() {
-    if (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) return
+    const hasContent = blogSections.some(s => s.type === 'divider' || (s.type === 'list' || s.type === 'week' ? (s.items ?? '').trim() : (s.text ?? '').trim()))
+    if (!blogTitle.trim() || !blogSummary.trim() || !hasContent) return
     checkAndSubmit(async () => {
       await submitContent({
         type: 'blog',
@@ -111,9 +157,10 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
         subtitle:  blogSubtitle.trim(),
         tags:      blogTags.trim(),
         summary:   blogSummary.trim(),
-        content:   blogContent.trim(),
+        content:   serializeSections(blogSections),
       }, isDemo)
-      setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary(''); setBlogContent('')
+      setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary('')
+      setBlogSections([{ _id: uid(), type: 'paragraph', text: '' }])
     })
   }
 
@@ -205,19 +252,93 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               />
             </div>
             <div>
-              <label style={labelStyle}>Content <span style={{ color: '#e63e3e' }}>*</span> <span style={{ color: '#333', fontWeight: 400 }}>— separate paragraphs with a blank line</span></label>
-              <textarea
-                style={{ ...inputStyle, minHeight: 260, resize: 'vertical', lineHeight: 1.7 }}
-                maxLength={8000}
-                placeholder="Write the full post here. Use a blank line to separate paragraphs."
-                value={blogContent}
-                onChange={e => setBlogContent(e.target.value)}
-              />
+              <label style={labelStyle}>Content <span style={{ color: '#e63e3e' }}>*</span></label>
+
+              {/* ── Section List ── */}
+              {blogSections.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: '.75rem' }}>
+                  {blogSections.map((sec, idx) => (
+                    <div key={sec._id} style={{ background: '#080808', border: '1px solid #1e1e1e', borderRadius: '.2rem', padding: '.75rem' }}>
+                      {/* Row header */}
+                      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', marginBottom: sec.type === 'divider' ? 0 : '.5rem', flexWrap: 'wrap' }}>
+                        <select
+                          value={sec.type}
+                          onChange={e => updateSection(sec._id, { type: e.target.value as SectionType })}
+                          style={{ ...inputStyle, width: 'auto', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .5rem', appearance: 'none', cursor: 'pointer', flex: 'none' }}
+                        >
+                          {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(t => (
+                            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                          ))}
+                        </select>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '.3rem' }}>
+                          <button onClick={() => moveSection(sec._id, -1)} disabled={idx === 0} style={{ background: 'none', border: '1px solid #1e1e1e', color: '#444', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontFamily: 'inherit' }}>↑</button>
+                          <button onClick={() => moveSection(sec._id,  1)} disabled={idx === blogSections.length - 1} style={{ background: 'none', border: '1px solid #1e1e1e', color: '#444', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === blogSections.length - 1 ? 'default' : 'pointer', opacity: idx === blogSections.length - 1 ? 0.3 : 1, fontFamily: 'inherit' }}>↓</button>
+                          <button onClick={() => removeSection(sec._id)} style={{ background: 'none', border: '1px solid #1e1e1e', color: '#555', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.color = '#e63e3e' }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.color = '#555' }}
+                          >✕</button>
+                        </div>
+                      </div>
+
+                      {/* Divider — no input */}
+                      {sec.type === 'divider' && (
+                        <div style={{ height: 1, background: '#2a2a2a', margin: '.3rem 0' }} />
+                      )}
+
+                      {/* Single text input (heading, subheading, paragraph, callout) */}
+                      {(sec.type === 'heading' || sec.type === 'subheading') && (
+                        <input style={inputStyle} placeholder={sec.type === 'heading' ? 'Section heading' : 'Subheading text'} value={sec.text ?? ''} onChange={e => updateSection(sec._id, { text: e.target.value })} maxLength={200} />
+                      )}
+                      {sec.type === 'paragraph' && (
+                        <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Write paragraph text here…" value={sec.text ?? ''} onChange={e => updateSection(sec._id, { text: e.target.value })} maxLength={2000} />
+                      )}
+                      {sec.type === 'callout' && (
+                        <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Callout quote or highlight…" value={sec.text ?? ''} onChange={e => updateSection(sec._id, { text: e.target.value })} maxLength={1000} />
+                      )}
+
+                      {/* List — one item per line */}
+                      {sec.type === 'list' && (
+                        <>
+                          <p style={{ color: '#333', fontSize: '.6rem', marginBottom: '.35rem' }}>One bullet item per line</p>
+                          <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} placeholder={'Item one\nItem two\nItem three'} value={sec.items ?? ''} onChange={e => updateSection(sec._id, { items: e.target.value })} maxLength={4000} />
+                        </>
+                      )}
+
+                      {/* Week — label + items */}
+                      {sec.type === 'week' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                          <input style={inputStyle} placeholder="Week label (e.g. Week 1 — Accumulation)" value={sec.label ?? ''} onChange={e => updateSection(sec._id, { label: e.target.value })} maxLength={100} />
+                          <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder={'Squat: 4×5 @ RPE 8\nBench: 5×4 @ RPE 8\nDeadlift: 4×3 @ RPE 8.5'} value={sec.items ?? ''} onChange={e => updateSection(sec._id, { items: e.target.value })} maxLength={2000} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Add Section Buttons ── */}
+              <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+                {[
+                  { type: 'paragraph'  as SectionType, label: '+ Paragraph' },
+                  { type: 'heading'    as SectionType, label: '+ Heading'   },
+                  { type: 'subheading' as SectionType, label: '+ Subheading'},
+                  { type: 'list'       as SectionType, label: '+ List'      },
+                  { type: 'callout'    as SectionType, label: '+ Callout'   },
+                  { type: 'week'       as SectionType, label: '+ Week Block'},
+                  { type: 'divider'    as SectionType, label: '+ Divider'   },
+                ].map(({ type, label }) => (
+                  <button key={type} onClick={() => addSection(type)} style={{ background: 'transparent', border: '1px solid #222', color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#ccc' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.color = '#555' }}
+                  >{label}</button>
+                ))}
+              </div>
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 onClick={submitBlog}
-                disabled={!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim() || submitting}
+                disabled={!blogTitle.trim() || !blogSummary.trim() || submitting}
                 style={{
                   background: '#e63e3e',
                   border: 'none',
@@ -230,7 +351,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                   borderRadius: '.2rem',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  opacity: (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim() || submitting) ? 0.4 : 1,
+                  opacity: (!blogTitle.trim() || !blogSummary.trim() || submitting) ? 0.4 : 1,
                   transition: 'opacity .15s',
                 }}
               >

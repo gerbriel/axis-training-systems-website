@@ -5,9 +5,10 @@ import AdminLogin from './admin/AdminLogin'
 import AdminDashboard from './admin/AdminDashboard'
 import AdminSettings from './admin/AdminSettings'
 import ApprovalsPanel from './admin/ApprovalsPanel'
+import NewsletterLeadsPanel from './admin/NewsletterLeadsPanel'
 import { getPendingContent } from '../data/pendingContent'
 
-type Tab = 'leads' | 'approvals' | 'settings'
+type Tab = 'leads' | 'approvals' | 'newsletter' | 'settings'
 
 export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
@@ -49,7 +50,7 @@ export default function AdminPortal() {
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
-        {(['leads', 'approvals', 'settings'] as Tab[]).map(t => {
+        {(['leads', 'approvals', 'newsletter', 'settings'] as Tab[]).map(t => {
               const pendingCount = t === 'approvals' ? getPendingContent().filter(c => c.status === 'pending').length : 0
               return (
             <button
@@ -94,15 +95,16 @@ export default function AdminPortal() {
       {/* Page header */}
       <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {tab === 'leads'     ? 'Leads' : tab === 'approvals' ? 'Content Approvals' : 'Settings'}
+          {tab === 'leads'      ? 'Leads' : tab === 'approvals' ? 'Content Approvals' : tab === 'newsletter' ? 'Newsletter' : 'Settings'}
         </h1>
       </div>
 
       {/* Content */}
       <main style={{ flex: 1, overflowX: 'auto' }}>
-        {tab === 'leads'     && <AdminDashboard isDemo={isDemo} />}
-        {tab === 'approvals' && <ApprovalsPanel isDemo={isDemo} />}
-        {tab === 'settings'  && <AdminSettings isDemo={isDemo} />}
+        {tab === 'leads'      && <AdminDashboard isDemo={isDemo} />}
+        {tab === 'approvals'  && <ApprovalsPanel isDemo={isDemo} />}
+        {tab === 'newsletter' && <NewsletterLeadsPanel isDemo={isDemo} />}
+        {tab === 'settings'   && <AdminSettings isDemo={isDemo} />}
       </main>
     </div>
   )

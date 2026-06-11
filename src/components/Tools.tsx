@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
+import { href } from '../utils/nav'
 
 // ── RPE percentage table (Tuchscherer) ───────────────────────────────────────
 // RPE_TABLE[rpe][reps] = fraction of 1RM
@@ -715,6 +717,36 @@ type TabId = typeof TABS[number]['id']
 
 export default function Tools() {
   const [active, setActive] = useState<TabId>('rpe')
+  const [hasAccess, setHasAccess] = useState(false)
+
+  // Gate form state
+  const [gateFirst, setGateFirst] = useState('')
+  const [gateLast,  setGateLast]  = useState('')
+  const [gateEmail, setGateEmail] = useState('')
+  const [gateLoading, setGateLoading] = useState(false)
+  const [gateError,   setGateError]   = useState('')
+
+  useEffect(() => {
+    if (getNewsletterAccess()) setHasAccess(true)
+  }, [])
+
+  async function handleGateSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setGateError('')
+    setGateLoading(true)
+    try {
+      await subscribeNewsletter({ firstName: gateFirst, lastName: gateLast, email: gateEmail, source: 'attempt_planner' }, false)
+      setHasAccess(true)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error'
+      if (msg.includes('already subscribed')) {
+        setHasAccess(true)
+      } else {
+        setGateError(msg)
+        setGateLoading(false)
+      }
+    }
+  }
 
   return (
     <section id="tools" style={{ padding: '6rem 2rem', background: '#050505', borderTop: '1px solid #0d0d0d' }}>
@@ -762,7 +794,45 @@ export default function Tools() {
         {/* Panel */}
         <div style={{ background: '#080808', border: '1px solid #141414', borderRadius: '.25rem', padding: '2rem' }}>
           {active === 'rpe'      && <RPECalc />}
-          {active === 'attempts' && <AttemptPlanner />}
+          {active === 'attempts' && (
+            hasAccess ? <AttemptPlanner /> : (
+              <div>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                  <span style={{ display: 'inline-block', fontSize: '2rem', marginBottom: '.75rem' }}>🔒</span>
+                  <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>Free Access Required</h3>
+                  <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 400, margin: '0 auto' }}>
+                    The Attempt Planner is part of our free guides suite. Sign up with your email — it takes 5 seconds and unlocks all 6 powerlifting tools and guides.
+                  </p>
+                </div>
+                <form onSubmit={handleGateSubmit} style={{ maxWidth: 440, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem' }}>
+                    <div>
+                      <label style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>First Name <span style={{ color: '#e63e3e' }}>*</span></label>
+                      <input required placeholder="Jane" value={gateFirst} onChange={e => setGateFirst(e.target.value)} maxLength={100}
+                        style={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    </div>
+                    <div>
+                      <label style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Last Name</label>
+                      <input placeholder="Smith" value={gateLast} onChange={e => setGateLast(e.target.value)} maxLength={100}
+                        style={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Email <span style={{ color: '#e63e3e' }}>*</span></label>
+                    <input type="email" required placeholder="jane@example.com" value={gateEmail} onChange={e => setGateEmail(e.target.value)} maxLength={254}
+                      style={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                  {gateError && <p style={{ color: '#e63e3e', fontSize: '.8rem' }}>{gateError}</p>}
+                  <button type="submit" disabled={gateLoading || !gateFirst.trim() || !gateEmail.trim()}
+                    style={{ background: '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
+                    onMouseEnter={e => { if (!gateLoading) e.currentTarget.style.background = '#c42e2e' }}
+                    onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+                  >{gateLoading ? 'Unlocking…' : 'Unlock Attempt Planner →'}</button>
+                  <p style={{ color: '#333', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks all <a href={href('/guides')} style={{ color: '#555', textDecoration: 'underline' }}>6 free guides</a>. No spam.</p>
+                </form>
+              </div>
+            )
+          )}
           {active === 'dots'     && <DotsCalc />}
           {active === 'convert'  && <WeightConverter />}
         </div>

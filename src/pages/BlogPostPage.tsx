@@ -10,6 +10,15 @@ const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 interface Props { slug: string }
 
+function parseContent(raw: string | undefined): BlogSection[] {
+  if (!raw) return []
+  const trimmed = raw.trimStart()
+  if (trimmed.startsWith('[')) {
+    try { return JSON.parse(trimmed) as BlogSection[] } catch { /* fallthrough */ }
+  }
+  return raw.split('\n\n').filter(Boolean).map(text => ({ type: 'paragraph' as const, text }))
+}
+
 function pendingToPost(p: PendingContent): BlogPost {
   return {
     slug: p.id,
@@ -22,7 +31,7 @@ function pendingToPost(p: PendingContent): BlogPost {
     coachName: p.coachName,
     tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
     summary: p.summary ?? '',
-    content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
+    content: parseContent(p.content),
   }
 }
 
