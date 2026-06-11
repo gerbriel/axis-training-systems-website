@@ -174,6 +174,37 @@ export async function removeContent(id: string, isDemo: boolean): Promise<void> 
   if (error) throw new Error(error.message)
 }
 
+/** Update the fields of an existing content record (admin edit or direct publish). */
+export async function updateContent(
+  id: string,
+  patch: Partial<Omit<PendingContent, 'id' | 'coachSlug' | 'coachName' | 'submittedAt'>>,
+  isDemo: boolean,
+): Promise<void> {
+  if (!useDB(isDemo)) {
+    const store = getDemoStore()
+    const idx = store.findIndex(c => c.id === id)
+    if (idx >= 0) store[idx] = { ...store[idx], ...patch }
+    return
+  }
+  const row: Record<string, unknown> = {}
+  if (patch.status      !== undefined) row.status        = patch.status
+  if (patch.reviewedAt  !== undefined) row.reviewed_at   = patch.reviewedAt
+  if (patch.title       !== undefined) row.title         = patch.title
+  if (patch.subtitle    !== undefined) row.subtitle      = patch.subtitle
+  if (patch.tags        !== undefined) row.tags          = patch.tags
+  if (patch.summary     !== undefined) row.summary       = patch.summary
+  if (patch.content     !== undefined) row.content       = patch.content
+  if (patch.meetName    !== undefined) row.meet_name     = patch.meetName
+  if (patch.meetDate    !== undefined) row.meet_date     = patch.meetDate
+  if (patch.meetLocation !== undefined) row.meet_location = patch.meetLocation
+  if (patch.federation  !== undefined) row.federation    = patch.federation
+  if (patch.meetType    !== undefined) row.meet_type     = patch.meetType
+  if (patch.meetNote    !== undefined) row.meet_note     = patch.meetNote
+  if (patch.rejectionNote !== undefined) row.rejection_note = patch.rejectionNote
+  const { error } = await supabase.from('pending_content').update(row).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 /**
  * Fetch approved blog posts for the public blog page.
  * isDemo is derived from !supabaseConfigured for public pages.
