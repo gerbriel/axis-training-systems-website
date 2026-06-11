@@ -22,10 +22,10 @@ const SEX_OPTIONS = [
   { value: 'F', label: 'Women' }, { value: 'Mx', label: 'Mx' },
 ]
 const EQUIPMENT = [
-  { value: '', label: 'All Equipment' }, { value: 'Raw', label: 'Raw' },
-  { value: 'Wraps', label: 'Wraps' }, { value: 'Single-ply', label: 'Single-ply' },
-  { value: 'Multi-ply', label: 'Multi-ply' }, { value: 'Unlimited', label: 'Unlimited' },
-  { value: 'Straps', label: 'Straps' },
+  { value: '', label: 'All Equipment' }, { value: 'raw', label: 'Raw' },
+  { value: 'wraps', label: 'Wraps' }, { value: 'single-ply', label: 'Single-ply' },
+  { value: 'multi-ply', label: 'Multi-ply' }, { value: 'unlimited', label: 'Unlimited' },
+  { value: 'straps', label: 'Straps' },
 ]
 const WEIGHT_CLASSES = [
   { value: '', label: 'All Weight Classes' },
@@ -53,6 +53,13 @@ const AGE_CLASSES = [
   { value: '45-49', label: 'Masters 2 (45-49)' }, { value: '50-54', label: 'Masters 2 (50-54)' },
   { value: '55-59', label: 'Masters 3 (55-59)' }, { value: '60-64', label: 'Masters 4 (60-64)' },
   { value: '65-69', label: 'Masters 4 (65-69)' }, { value: '70-999', label: 'Masters 4 (70+)' },
+]
+const YEARS = [
+  { value: '', label: 'All Years' },
+  ...Array.from({ length: 27 }, (_, i) => {
+    const y = String(2026 - i)
+    return { value: y, label: y }
+  }),
 ]
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -133,6 +140,7 @@ export default function Rankings() {
   const [equipment,   setEquipment]   = useState('')
   const [weightClass, setWeightClass] = useState('')
   const [ageClass,    setAgeClass]    = useState('')
+  const [year,        setYear]        = useState('')
   const [unit,        setUnit]        = useState<'lbs' | 'kg'>('lbs')
   const [rows,        setRows]        = useState<RankRow[]>([])
   const [totalCount,  setTotalCount]  = useState(0)
@@ -146,37 +154,62 @@ export default function Rankings() {
   const [histError,   setHistError]   = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  const buildParams = useCallback((pg: number) => {
-    const p = new URLSearchParams()
-    p.set('start', String(pg * PAGE_SIZE))
-    p.set('end',   String(pg * PAGE_SIZE + PAGE_SIZE - 1))
-    if (name.trim())  p.set('q',            name.trim())
-    if (federation)   p.set('federation',    federation)
-    if (sex)          p.set('sex',           sex)
-    if (equipment)    p.set('equipment',     equipment)
-    if (weightClass)  p.set('weightclasskg', weightClass)
-    if (ageClass)     p.set('ageclass',      ageClass)
-    p.set('lang', 'en'); p.set('units', unit)
-    return p.toString()
-  }, [name, federation, sex, equipment, weightClass, ageClass, unit])
+  // Build the OPL API URL. Fed/equip/year are path segments (only server-side filters
+  // that actually work). Name uses ?q=. Sex, wt class, age class are client-side only.
+  const buildUrl = useCallback((pg: number) => {
+    // Fetch extra rows when client-side filters are active so we fill the page
+    const hasClientFilter = !!(sex || weightClass || ageClass)
+    const batchSize = hasClientFilter ? 500 : PAGE_SIZE
+    const start = pg * PAGE_SIZE  // logical page offset (server fetches ahead)
+    const pathParts: string[] = []
+    if (federation) pathParts.push(federation.toLowerCase())
+    if (equipment)  pathParts.push(equipment) // already lowercase
+    if (year)       pathParts.push(year)
+    const path = '/api/rankings' + (pathParts.length ? '/' + pathParts.join('/') : '')
+    const q = new URLSearchParams()
+    q.set('start', String(start))
+    q.set('end',   String(start + batchSize - 1))
+    if (name.trim()) q.set('q', name.trim())
+    q.set('lang', 'en'); q.set('units', unit)
+    return { path, query: q.toString(), hasClientFilter, batchSize }
+  }, [name, federation, sex, equipment, weightClass, ageClass, year, unit])
+
+  // Client-side filter applied after rows are parsed
+  const applyClientFilters = useCallback((rows: RankRow[]) => {
+    return rows.filter(row => {
+      if (sex && row.sex !== sex) return false
+      if (weightClass && row.weightClassKg !== weightClass) return false
+      if (ageClass) {
+        const age = parseFloat(row.age)
+        if (!isNaN(age)) {
+          const [lo, hi] = ageClass.split('-').map(Number)
+          if (age < lo || age > hi) return false
+        }
+      }
+      return true
+    })
+  }, [sex, weightClass, ageClass])
 
   const fetchPage = useCallback(async (pg: number) => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
     setLoading(true); setError(''); setExpanded(null); setHistRows([])
     try {
-      const res = await fetch(opl('/api/rankings?' + buildParams(pg)), { signal: abortRef.current.signal })
+      const { path, query, hasClientFilter } = buildUrl(pg)
+      const res = await fetch(opl(path + '?' + query), { signal: abortRef.current.signal })
       if (!res.ok) throw new Error('OpenPowerlifting API returned ' + res.status + '. Try adjusting your filters.')
       const data = await res.json()
-      const parsed = parseRows(data)
-      setRows(parsed)
-      setTotalCount(data?.total_length ?? parsed.length)
+      const all = parseRows(data)
+      const filtered = hasClientFilter ? applyClientFilters(all) : all
+      // When client-filtering, take PAGE_SIZE rows from the filtered batch
+      setRows(hasClientFilter ? filtered.slice(0, PAGE_SIZE) : filtered)
+      setTotalCount(data?.total_length ?? all.length)
       setPage(pg); setSearched(true)
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Failed to load rankings. Try again.')
     } finally { setLoading(false) }
-  }, [buildParams])
+  }, [buildUrl, applyClientFilters])
 
   const handleSearch = () => fetchPage(0)
 
@@ -237,7 +270,7 @@ export default function Rankings() {
               </select>
             </div>
             <div>
-              <label style={LBL}>Sex</label>
+              <label style={LBL}>Sex <span style={{ color: '#1e1e1e', fontWeight: 400 }}>(page filter)</span></label>
               <select value={sex} onChange={e => setSex(e.target.value)} style={SEL}>
                 {SEX_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -249,15 +282,21 @@ export default function Rankings() {
               </select>
             </div>
             <div>
-              <label style={LBL}>Weight Class</label>
+              <label style={LBL}>Weight Class <span style={{ color: '#1e1e1e', fontWeight: 400 }}>(page filter)</span></label>
               <select value={weightClass} onChange={e => setWeightClass(e.target.value)} style={SEL}>
                 {WEIGHT_CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label style={LBL}>Age Class</label>
+              <label style={LBL}>Age Class <span style={{ color: '#1e1e1e', fontWeight: 400 }}>(page filter)</span></label>
               <select value={ageClass} onChange={e => setAgeClass(e.target.value)} style={SEL}>
                 {AGE_CLASSES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={LBL}>Year</label>
+              <select value={year} onChange={e => setYear(e.target.value)} style={SEL}>
+                {YEARS.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
               </select>
             </div>
           </div>
@@ -283,7 +322,8 @@ export default function Rankings() {
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
               <span style={{ color: '#2a2a2a', fontSize: '.72rem', marginLeft: 'auto' }}>
-                {totalCount.toLocaleString()} results
+                {totalCount.toLocaleString()} total
+                {(sex || weightClass || ageClass) && ' · filtered on page'}
               </span>
             )}
           </div>
