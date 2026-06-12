@@ -47,9 +47,9 @@ export default function Navbar() {
             <a
               key={link.label}
               href={link.href}
-              style={{ color: '#666', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
+              style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#666')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#c7d0de')}
             >
               {link.label}
             </a>

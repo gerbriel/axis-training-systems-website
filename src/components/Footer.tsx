@@ -30,9 +30,9 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
   return (
     <a
       href={href} target="_blank" rel="noopener" aria-label={label}
-      style={{ color: '#3a3f47', transition: 'color .2s' }}
+      style={{ color: '#b8c2d4', transition: 'color .2s' }}
       onMouseEnter={e => (e.currentTarget.style.color = '#c8102e')}
-      onMouseLeave={e => (e.currentTarget.style.color = '#3a3f47')}
+      onMouseLeave={e => (e.currentTarget.style.color = '#b8c2d4')}
     >
       {children}
     </a>
@@ -44,9 +44,9 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
     <li>
       <a
         href={href}
-        style={{ color: '#444', fontSize: '.875rem', transition: 'color .2s', display: 'block' }}
+        style={{ color: '#c7d0de', fontSize: '.875rem', transition: 'color .2s', display: 'block' }}
         onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-        onMouseLeave={e => (e.currentTarget.style.color = '#444')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#c7d0de')}
       >
         {children}
       </a>
@@ -67,7 +67,7 @@ export default function Footer() {
               alt="Axis Training Systems"
               style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)', marginBottom: '1rem' }}
             />
-            <p style={{ color: '#3a3f47', fontSize: '.875rem', lineHeight: 1.7, maxWidth: '18rem', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.7, maxWidth: '18rem', marginBottom: '1.5rem' }}>
               Solution focused. Evidence based. Transparent. Everybody eats.
             </p>
             <div className="flex gap-4">
@@ -81,7 +81,7 @@ export default function Footer() {
 
           {/* Navigate */}
           <div>
-            <p style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
+            <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               {NAV_LINKS.map(l => <FooterLink key={l.label} href={l.href}>{l.label}</FooterLink>)}
               <FooterLink href={adminHref()}>Admin</FooterLink>
@@ -90,7 +90,7 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <p style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
+            <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               <FooterLink href="https://www.instagram.com/axistrainingsystems/">@axistrainingsystems</FooterLink>
               <FooterLink href="https://www.youtube.com/@axistrainingsystems">YouTube</FooterLink>
@@ -99,13 +99,13 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #0b2f5b', color: '#1c3a63', fontSize: '.75rem' }}>
+        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #0b2f5b', color: '#b8c2d4', fontSize: '.75rem' }}>
           <p>© {new Date().getFullYear()} Axis Training Systems. All rights reserved.</p>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-privacy'))}
-            style={{ color: '#1c3a63', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#888')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#1c3a63')}
+            style={{ color: '#b8c2d4', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#b8c2d4')}
           >
             Privacy Policy
           </button>

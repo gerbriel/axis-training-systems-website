@@ -33,7 +33,7 @@ export default function AdminPortal() {
 
   if (loading && !isDemo) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a1a33' }}>
-      <p style={{ color: '#3a3f47', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+      <p style={{ color: '#b8c2d4', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
 
@@ -46,7 +46,7 @@ export default function AdminPortal() {
         <a href={(import.meta as any).env?.BASE_URL ?? '/'}>
           <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
+        <span style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
@@ -64,8 +64,8 @@ export default function AdminPortal() {
                 paddingBottom: '1px', transition: 'color .15s',
                 display: 'flex', alignItems: 'center', gap: '.35rem',
               }}
-              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
-              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
+              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#b8c2d4' }}
+              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#c7d0de' }}
             >
               {t}
               {pendingCount > 0 && (
@@ -78,12 +78,12 @@ export default function AdminPortal() {
 
         {/* Right side */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ color: '#3a3f47', fontSize: '.75rem' }}>
+          <span style={{ color: '#b8c2d4', fontSize: '.75rem' }}>
             {isDemo ? <span style={{ color: '#f5b935', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
           </span>
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+            style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
             onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
           >

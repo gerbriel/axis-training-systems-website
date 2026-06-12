@@ -8,7 +8,7 @@ export default function Coaches() {
         <div className="mb-16">
           <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Team</p>
           <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff', marginBottom: '1.25rem' }}>Our Coaches</h2>
-          <p style={{ color: '#444', fontSize: '.9rem', maxWidth: '28rem' }}>Browse the team, view each coach's profile, and apply directly to the one that's the right fit for you.</p>
+          <p style={{ color: '#c7d0de', fontSize: '.9rem', maxWidth: '28rem' }}>Browse the team, view each coach's profile, and apply directly to the one that's the right fit for you.</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -31,14 +31,14 @@ export default function Coaches() {
               )}
               <p className="text-white font-bold text-sm mb-1">{c.name}</p>
               <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{c.role}</p>
-              <p style={{ color: '#444', fontSize: '.75rem', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>{c.tagline}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.75rem', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>{c.tagline}</p>
               {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginTop: 'auto' }}>
                 <a
                   href={coachHref(c.slug)}
-                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid #1c3a63', color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid #1c3a63', color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#888' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#b8c2d4' }}
                 >
                   View Profile
                 </a>

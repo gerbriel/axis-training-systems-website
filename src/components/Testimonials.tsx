@@ -67,7 +67,7 @@ export default function Testimonials() {
               {/* Red quote glyph */}
               <span style={{ color: '#f5b935', fontSize: '3rem', fontWeight: 900, lineHeight: 1, opacity: .45, marginBottom: '-.5rem' }}>"</span>
 
-              <p style={{ color: '#999', fontSize: '.9rem', lineHeight: 1.85, flex: 1 }}>{t.quote}</p>
+              <p style={{ color: '#b8c2d4', fontSize: '.9rem', lineHeight: 1.85, flex: 1 }}>{t.quote}</p>
 
               {/* Result badge */}
               <div style={{
@@ -96,16 +96,16 @@ export default function Testimonials() {
                 )}
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem' }}>{t.athlete}</p>
-                  <p style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.1rem' }}>
+                  <p style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.1rem' }}>
                     coached by {t.coachName}
                   </p>
                 </div>
                 {/* Apply link aligned to the right */}
                 <a
                   href={applyHref(t.coachSlug)}
-                  style={{ marginLeft: 'auto', color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap' }}
+                  style={{ marginLeft: 'auto', color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#c8102e'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#3a3f47'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#b8c2d4'}
                 >
                   Apply →
                 </a>

@@ -13,7 +13,7 @@ const inp: React.CSSProperties = {
   outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit',
 }
 const lbl: React.CSSProperties = {
-  color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em',
+  color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em',
   textTransform: 'uppercase', marginBottom: '.35rem', display: 'block',
 }
 const sectionLabel: React.CSSProperties = {
@@ -25,7 +25,7 @@ const heading: React.CSSProperties = {
   letterSpacing: '-.01em', marginBottom: '.6rem',
 }
 const listItem = (idx: number) => ({
-  display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.75,
+  display: 'flex', gap: '.75rem', color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.75,
   padding: '.35rem 0', borderBottom: idx > 0 ? '1px solid #15375f' : 'none',
 } as React.CSSProperties)
 
@@ -118,7 +118,7 @@ function MeetDayChecklist() {
       {/* Progress bar */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem' }}>
-          <span style={{ color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Progress</span>
+          <span style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Progress</span>
           <span style={{ color: pct === 100 ? '#22c55e' : '#c8102e', fontSize: '.65rem', fontWeight: 900 }}>{doneCount}/{total}</span>
         </div>
         <div style={{ height: 4, background: '#0b2f5b', borderRadius: 2, overflow: 'hidden' }}>
@@ -222,7 +222,7 @@ function AttemptCalcGuide() {
 
   return (
     <div>
-      <p style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.5rem' }}>
+      <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.5rem' }}>
         Enter your training max for each lift (the heaviest single you're confident you could hit on a good day). Conservative keeps your opener very safe; aggressive goes for a bigger PR third.
       </p>
 
@@ -260,11 +260,11 @@ function AttemptCalcGuide() {
                     { num: 3, w: a3, pct: Math.round(p.third  * 100), label: '3rd Attempt' },
                   ].map(att => (
                     <div key={att.num} style={{ background: '#15375f', border: `1px solid ${att.num === 3 ? 'rgba(245,185,53,.3)' : '#0b2f5b'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
-                      <p style={{ color: '#3a3f47', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
+                      <p style={{ color: '#b8c2d4', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
                       <p style={{ color: att.num === 3 ? '#c8102e' : '#fff', fontWeight: 900, fontSize: '1.2rem' }}>
-                        {att.w} <span style={{ fontSize: '.65rem', fontWeight: 600, color: '#444' }}>{unit}</span>
+                        {att.w} <span style={{ fontSize: '.65rem', fontWeight: 600, color: '#c7d0de' }}>{unit}</span>
                       </p>
-                      <p style={{ color: '#3a3f47', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
+                      <p style={{ color: '#b8c2d4', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
                     </div>
                   ))}
                 </div>
@@ -273,7 +273,7 @@ function AttemptCalcGuide() {
           })}
           {projectedTotal > 0 && (
             <div style={{ background: 'rgba(245,185,53,.06)', border: '1px solid rgba(245,185,53,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <span style={{ color: '#555', fontSize: '.75rem', fontWeight: 600 }}>Projected Meet Total (2nd attempts)</span>
+              <span style={{ color: '#c7d0de', fontSize: '.75rem', fontWeight: 600 }}>Projected Meet Total (2nd attempts)</span>
               <span style={{ color: '#f5b935', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.7rem' }}>{unit}</span></span>
             </div>
           )}
@@ -368,18 +368,18 @@ function TrainingQuiz() {
     return (
       <div>
         <div style={{ background: '#0a1a33', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-          <p style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Your Score</p>
-          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1, marginBottom: '.25rem' }}>{score}<span style={{ fontSize: '1.5rem', color: '#3a3f47' }}>/12</span></p>
+          <p style={{ color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Your Score</p>
+          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1, marginBottom: '.25rem' }}>{score}<span style={{ fontSize: '1.5rem', color: '#b8c2d4' }}>/12</span></p>
           <p style={{ color: tier.color, fontWeight: 900, fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>{tier.label}</p>
-          <p style={{ color: '#777', fontSize: '.9rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.summary}</p>
+          <p style={{ color: '#b8c2d4', fontSize: '.9rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.summary}</p>
         </div>
         {/* Per-question breakdown */}
         <div style={{ marginBottom: '1.5rem' }}>
           {QUIZ_QUESTIONS.map((q, i) => (
             <div key={i} style={{ padding: '.875rem 0', borderBottom: '1px solid #15375f' }}>
-              <p style={{ color: '#555', fontSize: '.75rem', marginBottom: '.3rem' }}>{q.q}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.75rem', marginBottom: '.3rem' }}>{q.q}</p>
               <p style={{ color: answers[i] === 2 ? '#22c55e' : answers[i] === 1 ? '#f5b935' : '#c8102e', fontWeight: 700, fontSize: '.8rem' }}>
-                {q.options[answers[i]]} <span style={{ color: '#3a3f47', fontWeight: 400 }}>({answers[i]}/2)</span>
+                {q.options[answers[i]]} <span style={{ color: '#b8c2d4', fontWeight: 400 }}>({answers[i]}/2)</span>
               </p>
             </div>
           ))}
@@ -395,9 +395,9 @@ function TrainingQuiz() {
           </a>
           <button
             onClick={reset}
-            style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#888' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#555' }}
+            style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#b8c2d4' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
           >
             Retake
           </button>
@@ -412,8 +412,8 @@ function TrainingQuiz() {
       {/* Progress */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem' }}>
-          <span style={{ color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Question {current + 1} of {QUIZ_QUESTIONS.length}</span>
-          <span style={{ color: '#3a3f47', fontSize: '.65rem' }}>{Math.round((current / QUIZ_QUESTIONS.length) * 100)}%</span>
+          <span style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Question {current + 1} of {QUIZ_QUESTIONS.length}</span>
+          <span style={{ color: '#b8c2d4', fontSize: '.65rem' }}>{Math.round((current / QUIZ_QUESTIONS.length) * 100)}%</span>
         </div>
         <div style={{ height: 3, background: '#0b2f5b', borderRadius: 2 }}>
           <div style={{ height: '100%', width: `${(current / QUIZ_QUESTIONS.length) * 100}%`, background: '#bfa162', transition: 'width .3s' }} />
@@ -427,9 +427,9 @@ function TrainingQuiz() {
           <button
             key={i}
             onClick={() => answer(i)}
-            style={{ textAlign: 'left', background: 'transparent', border: '1px solid #1c3a63', borderRadius: '.25rem', color: '#888', fontSize: '.875rem', lineHeight: 1.6, padding: '.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+            style={{ textAlign: 'left', background: 'transparent', border: '1px solid #1c3a63', borderRadius: '.25rem', color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.6, padding: '.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(245,185,53,.05)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#888'; e.currentTarget.style.background = 'transparent' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#b8c2d4'; e.currentTarget.style.background = 'transparent' }}
           >
             {opt}
           </button>
@@ -457,7 +457,7 @@ const RPE_ROWS = [
 function RPEGuide() {
   return (
     <div>
-      <p style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.75rem' }}>
+      <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.75rem' }}>
         RPE (Rate of Perceived Exertion) is a scale from 1–10 that describes how hard a set felt relative to your maximum. In powerlifting, we typically work in the RPE 6–10 range. The key insight: <strong style={{ color: '#d6d6d6' }}>RPE is about reps remaining, not how tired you feel.</strong>
       </p>
 
@@ -466,19 +466,19 @@ function RPEGuide() {
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '60px 90px 1fr', gap: '1rem', alignItems: 'start', padding: '1rem 1.25rem', background: '#0a1a33' }}>
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: '#f5b935', fontWeight: 900, fontSize: '1.25rem', lineHeight: 1 }}>{row.rpe}</p>
-              <p style={{ color: '#3a3f47', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.2rem' }}>RPE</p>
+              <p style={{ color: '#b8c2d4', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.2rem' }}>RPE</p>
             </div>
             <div>
               <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem' }}>{row.reps} reps</p>
-              <p style={{ color: '#3a3f47', fontSize: '.65rem', marginTop: '.15rem' }}>left</p>
+              <p style={{ color: '#b8c2d4', fontSize: '.65rem', marginTop: '.15rem' }}>left</p>
             </div>
-            <p style={{ color: '#666', fontSize: '.85rem', lineHeight: 1.7 }}>{row.desc}</p>
+            <p style={{ color: '#c7d0de', fontSize: '.85rem', lineHeight: 1.7 }}>{row.desc}</p>
           </div>
         ))}
       </div>
 
       <div style={{ background: '#0a1a33', border: '1px solid rgba(245,185,53,.2)', borderLeft: '3px solid #f5b935', borderRadius: '.2rem', padding: '1.25rem 1.5rem' }}>
-        <p style={{ color: '#888', fontSize: '.875rem', lineHeight: 1.75 }}>
+        <p style={{ color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.75 }}>
           <strong style={{ color: '#d6d6d6' }}>Beginner tip:</strong> If you're new to RPE, film your sets. Watch the bar speed — a fast bar is low RPE, a grinding, slow bar is RPE 9+. Over time, the calibration becomes instinctual. Most coaches recommend training primarily at RPE 7–8 for volume work, and 8.5–9 for peak/heavy work.
         </p>
       </div>
@@ -533,8 +533,8 @@ function BigThreeGuide() {
             key={t}
             onClick={() => setTab(t)}
             style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`, color: tab === t ? '#fff' : '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.25rem', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', transition: 'color .15s' }}
-            onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
-            onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
+            onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#b8c2d4' }}
+            onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#c7d0de' }}
           >
             {BIG_THREE[t].label}
           </button>
@@ -548,7 +548,7 @@ function BigThreeGuide() {
             <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>{phase.label}</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
               {phase.items.map((item, i) => (
-                <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.65 }}>
+                <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.65 }}>
                   <span style={{ color: '#f5b935', flexShrink: 0, marginTop: '.3rem' }}>·</span>
                   {item}
                 </li>
@@ -563,7 +563,7 @@ function BigThreeGuide() {
         <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>Common Mistakes</p>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
           {data.mistakes.map((m, i) => (
-            <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.65 }}>
+            <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.65 }}>
               <span style={{ color: '#f5b935', flexShrink: 0, marginTop: '.35rem', fontWeight: 900 }}>✕</span>
               {m}
             </li>
@@ -631,10 +631,10 @@ function AuditWorksheet() {
     return (
       <div>
         <div style={{ background: '#0a1a33', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-          <p style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Block Score</p>
-          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1 }}>{total}<span style={{ fontSize: '1.5rem', color: '#3a3f47' }}>/{maxScore}</span></p>
+          <p style={{ color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Block Score</p>
+          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1 }}>{total}<span style={{ fontSize: '1.5rem', color: '#b8c2d4' }}>/{maxScore}</span></p>
           <p style={{ color: tier.color, fontWeight: 900, fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase', margin: '.5rem 0 1.25rem' }}>{tier.label}</p>
-          <p style={{ color: '#777', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.note}</p>
+          <p style={{ color: '#b8c2d4', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.note}</p>
         </div>
 
         {/* Breakdown */}
@@ -643,7 +643,7 @@ function AuditWorksheet() {
             <div key={cat.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.75rem 0', borderBottom: '1px solid #15375f', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#d6d6d6', fontWeight: 700, fontSize: '.8rem' }}>{cat.name}</p>
-                <p style={{ color: '#555', fontSize: '.75rem', marginTop: '.15rem' }}>{cat.options[scores[cat.name] ?? 0]}</p>
+                <p style={{ color: '#c7d0de', fontSize: '.75rem', marginTop: '.15rem' }}>{cat.options[scores[cat.name] ?? 0]}</p>
               </div>
               <span style={{ color: (scores[cat.name] ?? 0) === 2 ? '#22c55e' : (scores[cat.name] ?? 0) === 1 ? '#f5b935' : '#c8102e', fontWeight: 900, fontSize: '.9rem', flexShrink: 0 }}>
                 {scores[cat.name] ?? 0}/2
@@ -658,9 +658,9 @@ function AuditWorksheet() {
             onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
           >Work With a Coach →</a>
           <button onClick={() => { setScores({}); setDone(false) }}
-            style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#888' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#555' }}
+            style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#b8c2d4' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
           >Re-audit</button>
         </div>
       </div>
@@ -669,7 +669,7 @@ function AuditWorksheet() {
 
   return (
     <div>
-      <p style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.5rem' }}>
+      <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.5rem' }}>
         Rate each aspect of your most recent training block honestly — not how you hope it went, but how it actually went. One block = 4–12 weeks of training.
       </p>
 
@@ -689,8 +689,8 @@ function AuditWorksheet() {
                   key={i}
                   onClick={() => setScores(s => ({ ...s, [cat.name]: i }))}
                   style={{ textAlign: 'left', background: scores[cat.name] === i ? 'rgba(245,185,53,.08)' : 'transparent', border: `1px solid ${scores[cat.name] === i ? 'rgba(245,185,53,.4)' : '#1c3a63'}`, borderRadius: '.2rem', color: scores[cat.name] === i ? '#fff' : '#666', fontSize: '.85rem', lineHeight: 1.6, padding: '.75rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
-                  onMouseEnter={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#888' } }}
-                  onMouseLeave={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#666' } }}
+                  onMouseEnter={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#b8c2d4' } }}
+                  onMouseLeave={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' } }}
                 >
                   <span style={{ color: i === 0 ? '#c8102e' : i === 1 ? '#f5b935' : '#22c55e', marginRight: '.5rem', fontWeight: 900 }}>
                     {i === 0 ? '✕' : i === 1 ? '~' : '✓'}
@@ -756,7 +756,7 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
     <form onSubmit={handleSubmit} style={{ background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.5rem', padding: '2.5rem', maxWidth: 480, margin: '0 auto' }}>
       <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Access</p>
       <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.75rem' }}>Unlock All 6 Guides</h2>
-      <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets — no credit card, no spam.</p>
+      <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets — no credit card, no spam.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.875rem', marginBottom: '.875rem' }}>
         <div>
@@ -782,7 +782,7 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
       >
         {loading ? 'Unlocking…' : 'Get Free Access →'}
       </button>
-      <p style={{ color: '#3a3f47', fontSize: '.7rem', textAlign: 'center', marginTop: '.875rem' }}>No spam. Unsubscribe any time.</p>
+      <p style={{ color: '#b8c2d4', fontSize: '.7rem', textAlign: 'center', marginTop: '.875rem' }}>No spam. Unsubscribe any time.</p>
     </form>
   )
 }
@@ -877,8 +877,8 @@ export default function GuidesPage() {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1c3a63' }}>›</span>
-        <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Free Guides</span>
+        <span style={{ color: '#b8c2d4' }}>›</span>
+        <span style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Free Guides</span>
       </nav>
 
       {/* Hero */}
@@ -888,7 +888,7 @@ export default function GuidesPage() {
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2.5rem, 7vw, 5rem)', textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: .9 }}>
             Powerlifting<br />Guides & Tools
           </h1>
-          <p style={{ color: '#444', fontSize: '.9rem', marginTop: '1.25rem', maxWidth: 520, lineHeight: 1.75 }}>
+          <p style={{ color: '#c7d0de', fontSize: '.9rem', marginTop: '1.25rem', maxWidth: 520, lineHeight: 1.75 }}>
             Six free resources for powerlifters at every level — interactive tools, reference guides, quizzes, and worksheets. Sign up once to unlock all of them.
           </p>
           {access && (
@@ -916,10 +916,10 @@ export default function GuidesPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
                       <span style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.2)', color: '#f5b935', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
-                      {!access && <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
+                      {!access && <span style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
                     </div>
                     <p style={{ color: '#fff', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
-                    <p style={{ color: '#555', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
+                    <p style={{ color: '#c7d0de', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
                   </div>
                   <span style={{ color: isOpen ? '#c8102e' : '#3a3f47', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
                 </button>
@@ -950,7 +950,7 @@ export default function GuidesPage() {
         <section style={{ padding: '4rem 2rem', borderTop: '1px solid #0b2f5b', background: '#0a1a33', textAlign: 'center' }}>
           <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Ready to Level Up?</p>
           <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.875rem' }}>Work With a Real Coach</h2>
-          <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
+          <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
             The guides give you the framework. A coach applies it to your training, your schedule, and your meet timeline.
           </p>
           <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#bfa162', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
@@ -965,7 +965,7 @@ export default function GuidesPage() {
       {/* Footer strip */}
       <div style={{ background: '#0a1a33', borderTop: '1px solid #0b2f5b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <a href={href('/')}><img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 20, filter: 'brightness(0) invert(1)' }} /></a>
-        <a href={href('/')} style={{ color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Home</a>
+        <a href={href('/')} style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Home</a>
       </div>
     </div>
   )

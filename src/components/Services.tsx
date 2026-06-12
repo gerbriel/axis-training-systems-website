@@ -52,7 +52,7 @@ export default function Services() {
             <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>What We Offer</p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>Services</h2>
           </div>
-          <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
+          <p style={{ color: '#c7d0de', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
             Four distinct tracks — each designed for a specific stage and goal in your powerlifting journey.
           </p>
         </div>
@@ -68,12 +68,12 @@ export default function Services() {
             >
               <span style={{ color: '#f5b935', fontWeight: 900, fontSize: '4rem', lineHeight: 1, marginBottom: '1.5rem', opacity: 0.35 }}>{s.num}</span>
               <h3 className="text-white font-bold text-lg leading-tight mb-4">
-                {s.title[0]}<br /><span style={{ color: '#555', fontSize: '.8rem', fontWeight: 600 }}>{s.title[1]}</span>
+                {s.title[0]}<br /><span style={{ color: '#c7d0de', fontSize: '.8rem', fontWeight: 600 }}>{s.title[1]}</span>
               </h3>
-              <p style={{ color: '#444', fontSize: '.875rem', lineHeight: 1.7, flex: 1, marginBottom: '2rem' }}>{s.desc}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.7, flex: 1, marginBottom: '2rem' }}>{s.desc}</p>
               <ul style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '.625rem' }}>
                 {s.highlights.map(h => (
-                  <li key={h} className="flex items-center gap-3" style={{ fontSize: '.8rem', color: '#666' }}>
+                  <li key={h} className="flex items-center gap-3" style={{ fontSize: '.8rem', color: '#c7d0de' }}>
                     <Dot /> {h}
                   </li>
                 ))}

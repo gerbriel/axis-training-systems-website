@@ -51,7 +51,7 @@ function renderSection(s: BlogSection, i: number) {
       )
     case 'paragraph':
       return (
-        <p key={i} style={{ color: '#888', fontSize: '.975rem', lineHeight: 1.85, marginBottom: '1rem' }}>
+        <p key={i} style={{ color: '#b8c2d4', fontSize: '.975rem', lineHeight: 1.85, marginBottom: '1rem' }}>
           {s.text}
         </p>
       )
@@ -59,7 +59,7 @@ function renderSection(s: BlogSection, i: number) {
       return (
         <ul key={i} style={{ listStyle: 'none', padding: 0, marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
           {s.items?.map((item, j) => (
-            <li key={j} style={{ display: 'flex', gap: '.75rem', color: '#777', fontSize: '.9rem', lineHeight: 1.7 }}>
+            <li key={j} style={{ display: 'flex', gap: '.75rem', color: '#b8c2d4', fontSize: '.9rem', lineHeight: 1.7 }}>
               <span style={{ color: '#f5b935', flexShrink: 0, marginTop: '.35rem' }}>·</span>
               {item}
             </li>
@@ -72,7 +72,7 @@ function renderSection(s: BlogSection, i: number) {
           <p style={{ color: '#fff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{s.label}</p>
           <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
             {s.items?.map((item, j) => (
-              <li key={j} style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.6, display: 'flex', gap: '.75rem' }}>
+              <li key={j} style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.6, display: 'flex', gap: '.75rem' }}>
                 <span style={{ color: '#f5b935', flexShrink: 0 }}>·</span>
                 {item}
               </li>
@@ -114,7 +114,7 @@ export default function BlogPostPage({ slug }: Props) {
 
   if (loading) return (
     <div style={{ background: '#0a1a33', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#3a3f47', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+      <p style={{ color: '#b8c2d4', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
 
@@ -123,7 +123,7 @@ export default function BlogPostPage({ slug }: Props) {
       <div style={{ background: '#0a1a33', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
         <p style={{ color: '#f5b935', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '2rem', textTransform: 'uppercase' }}>Post Not Found</h1>
-        <a href={href('/blog')} style={{ color: '#555', fontSize: '.8rem', textDecoration: 'underline' }}>← Back to Blog</a>
+        <a href={href('/blog')} style={{ color: '#c7d0de', fontSize: '.8rem', textDecoration: 'underline' }}>← Back to Blog</a>
       </div>
     )
   }
@@ -135,15 +135,15 @@ export default function BlogPostPage({ slug }: Props) {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1c3a63' }}>›</span>
-        <a href={href('/blog')} style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#888'}
-          onMouseLeave={e => e.currentTarget.style.color = '#444'}
+        <span style={{ color: '#b8c2d4' }}>›</span>
+        <a href={href('/blog')} style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#b8c2d4'}
+          onMouseLeave={e => e.currentTarget.style.color = '#c7d0de'}
         >
           Blog
         </a>
-        <span style={{ color: '#1c3a63' }}>›</span>
-        <span style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '30vw' }}>{post.title}</span>
+        <span style={{ color: '#b8c2d4' }}>›</span>
+        <span style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '30vw' }}>{post.title}</span>
       </nav>
 
       {/* Hero */}
@@ -165,14 +165,14 @@ export default function BlogPostPage({ slug }: Props) {
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.75rem, 5vw, 3rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>
             {post.title}
           </h1>
-          <p style={{ color: '#666', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2rem', maxWidth: 580 }}>{post.subtitle}</p>
+          <p style={{ color: '#c7d0de', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2rem', maxWidth: 580 }}>{post.subtitle}</p>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <div>
               <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem' }}>{post.author}</p>
-              <p style={{ color: '#444', fontSize: '.7rem', marginTop: '.15rem' }}>{post.authorRole}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.7rem', marginTop: '.15rem' }}>{post.authorRole}</p>
             </div>
-            <span style={{ color: '#1c3a63' }}>·</span>
-            <p style={{ color: '#3a3f47', fontSize: '.75rem' }}>{post.date}</p>
+            <span style={{ color: '#b8c2d4' }}>·</span>
+            <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>{post.date}</p>
           </div>
         </div>
       </section>
@@ -185,7 +185,7 @@ export default function BlogPostPage({ slug }: Props) {
         <div style={{ marginTop: '4rem', padding: '2.5rem', background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.25rem', textAlign: 'center' }}>
           <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Axis Training Systems</p>
           <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.75rem' }}>Work With a Coach Like {post.author.split(' ')[0]}</p>
-          <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+          <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
             Results like this don't happen by accident. They're the product of evidence-based coaching, genuine investment in the athlete, and the trust to adapt when it matters.
           </p>
           <a
@@ -204,7 +204,7 @@ export default function BlogPostPage({ slug }: Props) {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 20, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <a href={href('/blog')} style={{ color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← All Posts</a>
+        <a href={href('/blog')} style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← All Posts</a>
       </div>
     </div>
   )

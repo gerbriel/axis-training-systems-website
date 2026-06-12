@@ -41,14 +41,14 @@ export default function CoachAdmin({ slug }: Props) {
       <div style={{ background: '#0a1a33', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
         <p style={{ color: '#f5b935', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase' }}>Coach Not Found</h1>
-        <a href={adminHref()} style={{ color: '#555', fontSize: '.8rem', textDecoration: 'underline' }}>← Master Admin</a>
+        <a href={adminHref()} style={{ color: '#c7d0de', fontSize: '.8rem', textDecoration: 'underline' }}>← Master Admin</a>
       </div>
     )
   }
 
   if (loading && !isDemo) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a1a33' }}>
-      <p style={{ color: '#3a3f47', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+      <p style={{ color: '#b8c2d4', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
 
@@ -74,8 +74,8 @@ export default function CoachAdmin({ slug }: Props) {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>Coach Portal</span>
-        <span style={{ color: '#1c3a63' }}>›</span>
+        <span style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>Coach Portal</span>
+        <span style={{ color: '#b8c2d4' }}>›</span>
         <span style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>{coach.name}</span>
 
         {/* Tabs */}
@@ -91,8 +91,8 @@ export default function CoachAdmin({ slug }: Props) {
                 borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`,
                 paddingBottom: '1px', transition: 'color .15s', fontFamily: 'inherit',
               }}
-              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
-              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
+              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#b8c2d4' }}
+              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#c7d0de' }}
             >
               {label}
             </button>
@@ -104,11 +104,11 @@ export default function CoachAdmin({ slug }: Props) {
             <span style={{ color: '#f5b935', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo Mode</span>
           )}
           {!isDemo && session && (
-            <span style={{ color: '#3a3f47', fontSize: '.75rem' }}>{session.user.email}</span>
+            <span style={{ color: '#b8c2d4', fontSize: '.75rem' }}>{session.user.email}</span>
           )}
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+            style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
             onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
           >
