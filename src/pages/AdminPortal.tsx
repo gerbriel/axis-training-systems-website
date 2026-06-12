@@ -32,21 +32,21 @@ export default function AdminPortal() {
   }
 
   if (loading && !isDemo) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
-      <p style={{ color: '#333', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#10131a' }}>
+      <p style={{ color: '#3a3f47', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
 
   if (!session && !isDemo) return <AdminLogin onDemo={() => setIsDemo(true)} />
 
   return (
-    <div className="min-h-screen" style={{ background: '#080808', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen" style={{ background: '#10131a', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
-      <header style={{ background: '#030303', borderBottom: '1px solid #141414', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
+      <header style={{ background: '#10131a', borderBottom: '1px solid #0d2040', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
         <a href={(import.meta as any).env?.BASE_URL ?? '/'}>
           <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#222', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
+        <span style={{ color: '#1c3255', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
@@ -60,7 +60,7 @@ export default function AdminPortal() {
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: tab === t ? '#fff' : '#444',
                 fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
-                borderBottom: `2px solid ${tab === t ? '#e63e3e' : 'transparent'}`,
+                borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`,
                 paddingBottom: '1px', transition: 'color .15s',
                 display: 'flex', alignItems: 'center', gap: '.35rem',
               }}
@@ -69,7 +69,7 @@ export default function AdminPortal() {
             >
               {t}
               {pendingCount > 0 && (
-                <span style={{ background: '#e63e3e', color: '#fff', fontSize: '.5rem', fontWeight: 900, borderRadius: '10rem', padding: '.1rem .4rem', lineHeight: 1.4 }}>{pendingCount}</span>
+                <span style={{ background: '#c8102e', color: '#fff', fontSize: '.5rem', fontWeight: 900, borderRadius: '10rem', padding: '.1rem .4rem', lineHeight: 1.4 }}>{pendingCount}</span>
               )}
             </button>
               )
@@ -78,14 +78,14 @@ export default function AdminPortal() {
 
         {/* Right side */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ color: '#333', fontSize: '.75rem' }}>
-            {isDemo ? <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
+          <span style={{ color: '#3a3f47', fontSize: '.75rem' }}>
+            {isDemo ? <span style={{ color: '#f5b935', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
           </span>
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid #1e1e1e', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#e63e3e'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e1e'}
+            style={{ background: 'none', border: '1px solid #152842', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#152842'}
           >
             {isDemo ? 'Exit Demo' : 'Sign Out'}
           </button>
@@ -93,7 +93,7 @@ export default function AdminPortal() {
       </header>
 
       {/* Page header */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d2040', background: '#0c1827' }}>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
           {tab === 'leads'      ? 'Leads' : tab === 'approvals' ? 'Content Approvals' : tab === 'newsletter' ? 'Newsletter' : 'Settings'}
         </h1>

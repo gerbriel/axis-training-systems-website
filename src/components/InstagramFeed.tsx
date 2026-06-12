@@ -20,11 +20,11 @@ const BEHOLD_FEED_ID = ''
 function SetupCard() {
   return (
     <div style={{
-      background: '#0d0d0d', border: '1px dashed #2a2a2a', borderRadius: '.5rem',
+      background: '#0e1c30', border: '1px dashed #243650', borderRadius: '.5rem',
       padding: '3rem 2rem', textAlign: 'center', maxWidth: 520, margin: '0 auto',
     }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" strokeWidth="1.25" style={{ width: 48, height: 48 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#243650" strokeWidth="1.25" style={{ width: 48, height: 48 }}>
           <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
           <circle cx="12" cy="12" r="4"/>
           <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth="2.5" strokeLinecap="round"/>
@@ -33,17 +33,17 @@ function SetupCard() {
       <p style={{ color: '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
         Instagram feed not yet connected
       </p>
-      <p style={{ color: '#2e2e2e', fontSize: '.82rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+      <p style={{ color: '#263450', fontSize: '.82rem', lineHeight: 1.7, marginBottom: '2rem' }}>
         Sign up free at{' '}
-        <a href="https://behold.so" target="_blank" rel="noopener noreferrer" style={{ color: '#e63e3e' }}>behold.so</a>
+        <a href="https://behold.so" target="_blank" rel="noopener noreferrer" style={{ color: '#c8102e' }}>behold.so</a>
         , connect <strong style={{ color: '#444' }}>@axistrainingsystems</strong>, paste
-        the Feed ID into <code style={{ color: '#555', background: '#141414', padding: '.1rem .4rem', borderRadius: '.2rem' }}>InstagramFeed.tsx</code>.
+        the Feed ID into <code style={{ color: '#555', background: '#0d2040', padding: '.1rem .4rem', borderRadius: '.2rem' }}>InstagramFeed.tsx</code>.
       </p>
       <a
         href="https://behold.so" target="_blank" rel="noopener noreferrer"
-        style={{ display: 'inline-block', background: 'transparent', border: '1px solid #2a2a2a', color: '#555', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.color = '#fff' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555' }}
+        style={{ display: 'inline-block', background: 'transparent', border: '1px solid #243650', color: '#555', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#fff' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = '#243650'; e.currentTarget.style.color = '#555' }}
       >
         Set Up at behold.so →
       </a>
@@ -55,12 +55,12 @@ export default function InstagramFeed() {
   return (
     <section
       id="instagram"
-      style={{ background: '#060606', padding: '6rem 0', borderTop: '1px solid #111' }}
+      style={{ background: '#060606', padding: '6rem 0', borderTop: '1px solid #0a1f3c' }}
     >
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 2rem' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
+          <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
             Follow Along
           </p>
           <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1rem' }}>
@@ -82,12 +82,12 @@ export default function InstagramFeed() {
             rel="noopener noreferrer"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '.625rem',
-              background: 'transparent', border: '1.5px solid #e63e3e', color: '#fff',
+              background: 'transparent', border: '1.5px solid #c8102e', color: '#fff',
               fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase',
               padding: '.875rem 2.25rem', borderRadius: '.25rem', textDecoration: 'none',
               transition: 'background .15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#e63e3e' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#c8102e' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" style={{ width: 18, height: 18, flexShrink: 0 }}>

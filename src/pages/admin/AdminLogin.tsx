@@ -47,12 +47,12 @@ export default function AdminLogin({ onDemo }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080808' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#10131a' }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div className="text-center mb-10">
           <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 28, filter: 'brightness(0) invert(1)', margin: '0 auto 1.5rem' }} />
-          <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Admin</p>
+          <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Admin</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.75rem', textTransform: 'uppercase', letterSpacing: '-.02em' }}>Sign In</h1>
         </div>
 
@@ -75,21 +75,21 @@ export default function AdminLogin({ onDemo }: Props) {
           </div>
 
           {isBlocked && (
-            <div style={{ background: '#1a0a00', border: '1px solid #5c3000', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f59e0b', fontSize: '.8rem' }}>
+            <div style={{ background: '#1a1600', border: '1px solid #5c4a00', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f5b935', fontSize: '.8rem' }}>
               Too many failed attempts. Try again in {formatLockRemaining(lockRemaining)}.
             </div>
           )}
           {error && !isBlocked && (
-            <div style={{ background: '#1a0808', border: '1px solid #4a1515', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f87171', fontSize: '.8rem' }}>
+            <div style={{ background: '#1a0309', border: '1px solid #2d0810', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f87171', fontSize: '.8rem' }}>
               {error}
             </div>
           )}
 
           <button
             type="submit" disabled={loading || isBlocked}
-            style={{ background: loading ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#c42e2e' }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#e63e3e' }}
+            style={{ background: loading ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a30c26' }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#c8102e' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>
@@ -99,23 +99,23 @@ export default function AdminLogin({ onDemo }: Props) {
         {onDemo && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1a1a1a' }} />
-              <span style={{ color: '#2e2e2e', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1a1a1a' }} />
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #112038' }} />
+              <span style={{ color: '#263450', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #112038' }} />
             </div>
             <button
               type="button"
               onClick={onDemo}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #1e1e1e', color: '#666', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #152842', color: '#666', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#aaa' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.color = '#666' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#152842'; e.currentTarget.style.color = '#666' }}
             >
               View Demo →
             </button>
           </>
         )}
 
-        <p style={{ color: '#333', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
+        <p style={{ color: '#3a3f47', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
           Admin access only.{' '}
           <a href={(import.meta as any).env?.BASE_URL ?? '/'} style={{ color: '#555', textDecoration: 'underline' }}>← Back to site</a>
         </p>

@@ -7,12 +7,12 @@ const PILLARS = [
 
 export default function Philosophy() {
   return (
-    <section id="philosophy" style={{ background: '#050505', borderTop: '1px solid #141414', borderBottom: '1px solid #141414', padding: '8rem 1.5rem' }}>
+    <section id="philosophy" style={{ background: '#10131a', borderTop: '1px solid #0d2040', borderBottom: '1px solid #0d2040', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           {/* Left */}
           <div>
-            <p style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
               Who We Are
             </p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2rem,5vw,4rem)', color: '#fff', marginBottom: '2rem' }}>
@@ -25,11 +25,11 @@ export default function Philosophy() {
               We focus on evidence-based premium coaching, utilizing lifter data to create individualized training protocols and provide mentorship in building a resilient mindset. Our goal is to help lifters reach their full potential on the platform and build the next generation of the powerlifting community.
             </p>
             {/* Real quote */}
-            <blockquote style={{ borderLeft: '3px solid #e63e3e', paddingLeft: '1.25rem' }}>
+            <blockquote style={{ borderLeft: '3px solid #c8102e', paddingLeft: '1.25rem' }}>
               <p style={{ color: '#888', fontSize: '.875rem', lineHeight: 1.8, fontStyle: 'italic', marginBottom: '.5rem' }}>
                 "Our vision at Axis is one where everyone is treated equally no matter what level athlete they are. We believe coaching is more than just crunching numbers and critiquing form. We establish strong coach-athlete bonds that give the athlete a sense of intrinsic motivation."
               </p>
-              <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>— Ronnie Vallejo, Founder</p>
+              <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>— Ronnie Vallejo, Founder</p>
             </blockquote>
           </div>
 
@@ -50,12 +50,12 @@ export default function Philosophy() {
                 }}
               />
               {/* left-edge fade into bg */}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(5,5,5,0.55) 0%, transparent 40%)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,31,60,0.55) 0%, transparent 40%)' }} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               {PILLARS.map(p => (
-                <div key={p.num} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '2rem' }}>
-                  <p style={{ color: '#e63e3e', fontSize: '1.75rem', fontWeight: 900, marginBottom: '.75rem' }}>{p.num}</p>
+                <div key={p.num} style={{ background: '#0e1c30', border: '1px solid #112038', padding: '2rem' }}>
+                  <p style={{ color: '#c8102e', fontSize: '1.75rem', fontWeight: 900, marginBottom: '.75rem' }}>{p.num}</p>
                   <p className="text-white font-bold text-sm mb-2">{p.title}</p>
                   <p style={{ color: '#444', fontSize: '.8rem', lineHeight: 1.6 }}>{p.desc}</p>
                 </div>

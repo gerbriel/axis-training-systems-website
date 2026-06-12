@@ -2,23 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --navy:       #0a1f3c;
+  --near-black: #10131a;
+  --crimson:    #c8102e;
+  --crimson-dark: #a30c26;
+  --gold:       #f5b935;
+  --bronze:     #bfa162;
+  --steel:      #3a3f47;
+  --chalk:      #d6d6d6;
+  --offwhite:   #faf9f5;
+}
+
 * { -webkit-font-smoothing: antialiased; }
 
 body {
-  background: #080808;
+  background: var(--near-black);
   color: #fff;
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+::-webkit-scrollbar-track { background: #0c1827; }
+::-webkit-scrollbar-thumb { background: var(--steel); border-radius: 3px; }
 
 /* Field base */
 .field {
   width: 100%;
-  background: #111;
-  border: 1px solid #222;
+  background: var(--navy);
+  border: 1px solid #1c3255;
   color: #fff;
   padding: .75rem 1rem;
   border-radius: .25rem;
@@ -28,9 +40,9 @@ body {
   appearance: none;
   font-family: inherit;
 }
-.field:focus { border-color: #e63e3e; }
+.field:focus { border-color: var(--crimson); }
 .field::placeholder { color: #444; }
-select.field option { background: #111; color: #fff; }
+select.field option { background: var(--navy); color: #fff; }
 textarea.field { resize: vertical; }
 
 /* Pill radio/checkbox */
@@ -38,8 +50,8 @@ textarea.field { resize: vertical; }
   display: flex;
   align-items: center;
   gap: .5rem;
-  background: #111;
-  border: 1px solid #222;
+  background: var(--navy);
+  border: 1px solid #1c3255;
   padding: .6rem 1rem;
   border-radius: .25rem;
   cursor: pointer;
@@ -49,16 +61,16 @@ textarea.field { resize: vertical; }
   user-select: none;
   white-space: nowrap;
 }
-.pill-label:hover { border-color: #444; color: #fff; }
-.pill-checked { border-color: #e63e3e !important; color: #fff !important; background: #1a0808 !important; }
+.pill-label:hover { border-color: var(--steel); color: #fff; }
+.pill-checked { border-color: var(--crimson) !important; color: #fff !important; background: #200409 !important; }
 
 /* Scale button */
 .scale-btn {
   width: 2.75rem;
   height: 2.75rem;
-  border: 1px solid #222;
+  border: 1px solid #1c3255;
   border-radius: .25rem;
-  background: #111;
+  background: var(--navy);
   color: #666;
   font-size: .8rem;
   font-weight: 700;
@@ -69,7 +81,7 @@ textarea.field { resize: vertical; }
   justify-content: center;
 }
 .scale-btn:hover,
-.scale-btn.selected { border-color: #e63e3e; color: #fff; background: #1a0808; }
+.scale-btn.selected { border-color: var(--crimson); color: #fff; background: #200409; }
 
 /* Field label */
 .field-label {
