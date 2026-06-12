@@ -7,8 +7,8 @@ function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
   return (
     <div style={{
       padding: '.75rem 1rem', borderRadius: '.25rem', fontSize: '.8rem',
-      background: ok ? '#0a1f0a' : '#1a0808',
-      border: `1px solid ${ok ? '#22c55e33' : '#4a1515'}`,
+      background: ok ? '#0a1f0a' : '#1a0309',
+      border: `1px solid ${ok ? '#22c55e33' : '#2d0810'}`,
       color: ok ? '#4ade80' : '#f87171',
     }}>
       {msg}
@@ -96,16 +96,16 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
   }
 
   if (loading) return (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#333', fontSize: '.8rem' }}>Loading settings…</div>
+    <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>Loading settings…</div>
   )
 
   return (
     <div style={{ padding: '2rem', maxWidth: 720 }}>
       {/* Demo banner */}
       {isDemo && (
-        <div style={{ background: '#2d1f00', border: '1px solid #5c3d00', padding: '.75rem 1.25rem', borderRadius: '.25rem', marginBottom: '2rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: '#f59e0b', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', flexShrink: 0 }}>Demo Mode</span>
-          <span style={{ color: '#7a5000', fontSize: '.8rem' }}>Changes are local only — nothing will be written to a database.</span>
+        <div style={{ background: '#2d2500', border: '1px solid #5c4800', padding: '.75rem 1.25rem', borderRadius: '.25rem', marginBottom: '2rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
+          <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', flexShrink: 0 }}>Demo Mode</span>
+          <span style={{ color: '#7a6500', fontSize: '.8rem' }}>Changes are local only — nothing will be written to a database.</span>
         </div>
       )}
 
@@ -123,20 +123,20 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         {/* Column headers */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0 1.25rem', marginBottom: '.5rem' }}>
           <span style={{ width: '2.25rem', flexShrink: 0 }} />
-          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
-          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
-          <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
+          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
+          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
+          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {routes.map(r => (
-            <div key={r.id} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '1.25rem', borderRadius: '.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div key={r.id} style={{ background: '#0e1c30', border: '1px solid #112038', padding: '1.25rem', borderRadius: '.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Toggle */}
               <button
                 onClick={() => updateRoute(r.id, 'notify', !r.notify)}
                 style={{
                   width: '2.25rem', height: '1.25rem', borderRadius: '9999px', border: 'none', cursor: 'pointer', flexShrink: 0, position: 'relative', transition: 'background .2s',
-                  background: r.notify ? '#e63e3e' : '#222',
+                  background: r.notify ? '#c8102e' : '#1c3255',
                 }}
                 aria-label={r.notify ? 'Disable notifications' : 'Enable notifications'}
               >
@@ -173,15 +173,15 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
         <button
           onClick={saveRoutes} disabled={savingRoutes}
-          style={{ marginTop: '1.25rem', background: savingRoutes ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#c42e2e' }}
-          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#e63e3e' }}
+          style={{ marginTop: '1.25rem', background: savingRoutes ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
+          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#a30c26' }}
+          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#c8102e' }}
         >
           {savingRoutes ? 'Saving…' : 'Save Routing'}
         </button>
       </section>
 
-      <div style={{ borderTop: '1px solid #1a1a1a', marginBottom: '3rem' }} />
+      <div style={{ borderTop: '1px solid #112038', marginBottom: '3rem' }} />
 
       {/* ── Master Config ── */}
       <section>
@@ -200,7 +200,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
               type="email" className="field" placeholder="admin@axistrainingsystems.com"
               value={masterEmail} onChange={e => setMasterEmail(e.target.value)}
             />
-            <p style={{ color: '#333', fontSize: '.75rem', marginTop: '.4rem' }}>All leads will be CC'd to this address.</p>
+            <p style={{ color: '#3a3f47', fontSize: '.75rem', marginTop: '.4rem' }}>All leads will be CC'd to this address.</p>
           </div>
           <div>
             <label className="field-label">Resend API Key</label>
@@ -209,8 +209,8 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
               value={resendKey} onChange={e => setResendKey(e.target.value)}
               autoComplete="new-password"
             />
-            <p style={{ color: '#333', fontSize: '.75rem', marginTop: '.4rem' }}>
-              Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#e63e3e' }}>resend.com</a>. Required for email delivery.
+            <p style={{ color: '#3a3f47', fontSize: '.75rem', marginTop: '.4rem' }}>
+              Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>resend.com</a>. Required for email delivery.
             </p>
           </div>
         </div>
@@ -219,21 +219,21 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
         <button
           onClick={saveConfig} disabled={savingConfig}
-          style={{ marginTop: '1.25rem', background: savingConfig ? '#7a1f1f' : '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#c42e2e' }}
-          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#e63e3e' }}
+          style={{ marginTop: '1.25rem', background: savingConfig ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
+          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#a30c26' }}
+          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#c8102e' }}
         >
           {savingConfig ? 'Saving…' : 'Save Config'}
         </button>
       </section>
 
-      <div style={{ borderTop: '1px solid #1a1a1a', marginTop: '3rem', paddingTop: '2rem' }}>
-        <h3 style={{ color: '#333', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
-        <ol style={{ color: '#333', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
+      <div style={{ borderTop: '1px solid #112038', marginTop: '3rem', paddingTop: '2rem' }}>
+        <h3 style={{ color: '#3a3f47', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
+        <ol style={{ color: '#3a3f47', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
           <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#555' }}>resend.com</a> and verify your sending domain.</li>
           <li>Copy your API key and paste it above.</li>
-          <li>Deploy the Supabase Edge Function from <code style={{ color: '#666', background: '#111', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
-          <li>Set the <code style={{ color: '#666', background: '#111', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
+          <li>Deploy the Supabase Edge Function from <code style={{ color: '#666', background: '#0a1f3c', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
+          <li>Set the <code style={{ color: '#666', background: '#0a1f3c', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
           <li>Set coach emails above and enable notifications per coach.</li>
         </ol>
       </div>

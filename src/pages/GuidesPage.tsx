@@ -8,7 +8,7 @@ const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 // ── Shared styles ────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
-  background: '#0d0d0d', border: '1px solid #222', borderRadius: '.2rem',
+  background: '#0e1c30', border: '1px solid #1c3255', borderRadius: '.2rem',
   color: '#fff', fontSize: '.875rem', fontWeight: 500, padding: '.65rem .875rem',
   outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit',
 }
@@ -17,7 +17,7 @@ const lbl: React.CSSProperties = {
   textTransform: 'uppercase', marginBottom: '.35rem', display: 'block',
 }
 const sectionLabel: React.CSSProperties = {
-  color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em',
+  color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em',
   textTransform: 'uppercase', marginBottom: '.5rem', display: 'block',
 }
 const heading: React.CSSProperties = {
@@ -26,7 +26,7 @@ const heading: React.CSSProperties = {
 }
 const listItem = (idx: number) => ({
   display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.75,
-  padding: '.35rem 0', borderBottom: idx > 0 ? '1px solid #0d0d0d' : 'none',
+  padding: '.35rem 0', borderBottom: idx > 0 ? '1px solid #0e1c30' : 'none',
 } as React.CSSProperties)
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -119,17 +119,17 @@ function MeetDayChecklist() {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem' }}>
           <span style={{ color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Progress</span>
-          <span style={{ color: pct === 100 ? '#22c55e' : '#e63e3e', fontSize: '.65rem', fontWeight: 900 }}>{doneCount}/{total}</span>
+          <span style={{ color: pct === 100 ? '#22c55e' : '#c8102e', fontSize: '.65rem', fontWeight: 900 }}>{doneCount}/{total}</span>
         </div>
-        <div style={{ height: 4, background: '#141414', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#22c55e' : '#e63e3e', transition: 'width .3s' }} />
+        <div style={{ height: 4, background: '#0d2040', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#22c55e' : '#c8102e', transition: 'width .3s' }} />
         </div>
       </div>
 
       {CHECKLIST_SECTIONS.map(section => (
         <div key={section.label} style={{ marginBottom: '1.5rem' }}>
-          <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{section.label}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid #141414', borderRadius: '.25rem', overflow: 'hidden' }}>
+          <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{section.label}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid #0d2040', borderRadius: '.25rem', overflow: 'hidden' }}>
             {section.items.map(item => {
               const key = `${section.label}::${item}`
               const done = checked.has(key)
@@ -140,16 +140,16 @@ function MeetDayChecklist() {
                   style={{
                     display: 'flex', gap: '.875rem', alignItems: 'flex-start',
                     padding: '.875rem 1rem', background: done ? 'rgba(34,197,94,.04)' : 'transparent',
-                    border: 'none', borderBottom: '1px solid #0d0d0d', cursor: 'pointer',
+                    border: 'none', borderBottom: '1px solid #0e1c30', cursor: 'pointer',
                     textAlign: 'left', width: '100%', fontFamily: 'inherit',
                     transition: 'background .1s',
                   }}
-                  onMouseEnter={e => { if (!done) e.currentTarget.style.background = '#0a0a0a' }}
+                  onMouseEnter={e => { if (!done) e.currentTarget.style.background = '#0c1827' }}
                   onMouseLeave={e => { e.currentTarget.style.background = done ? 'rgba(34,197,94,.04)' : 'transparent' }}
                 >
                   <span style={{
                     width: 18, height: 18, borderRadius: '.2rem', flexShrink: 0, marginTop: 1,
-                    border: `1.5px solid ${done ? '#22c55e' : '#2a2a2a'}`,
+                    border: `1.5px solid ${done ? '#22c55e' : '#243650'}`,
                     background: done ? '#22c55e' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all .1s',
@@ -251,20 +251,20 @@ function AttemptCalcGuide() {
             if (!atts) return null
             const [a1, a2, a3] = atts
             return (
-              <div key={label} style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '1rem' }}>
-                <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{label}</p>
+              <div key={label} style={{ background: '#10131a', border: '1px solid #112038', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '1rem' }}>
+                <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{label}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '.75rem' }}>
                   {[
                     { num: 1, w: a1, pct: Math.round(p.open   * 100), label: 'Opener'      },
                     { num: 2, w: a2, pct: Math.round(p.second * 100), label: '2nd Attempt' },
                     { num: 3, w: a3, pct: Math.round(p.third  * 100), label: '3rd Attempt' },
                   ].map(att => (
-                    <div key={att.num} style={{ background: '#0d0d0d', border: `1px solid ${att.num === 3 ? 'rgba(230,62,62,.3)' : '#161616'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
-                      <p style={{ color: '#333', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
-                      <p style={{ color: att.num === 3 ? '#e63e3e' : '#fff', fontWeight: 900, fontSize: '1.2rem' }}>
+                    <div key={att.num} style={{ background: '#0e1c30', border: `1px solid ${att.num === 3 ? 'rgba(200,16,46,.3)' : '#0f2040'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
+                      <p style={{ color: '#3a3f47', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
+                      <p style={{ color: att.num === 3 ? '#c8102e' : '#fff', fontWeight: 900, fontSize: '1.2rem' }}>
                         {att.w} <span style={{ fontSize: '.65rem', fontWeight: 600, color: '#444' }}>{unit}</span>
                       </p>
-                      <p style={{ color: '#333', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
+                      <p style={{ color: '#3a3f47', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
                     </div>
                   ))}
                 </div>
@@ -272,9 +272,9 @@ function AttemptCalcGuide() {
             )
           })}
           {projectedTotal > 0 && (
-            <div style={{ background: 'rgba(230,62,62,.06)', border: '1px solid rgba(230,62,62,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ background: 'rgba(200,16,46,.06)', border: '1px solid rgba(200,16,46,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <span style={{ color: '#555', fontSize: '.75rem', fontWeight: 600 }}>Projected Meet Total (2nd attempts)</span>
-              <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.7rem' }}>{unit}</span></span>
+              <span style={{ color: '#c8102e', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.7rem' }}>{unit}</span></span>
             </div>
           )}
         </div>
@@ -339,8 +339,8 @@ const QUIZ_QUESTIONS = [
 ]
 
 const QUIZ_TIERS = [
-  { min: 0,  max: 4,  label: 'Leaving Major Gains Behind',  color: '#e63e3e', summary: 'Your training lacks the structure and intentionality needed to get the most out of your time under the bar. The good news: this is fixable fast. A coach can double your progress rate by addressing the root issues.' },
-  { min: 5,  max: 8,  label: 'Solid Base, Room to Optimize', color: '#f59e0b', summary: 'You\'re doing the work, but there are clear gaps in structure, recovery, or intensity management that are limiting your ceiling. Closing those gaps is the difference between average progress and competitive results.' },
+  { min: 0,  max: 4,  label: 'Leaving Major Gains Behind',  color: '#c8102e', summary: 'Your training lacks the structure and intentionality needed to get the most out of your time under the bar. The good news: this is fixable fast. A coach can double your progress rate by addressing the root issues.' },
+  { min: 5,  max: 8,  label: 'Solid Base, Room to Optimize', color: '#f5b935', summary: 'You\'re doing the work, but there are clear gaps in structure, recovery, or intensity management that are limiting your ceiling. Closing those gaps is the difference between average progress and competitive results.' },
   { min: 9,  max: 12, label: 'Well-Optimized Athlete',       color: '#22c55e', summary: 'Your process is strong. At this level, the next gains come from personalized periodization, technique refinement, and meet-specific coaching — the exact things a dedicated coach provides.' },
 ]
 
@@ -367,19 +367,19 @@ function TrainingQuiz() {
   if (complete) {
     return (
       <div>
-        <div style={{ background: '#0a0a0a', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+        <div style={{ background: '#0c1827', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
           <p style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Your Score</p>
-          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1, marginBottom: '.25rem' }}>{score}<span style={{ fontSize: '1.5rem', color: '#333' }}>/12</span></p>
+          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1, marginBottom: '.25rem' }}>{score}<span style={{ fontSize: '1.5rem', color: '#3a3f47' }}>/12</span></p>
           <p style={{ color: tier.color, fontWeight: 900, fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>{tier.label}</p>
           <p style={{ color: '#777', fontSize: '.9rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.summary}</p>
         </div>
         {/* Per-question breakdown */}
         <div style={{ marginBottom: '1.5rem' }}>
           {QUIZ_QUESTIONS.map((q, i) => (
-            <div key={i} style={{ padding: '.875rem 0', borderBottom: '1px solid #0d0d0d' }}>
+            <div key={i} style={{ padding: '.875rem 0', borderBottom: '1px solid #0e1c30' }}>
               <p style={{ color: '#555', fontSize: '.75rem', marginBottom: '.3rem' }}>{q.q}</p>
-              <p style={{ color: answers[i] === 2 ? '#22c55e' : answers[i] === 1 ? '#f59e0b' : '#e63e3e', fontWeight: 700, fontSize: '.8rem' }}>
-                {q.options[answers[i]]} <span style={{ color: '#333', fontWeight: 400 }}>({answers[i]}/2)</span>
+              <p style={{ color: answers[i] === 2 ? '#22c55e' : answers[i] === 1 ? '#f5b935' : '#c8102e', fontWeight: 700, fontSize: '.8rem' }}>
+                {q.options[answers[i]]} <span style={{ color: '#3a3f47', fontWeight: 400 }}>({answers[i]}/2)</span>
               </p>
             </div>
           ))}
@@ -387,17 +387,17 @@ function TrainingQuiz() {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <a
             href={href('/#coaches')}
-            style={{ display: 'inline-block', background: '#e63e3e', color: '#fff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
-            onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+            style={{ display: 'inline-block', background: '#c8102e', color: '#fff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#a30c26'}
+            onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
           >
             Work With a Coach →
           </a>
           <button
             onClick={reset}
-            style={{ background: 'transparent', border: '1px solid #222', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'transparent', border: '1px solid #1c3255', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#888' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.color = '#555' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3255'; e.currentTarget.style.color = '#555' }}
           >
             Retake
           </button>
@@ -413,10 +413,10 @@ function TrainingQuiz() {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem' }}>
           <span style={{ color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>Question {current + 1} of {QUIZ_QUESTIONS.length}</span>
-          <span style={{ color: '#333', fontSize: '.65rem' }}>{Math.round((current / QUIZ_QUESTIONS.length) * 100)}%</span>
+          <span style={{ color: '#3a3f47', fontSize: '.65rem' }}>{Math.round((current / QUIZ_QUESTIONS.length) * 100)}%</span>
         </div>
-        <div style={{ height: 3, background: '#141414', borderRadius: 2 }}>
-          <div style={{ height: '100%', width: `${(current / QUIZ_QUESTIONS.length) * 100}%`, background: '#e63e3e', transition: 'width .3s' }} />
+        <div style={{ height: 3, background: '#0d2040', borderRadius: 2 }}>
+          <div style={{ height: '100%', width: `${(current / QUIZ_QUESTIONS.length) * 100}%`, background: '#c8102e', transition: 'width .3s' }} />
         </div>
       </div>
 
@@ -427,9 +427,9 @@ function TrainingQuiz() {
           <button
             key={i}
             onClick={() => answer(i)}
-            style={{ textAlign: 'left', background: 'transparent', border: '1px solid #1e1e1e', borderRadius: '.25rem', color: '#888', fontSize: '.875rem', lineHeight: 1.6, padding: '.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63e3e'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(230,62,62,.05)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.color = '#888'; e.currentTarget.style.background = 'transparent' }}
+            style={{ textAlign: 'left', background: 'transparent', border: '1px solid #152842', borderRadius: '.25rem', color: '#888', fontSize: '.875rem', lineHeight: 1.6, padding: '.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(200,16,46,.05)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#152842'; e.currentTarget.style.color = '#888'; e.currentTarget.style.background = 'transparent' }}
           >
             {opt}
           </button>
@@ -458,28 +458,28 @@ function RPEGuide() {
   return (
     <div>
       <p style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.75rem' }}>
-        RPE (Rate of Perceived Exertion) is a scale from 1–10 that describes how hard a set felt relative to your maximum. In powerlifting, we typically work in the RPE 6–10 range. The key insight: <strong style={{ color: '#ccc' }}>RPE is about reps remaining, not how tired you feel.</strong>
+        RPE (Rate of Perceived Exertion) is a scale from 1–10 that describes how hard a set felt relative to your maximum. In powerlifting, we typically work in the RPE 6–10 range. The key insight: <strong style={{ color: '#d6d6d6' }}>RPE is about reps remaining, not how tired you feel.</strong>
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: '#111', borderRadius: '.25rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: '#0a1f3c', borderRadius: '.25rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
         {RPE_ROWS.map((row, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '60px 90px 1fr', gap: '1rem', alignItems: 'start', padding: '1rem 1.25rem', background: '#080808' }}>
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '60px 90px 1fr', gap: '1rem', alignItems: 'start', padding: '1rem 1.25rem', background: '#10131a' }}>
             <div style={{ textAlign: 'center' }}>
-              <p style={{ color: '#e63e3e', fontWeight: 900, fontSize: '1.25rem', lineHeight: 1 }}>{row.rpe}</p>
-              <p style={{ color: '#333', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.2rem' }}>RPE</p>
+              <p style={{ color: '#c8102e', fontWeight: 900, fontSize: '1.25rem', lineHeight: 1 }}>{row.rpe}</p>
+              <p style={{ color: '#3a3f47', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.2rem' }}>RPE</p>
             </div>
             <div>
               <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem' }}>{row.reps} reps</p>
-              <p style={{ color: '#333', fontSize: '.65rem', marginTop: '.15rem' }}>left</p>
+              <p style={{ color: '#3a3f47', fontSize: '.65rem', marginTop: '.15rem' }}>left</p>
             </div>
             <p style={{ color: '#666', fontSize: '.85rem', lineHeight: 1.7 }}>{row.desc}</p>
           </div>
         ))}
       </div>
 
-      <div style={{ background: '#0a0a0a', border: '1px solid rgba(230,62,62,.2)', borderLeft: '3px solid #e63e3e', borderRadius: '.2rem', padding: '1.25rem 1.5rem' }}>
+      <div style={{ background: '#0c1827', border: '1px solid rgba(200,16,46,.2)', borderLeft: '3px solid #c8102e', borderRadius: '.2rem', padding: '1.25rem 1.5rem' }}>
         <p style={{ color: '#888', fontSize: '.875rem', lineHeight: 1.75 }}>
-          <strong style={{ color: '#ccc' }}>Beginner tip:</strong> If you're new to RPE, film your sets. Watch the bar speed — a fast bar is low RPE, a grinding, slow bar is RPE 9+. Over time, the calibration becomes instinctual. Most coaches recommend training primarily at RPE 7–8 for volume work, and 8.5–9 for peak/heavy work.
+          <strong style={{ color: '#d6d6d6' }}>Beginner tip:</strong> If you're new to RPE, film your sets. Watch the bar speed — a fast bar is low RPE, a grinding, slow bar is RPE 9+. Over time, the calibration becomes instinctual. Most coaches recommend training primarily at RPE 7–8 for volume work, and 8.5–9 for peak/heavy work.
         </p>
       </div>
     </div>
@@ -527,12 +527,12 @@ function BigThreeGuide() {
   return (
     <div>
       {/* Lift tabs */}
-      <div style={{ display: 'flex', gap: '.4rem', marginBottom: '1.75rem', borderBottom: '1px solid #141414', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: '.4rem', marginBottom: '1.75rem', borderBottom: '1px solid #0d2040', paddingBottom: 0 }}>
         {(['squat', 'bench', 'deadlift'] as LiftTab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === t ? '#e63e3e' : 'transparent'}`, color: tab === t ? '#fff' : '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.25rem', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', transition: 'color .15s' }}
+            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`, color: tab === t ? '#fff' : '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.25rem', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', transition: 'color .15s' }}
             onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888' }}
             onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#444' }}
           >
@@ -544,12 +544,12 @@ function BigThreeGuide() {
       {/* Phases */}
       <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
         {phases.map(phase => (
-          <div key={phase.label} style={{ background: '#0a0a0a', border: '1px solid #141414', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
-            <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>{phase.label}</p>
+          <div key={phase.label} style={{ background: '#0c1827', border: '1px solid #0d2040', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>{phase.label}</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
               {phase.items.map((item, i) => (
                 <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.65 }}>
-                  <span style={{ color: '#e63e3e', flexShrink: 0, marginTop: '.3rem' }}>·</span>
+                  <span style={{ color: '#c8102e', flexShrink: 0, marginTop: '.3rem' }}>·</span>
                   {item}
                 </li>
               ))}
@@ -559,12 +559,12 @@ function BigThreeGuide() {
       </div>
 
       {/* Common mistakes */}
-      <div style={{ background: 'rgba(230,62,62,.05)', border: '1px solid rgba(230,62,62,.15)', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
-        <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>Common Mistakes</p>
+      <div style={{ background: 'rgba(200,16,46,.05)', border: '1px solid rgba(200,16,46,.15)', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
+        <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>Common Mistakes</p>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
           {data.mistakes.map((m, i) => (
             <li key={i} style={{ display: 'flex', gap: '.75rem', color: '#888', fontSize: '.875rem', lineHeight: 1.65 }}>
-              <span style={{ color: '#e63e3e', flexShrink: 0, marginTop: '.35rem', fontWeight: 900 }}>✕</span>
+              <span style={{ color: '#c8102e', flexShrink: 0, marginTop: '.35rem', fontWeight: 900 }}>✕</span>
               {m}
             </li>
           ))}
@@ -621,8 +621,8 @@ function AuditWorksheet() {
   const pct = Math.round((total / maxScore) * 100)
 
   function getTier() {
-    if (pct < 40) return { label: 'Major Programming Gaps',  color: '#e63e3e', note: 'Multiple critical programming errors are limiting your progress. Addressing these — ideally with a coach — could dramatically accelerate your results.' }
-    if (pct < 70) return { label: 'Developing Programmer',    color: '#f59e0b', note: 'You have a partial grasp of training principles, but key gaps in structure, recovery, or specificity are costing you gains.' }
+    if (pct < 40) return { label: 'Major Programming Gaps',  color: '#c8102e', note: 'Multiple critical programming errors are limiting your progress. Addressing these — ideally with a coach — could dramatically accelerate your results.' }
+    if (pct < 70) return { label: 'Developing Programmer',    color: '#f5b935', note: 'You have a partial grasp of training principles, but key gaps in structure, recovery, or specificity are costing you gains.' }
     return { label: 'Strong Programming Foundation', color: '#22c55e', note: 'You\'re managing the programming fundamentals well. The next ceiling is personalization — a coach adds precision that general templates can\'t match.' }
   }
 
@@ -630,9 +630,9 @@ function AuditWorksheet() {
     const tier = getTier()
     return (
       <div>
-        <div style={{ background: '#0a0a0a', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+        <div style={{ background: '#0c1827', border: `1px solid ${tier.color}33`, borderRadius: '.25rem', padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
           <p style={{ color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Block Score</p>
-          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1 }}>{total}<span style={{ fontSize: '1.5rem', color: '#333' }}>/{maxScore}</span></p>
+          <p style={{ color: tier.color, fontWeight: 900, fontSize: '3rem', lineHeight: 1 }}>{total}<span style={{ fontSize: '1.5rem', color: '#3a3f47' }}>/{maxScore}</span></p>
           <p style={{ color: tier.color, fontWeight: 900, fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase', margin: '.5rem 0 1.25rem' }}>{tier.label}</p>
           <p style={{ color: '#777', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 500, margin: '0 auto' }}>{tier.note}</p>
         </div>
@@ -640,12 +640,12 @@ function AuditWorksheet() {
         {/* Breakdown */}
         <div style={{ marginBottom: '1.5rem' }}>
           {AUDIT_CATEGORIES.map(cat => (
-            <div key={cat.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.75rem 0', borderBottom: '1px solid #0d0d0d', gap: '1rem', flexWrap: 'wrap' }}>
+            <div key={cat.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.75rem 0', borderBottom: '1px solid #0e1c30', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
-                <p style={{ color: '#ccc', fontWeight: 700, fontSize: '.8rem' }}>{cat.name}</p>
+                <p style={{ color: '#d6d6d6', fontWeight: 700, fontSize: '.8rem' }}>{cat.name}</p>
                 <p style={{ color: '#555', fontSize: '.75rem', marginTop: '.15rem' }}>{cat.options[scores[cat.name] ?? 0]}</p>
               </div>
-              <span style={{ color: (scores[cat.name] ?? 0) === 2 ? '#22c55e' : (scores[cat.name] ?? 0) === 1 ? '#f59e0b' : '#e63e3e', fontWeight: 900, fontSize: '.9rem', flexShrink: 0 }}>
+              <span style={{ color: (scores[cat.name] ?? 0) === 2 ? '#22c55e' : (scores[cat.name] ?? 0) === 1 ? '#f5b935' : '#c8102e', fontWeight: 900, fontSize: '.9rem', flexShrink: 0 }}>
                 {scores[cat.name] ?? 0}/2
               </span>
             </div>
@@ -653,14 +653,14 @@ function AuditWorksheet() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#e63e3e', color: '#fff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
-            onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#c8102e', color: '#fff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#a30c26'}
+            onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
           >Work With a Coach →</a>
           <button onClick={() => { setScores({}); setDone(false) }}
-            style={{ background: 'transparent', border: '1px solid #222', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'transparent', border: '1px solid #1c3255', color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#888' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.color = '#555' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3255'; e.currentTarget.style.color = '#555' }}
           >Re-audit</button>
         </div>
       </div>
@@ -674,25 +674,25 @@ function AuditWorksheet() {
       </p>
 
       {/* Progress */}
-      <div style={{ height: 3, background: '#141414', borderRadius: 2, marginBottom: '1.5rem', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${(answered / AUDIT_CATEGORIES.length) * 100}%`, background: '#e63e3e', transition: 'width .3s' }} />
+      <div style={{ height: 3, background: '#0d2040', borderRadius: 2, marginBottom: '1.5rem', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${(answered / AUDIT_CATEGORIES.length) * 100}%`, background: '#c8102e', transition: 'width .3s' }} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {AUDIT_CATEGORIES.map(cat => (
-          <div key={cat.name} style={{ background: '#0a0a0a', border: `1px solid ${scores[cat.name] !== undefined ? '#1e1e1e' : '#141414'}`, borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
-            <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>{cat.name}</p>
-            <p style={{ color: '#ccc', fontSize: '.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>{cat.question}</p>
+          <div key={cat.name} style={{ background: '#0c1827', border: `1px solid ${scores[cat.name] !== undefined ? '#152842' : '#0d2040'}`, borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>{cat.name}</p>
+            <p style={{ color: '#d6d6d6', fontSize: '.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>{cat.question}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
               {cat.options.map((opt, i) => (
                 <button
                   key={i}
                   onClick={() => setScores(s => ({ ...s, [cat.name]: i }))}
-                  style={{ textAlign: 'left', background: scores[cat.name] === i ? 'rgba(230,62,62,.08)' : 'transparent', border: `1px solid ${scores[cat.name] === i ? 'rgba(230,62,62,.4)' : '#1e1e1e'}`, borderRadius: '.2rem', color: scores[cat.name] === i ? '#fff' : '#666', fontSize: '.85rem', lineHeight: 1.6, padding: '.75rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
-                  onMouseEnter={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#888' } }}
-                  onMouseLeave={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.color = '#666' } }}
+                  style={{ textAlign: 'left', background: scores[cat.name] === i ? 'rgba(200,16,46,.08)' : 'transparent', border: `1px solid ${scores[cat.name] === i ? 'rgba(200,16,46,.4)' : '#152842'}`, borderRadius: '.2rem', color: scores[cat.name] === i ? '#fff' : '#666', fontSize: '.85rem', lineHeight: 1.6, padding: '.75rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+                  onMouseEnter={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#243650'; e.currentTarget.style.color = '#888' } }}
+                  onMouseLeave={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = '#152842'; e.currentTarget.style.color = '#666' } }}
                 >
-                  <span style={{ color: i === 0 ? '#e63e3e' : i === 1 ? '#f59e0b' : '#22c55e', marginRight: '.5rem', fontWeight: 900 }}>
+                  <span style={{ color: i === 0 ? '#c8102e' : i === 1 ? '#f5b935' : '#22c55e', marginRight: '.5rem', fontWeight: 900 }}>
                     {i === 0 ? '✕' : i === 1 ? '~' : '✓'}
                   </span>
                   {opt}
@@ -706,9 +706,9 @@ function AuditWorksheet() {
       {answered === AUDIT_CATEGORIES.length && (
         <button
           onClick={() => setDone(true)}
-          style={{ marginTop: '1.5rem', background: '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
-          onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+          style={{ marginTop: '1.5rem', background: '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#a30c26'}
+          onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
         >
           See My Score →
         </button>
@@ -753,14 +753,14 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#0a0a0a', border: '1px solid #1e1e1e', borderRadius: '.5rem', padding: '2.5rem', maxWidth: 480, margin: '0 auto' }}>
-      <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Access</p>
+    <form onSubmit={handleSubmit} style={{ background: '#0c1827', border: '1px solid #152842', borderRadius: '.5rem', padding: '2.5rem', maxWidth: 480, margin: '0 auto' }}>
+      <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Access</p>
       <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.75rem' }}>Unlock All 6 Guides</h2>
       <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets — no credit card, no spam.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.875rem', marginBottom: '.875rem' }}>
         <div>
-          <label style={lbl}>First Name <span style={{ color: '#e63e3e' }}>*</span></label>
+          <label style={lbl}>First Name <span style={{ color: '#c8102e' }}>*</span></label>
           <input style={inp} required placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={100} />
         </div>
         <div>
@@ -769,20 +769,20 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
         </div>
       </div>
       <div style={{ marginBottom: '1.25rem' }}>
-        <label style={lbl}>Email <span style={{ color: '#e63e3e' }}>*</span></label>
+        <label style={lbl}>Email <span style={{ color: '#c8102e' }}>*</span></label>
         <input style={inp} type="email" required placeholder="jane@example.com" value={email} onChange={e => setEmail(e.target.value)} maxLength={254} />
       </div>
-      {error && <p style={{ color: '#e63e3e', fontSize: '.8rem', marginBottom: '.875rem' }}>{error}</p>}
+      {error && <p style={{ color: '#c8102e', fontSize: '.8rem', marginBottom: '.875rem' }}>{error}</p>}
       <button
         type="submit"
         disabled={loading || !firstName.trim() || !email.trim()}
-        style={{ width: '100%', background: '#e63e3e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !firstName.trim() || !email.trim() ? 0.5 : 1, transition: 'opacity .15s' }}
-        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#c42e2e' }}
-        onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+        style={{ width: '100%', background: '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !firstName.trim() || !email.trim() ? 0.5 : 1, transition: 'opacity .15s' }}
+        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a30c26' }}
+        onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
       >
         {loading ? 'Unlocking…' : 'Get Free Access →'}
       </button>
-      <p style={{ color: '#333', fontSize: '.7rem', textAlign: 'center', marginTop: '.875rem' }}>No spam. Unsubscribe any time.</p>
+      <p style={{ color: '#3a3f47', fontSize: '.7rem', textAlign: 'center', marginTop: '.875rem' }}>No spam. Unsubscribe any time.</p>
     </form>
   )
 }
@@ -871,20 +871,20 @@ export default function GuidesPage() {
   }
 
   return (
-    <div style={{ background: '#080808', minHeight: '100vh' }}>
+    <div style={{ background: '#10131a', minHeight: '100vh' }}>
       {/* Nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #1a1a1a', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(16,19,26,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #112038', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1a1a1a' }}>›</span>
+        <span style={{ color: '#112038' }}>›</span>
         <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Free Guides</span>
       </nav>
 
       {/* Hero */}
-      <section style={{ padding: '6rem 2rem 4rem', borderBottom: '1px solid #111' }}>
+      <section style={{ padding: '6rem 2rem 4rem', borderBottom: '1px solid #0a1f3c' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Resources</p>
+          <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Resources</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2.5rem, 7vw, 5rem)', textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: .9 }}>
             Powerlifting<br />Guides & Tools
           </h1>
@@ -901,32 +901,32 @@ export default function GuidesPage() {
 
       {/* Guide cards */}
       <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#111' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#0a1f3c' }}>
           {GUIDES.map(guide => {
             const isOpen = expanded === guide.id
             return (
-              <div key={guide.id} style={{ background: '#080808' }}>
+              <div key={guide.id} style={{ background: '#10131a' }}>
                 {/* Card header */}
                 <button
                   onClick={() => toggleGuide(guide.id, guide.source)}
                   style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#0a0a0a'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#0c1827'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
-                      <span style={{ background: 'rgba(230,62,62,.1)', border: '1px solid rgba(230,62,62,.2)', color: '#e63e3e', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
-                      {!access && <span style={{ color: '#333', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
+                      <span style={{ background: 'rgba(200,16,46,.1)', border: '1px solid rgba(200,16,46,.2)', color: '#c8102e', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
+                      {!access && <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
                     </div>
                     <p style={{ color: '#fff', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
                     <p style={{ color: '#555', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
                   </div>
-                  <span style={{ color: isOpen ? '#e63e3e' : '#333', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
+                  <span style={{ color: isOpen ? '#c8102e' : '#3a3f47', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
                 </button>
 
                 {/* Expanded content */}
                 {isOpen && access && (
-                  <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid #0d0d0d' }}>
+                  <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid #0e1c30' }}>
                     <div style={{ paddingTop: '1.5rem' }}>
                       {guide.component}
                     </div>
@@ -947,15 +947,15 @@ export default function GuidesPage() {
 
       {/* CTA strip */}
       {access && (
-        <section style={{ padding: '4rem 2rem', borderTop: '1px solid #111', background: '#030303', textAlign: 'center' }}>
-          <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Ready to Level Up?</p>
+        <section style={{ padding: '4rem 2rem', borderTop: '1px solid #0a1f3c', background: '#10131a', textAlign: 'center' }}>
+          <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Ready to Level Up?</p>
           <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.875rem' }}>Work With a Real Coach</h2>
           <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
             The guides give you the framework. A coach applies it to your training, your schedule, and your meet timeline.
           </p>
-          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#e63e3e', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#c42e2e'}
-            onMouseLeave={e => e.currentTarget.style.background = '#e63e3e'}
+          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#c8102e', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#a30c26'}
+            onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
           >
             Meet the Team →
           </a>
@@ -963,9 +963,9 @@ export default function GuidesPage() {
       )}
 
       {/* Footer strip */}
-      <div style={{ background: '#030303', borderTop: '1px solid #111', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ background: '#10131a', borderTop: '1px solid #0a1f3c', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <a href={href('/')}><img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 20, filter: 'brightness(0) invert(1)' }} /></a>
-        <a href={href('/')} style={{ color: '#333', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Home</a>
+        <a href={href('/')} style={{ color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Home</a>
       </div>
     </div>
   )

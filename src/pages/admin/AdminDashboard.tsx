@@ -5,8 +5,8 @@ import { DEMO_LEADS } from '../../data/demoData'
 import LeadDetail from './LeadDetail'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
-  new:      '#e63e3e',
-  reviewed: '#f59e0b',
+  new:      '#c8102e',
+  reviewed: '#f5b935',
   accepted: '#22c55e',
   declined: '#555',
 }
@@ -68,13 +68,13 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
     <>
       {/* Demo banner */}
       {isDemo && (
-        <div style={{ background: '#2d1f00', borderBottom: '1px solid #5c3d00', padding: '.625rem 2rem', display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-          <span style={{ color: '#f59e0b', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
-          <span style={{ color: '#7a5000', fontSize: '.75rem' }}>Showing sample data — no database connection required.</span>
+        <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.625rem 2rem', display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+          <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
+          <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Showing sample data — no database connection required.</span>
         </div>
       )}
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #141414', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d2040', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         {/* Search */}
         <input
           className="field" placeholder="Search name, email, coach…"
@@ -89,8 +89,8 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
               key={s}
               onClick={() => setFilterStatus(s)}
               style={{
-                background: filterStatus === s ? (s === 'all' ? '#222' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
-                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#1e1e1e'}`,
+                background: filterStatus === s ? (s === 'all' ? '#1c3255' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
+                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#152842'}`,
                 color: filterStatus === s ? (s === 'all' ? '#fff' : STATUS_COLORS[s as LeadStatus]) : '#444',
                 fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                 padding: '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', whiteSpace: 'nowrap',
@@ -111,9 +111,9 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
 
         <button
           onClick={fetchLeads}
-          style={{ background: 'none', border: '1px solid #1e1e1e', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
+          style={{ background: 'none', border: '1px solid #152842', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e1e'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = '#152842'}
         >
           ↺ Refresh
         </button>
@@ -121,16 +121,16 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
 
       {/* Table */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#333', fontSize: '.8rem' }}>Loading leads…</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>Loading leads…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#333', fontSize: '.8rem' }}>No leads found.</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>No leads found.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+              <tr style={{ borderBottom: '1px solid #112038' }}>
                 {['Submitted', 'Name', 'Email', 'Service', 'Coach', 'SBD', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#333', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -139,8 +139,8 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
                 <tr
                   key={lead.id}
                   onClick={() => setSelected(lead)}
-                  style={{ borderBottom: '1px solid #111', cursor: 'pointer', transition: 'background .1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#0d0d0d')}
+                  style={{ borderBottom: '1px solid #0a1f3c', cursor: 'pointer', transition: 'background .1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#0e1c30')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '1rem 1.25rem', color: '#555', whiteSpace: 'nowrap' }}>
@@ -164,7 +164,7 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
               ))}
             </tbody>
           </table>
-          <p style={{ padding: '.75rem 1.25rem', color: '#333', fontSize: '.7rem' }}>
+          <p style={{ padding: '.75rem 1.25rem', color: '#3a3f47', fontSize: '.7rem' }}>
             Showing {filtered.length} of {leads.length} leads
           </p>
         </div>

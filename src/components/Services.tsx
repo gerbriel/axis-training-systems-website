@@ -34,7 +34,7 @@ const SERVICES = [
 ]
 
 const Dot = () => (
-  <span style={{ width: '.375rem', height: '.375rem', borderRadius: '50%', background: '#e63e3e', flexShrink: 0, display: 'inline-block' }} />
+  <span style={{ width: '.375rem', height: '.375rem', borderRadius: '50%', background: '#c8102e', flexShrink: 0, display: 'inline-block' }} />
 )
 
 const Arrow = () => (
@@ -45,11 +45,11 @@ const Arrow = () => (
 
 export default function Services() {
   return (
-    <section id="services" style={{ background: '#080808', padding: '8rem 1.5rem' }}>
+    <section id="services" style={{ background: '#10131a', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
           <div>
-            <p style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>What We Offer</p>
+            <p style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>What We Offer</p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>Services</h2>
           </div>
           <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
@@ -57,16 +57,16 @@ export default function Services() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4" style={{ gap: 1, background: '#1e1e1e' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4" style={{ gap: 1, background: '#152842' }}>
           {SERVICES.map(s => (
             <article
               key={s.num}
               className="flex flex-col transition-colors"
-              style={{ background: '#080808', padding: '2.5rem', cursor: 'default' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#0d0d0d')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#080808')}
+              style={{ background: '#10131a', padding: '2.5rem', cursor: 'default' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#0e1c30')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#10131a')}
             >
-              <span style={{ color: '#e63e3e', fontWeight: 900, fontSize: '4rem', lineHeight: 1, marginBottom: '1.5rem', opacity: 0.35 }}>{s.num}</span>
+              <span style={{ color: '#c8102e', fontWeight: 900, fontSize: '4rem', lineHeight: 1, marginBottom: '1.5rem', opacity: 0.35 }}>{s.num}</span>
               <h3 className="text-white font-bold text-lg leading-tight mb-4">
                 {s.title[0]}<br /><span style={{ color: '#555', fontSize: '.8rem', fontWeight: 600 }}>{s.title[1]}</span>
               </h3>
@@ -83,9 +83,9 @@ export default function Services() {
                 target={s.href.startsWith('http') ? '_blank' : undefined}
                 rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className="inline-flex items-center gap-2 text-white text-xs font-black px-6 py-3 rounded tracking-widest uppercase transition-colors"
-                style={{ border: '1px solid #2a2a2a', width: 'fit-content' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#e63e3e')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                style={{ border: '1px solid #243650', width: 'fit-content' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#243650')}
               >
                 {s.cta} <Arrow />
               </a>

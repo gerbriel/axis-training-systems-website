@@ -44,11 +44,11 @@ const LOGISTICS = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" style={{ background: '#080808', padding: '8rem 1.5rem' }}>
+    <section id="how-it-works" style={{ background: '#10131a', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <p style={{ color: '#e63e3e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
+            <p style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>How It Works</h2>
           </div>
           <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
@@ -71,14 +71,14 @@ export default function HowItWorks() {
               filter: 'grayscale(40%) brightness(0.6)',
             }}
           />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(8,8,8,0.3), rgba(8,8,8,0.7))' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(16,19,26,0.3), rgba(16,19,26,0.7))' }} />
         </div>
 
         {/* 4-step strip */}
-        <div className="grid md:grid-cols-4 mb-16" style={{ gap: 1, background: '#1e1e1e' }}>
+        <div className="grid md:grid-cols-4 mb-16" style={{ gap: 1, background: '#152842' }}>
           {STEPS.map(s => (
-            <div key={s.step} style={{ background: '#080808', padding: '2.5rem' }}>
-              <p style={{ color: '#e63e3e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Step {s.step}</p>
+            <div key={s.step} style={{ background: '#10131a', padding: '2.5rem' }}>
+              <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Step {s.step}</p>
               <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>{s.title}</h3>
               <p style={{ color: '#444', fontSize: '.875rem', lineHeight: 1.7 }}>{s.desc}</p>
             </div>
@@ -88,8 +88,8 @@ export default function HowItWorks() {
         {/* Logistics cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {LOGISTICS.map(l => (
-            <div key={l.label} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', padding: '1.75rem' }}>
-              <p style={{ color: '#e63e3e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{l.label}</p>
+            <div key={l.label} style={{ background: '#0e1c30', border: '1px solid #112038', padding: '1.75rem' }}>
+              <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{l.label}</p>
               <div className="flex items-center gap-2 mb-2">
                 {l.icon}
                 <p style={{ color: '#fff', fontWeight: 900, fontSize: l.icon ? '1.1rem' : '1.75rem', lineHeight: 1 }}>{l.value}</p>

@@ -30,9 +30,9 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
   return (
     <a
       href={href} target="_blank" rel="noopener" aria-label={label}
-      style={{ color: '#333', transition: 'color .2s' }}
-      onMouseEnter={e => (e.currentTarget.style.color = '#e63e3e')}
-      onMouseLeave={e => (e.currentTarget.style.color = '#333')}
+      style={{ color: '#3a3f47', transition: 'color .2s' }}
+      onMouseEnter={e => (e.currentTarget.style.color = '#c8102e')}
+      onMouseLeave={e => (e.currentTarget.style.color = '#3a3f47')}
     >
       {children}
     </a>
@@ -56,7 +56,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 
 export default function Footer() {
   return (
-    <footer style={{ background: '#030303', borderTop: '1px solid #141414', padding: '5rem 1.5rem 3rem' }}>
+    <footer style={{ background: '#10131a', borderTop: '1px solid #0d2040', padding: '5rem 1.5rem 3rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-3 gap-12 mb-12">
 
@@ -67,7 +67,7 @@ export default function Footer() {
               alt="Axis Training Systems"
               style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)', marginBottom: '1rem' }}
             />
-            <p style={{ color: '#333', fontSize: '.875rem', lineHeight: 1.7, maxWidth: '18rem', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#3a3f47', fontSize: '.875rem', lineHeight: 1.7, maxWidth: '18rem', marginBottom: '1.5rem' }}>
               Solution focused. Evidence based. Transparent. Everybody eats.
             </p>
             <div className="flex gap-4">
@@ -81,7 +81,7 @@ export default function Footer() {
 
           {/* Navigate */}
           <div>
-            <p style={{ color: '#222', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
+            <p style={{ color: '#1c3255', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               {NAV_LINKS.map(l => <FooterLink key={l.label} href={l.href}>{l.label}</FooterLink>)}
               <FooterLink href={adminHref()}>Admin</FooterLink>
@@ -90,7 +90,7 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <p style={{ color: '#222', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
+            <p style={{ color: '#1c3255', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               <FooterLink href="https://www.instagram.com/axistrainingsystems/">@axistrainingsystems</FooterLink>
               <FooterLink href="https://www.youtube.com/@axistrainingsystems">YouTube</FooterLink>
@@ -99,13 +99,13 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #141414', color: '#1e1e1e', fontSize: '.75rem' }}>
+        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #0d2040', color: '#152842', fontSize: '.75rem' }}>
           <p>© {new Date().getFullYear()} Axis Training Systems. All rights reserved.</p>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-privacy'))}
-            style={{ color: '#2e2e2e', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
+            style={{ color: '#263450', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#888')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#2e2e2e')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#263450')}
           >
             Privacy Policy
           </button>
