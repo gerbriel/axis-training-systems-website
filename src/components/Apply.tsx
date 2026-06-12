@@ -50,7 +50,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function Req() {
-  return <span style={{ color: '#c8102e' }}> *</span>
+  return <span style={{ color: '#f5b935' }}> *</span>
 }
 
 function Input({ name, placeholder, type = 'text', value, onChange, required }: {
@@ -127,7 +127,7 @@ function Step1({ data, set, lockedCoach }: { data: FormData; set: (k: keyof Form
       <div>
         <FieldLabel>Coach Preference</FieldLabel>
         {lockedCoach ? (
-          <div style={{ marginTop: '.5rem', display: 'inline-flex', alignItems: 'center', gap: '.75rem', background: '#0d2040', border: '1px solid #152842', padding: '.6rem 1rem', borderRadius: '.25rem' }}>
+          <div style={{ marginTop: '.5rem', display: 'inline-flex', alignItems: 'center', gap: '.75rem', background: '#0b2f5b', border: '1px solid #1c3a63', padding: '.6rem 1rem', borderRadius: '.25rem' }}>
             <span style={{ color: '#fff', fontWeight: 700, fontSize: '.875rem' }}>{lockedCoach}</span>
             <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Selected</span>
           </div>
@@ -263,8 +263,8 @@ function Step5({ data, set }: { data: FormData; set: (k: keyof FormData, v: stri
     <div className="flex flex-col gap-5">
       <div><FieldLabel>Expectations of Your Coach<Req /></FieldLabel><Textarea name="expectations" placeholder="What do you expect from the coaching relationship?" rows={4} value={data.expectations} onChange={v => set('expectations', v)} required /></div>
       <div><FieldLabel>Further Goals or Concerns</FieldLabel><Textarea name="goals" placeholder="Anything else — short-term goals, upcoming meets, concerns, etc." rows={4} value={data.goals} onChange={v => set('goals', v)} /></div>
-      <div style={{ background: '#0e1c30', border: '1px solid #112038', padding: '1.5rem', borderRadius: '.25rem' }}>
-        <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Summary</p>
+      <div style={{ background: '#15375f', border: '1px solid #1c3a63', padding: '1.5rem', borderRadius: '.25rem' }}>
+        <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Summary</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
           {summary.map(([k, v]) => (
             <div key={k} className="flex gap-4" style={{ fontSize: '.8rem' }}>
@@ -412,12 +412,12 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
   const stepProps = { data, set }
 
   return (
-    <section id="apply" style={{ background: '#10131a', padding: '8rem 1.5rem' }}>
+    <section id="apply" style={{ background: '#0a1a33', padding: '8rem 1.5rem' }}>
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="text-center mb-12">
-          <p style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready To Start?</p>
+          <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready To Start?</p>
           <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5rem)', color: '#fff', marginBottom: '1.25rem' }}>
             {preselectedCoach ? `Apply — ${preselectedCoach.split(' ')[0]}` : 'Work With Us'}
           </h2>
@@ -430,18 +430,18 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
 
         {submitted ? (
           <div className="text-center" style={{ padding: '4rem 2rem' }}>
-            <p style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Received</p>
+            <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Received</p>
             <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '2.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1rem' }}>You're in the queue.</h3>
             <p style={{ color: '#555', fontSize: '.9rem', lineHeight: 1.7, marginBottom: '2rem' }}>We review every application personally. {preselectedCoach ? `${preselectedCoach} will reach out within 24 hours.` : 'Expect a response within 48 hours.'}</p>
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: '#c8102e', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: '#f5b935', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer' }}>
               ← Back to top
             </button>
           </div>
         ) : (
           <>
             {/* Progress bar */}
-            <div style={{ background: '#0a1f3c', borderRadius: 9999, height: 2, marginBottom: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: '#c8102e', width: `${pct}%`, borderRadius: 9999, transition: 'width .4s ease' }} />
+            <div style={{ background: '#0b2f5b', borderRadius: 9999, height: 2, marginBottom: '1rem', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: '#bfa162', width: `${pct}%`, borderRadius: 9999, transition: 'width .4s ease' }} />
             </div>
             <p style={{ color: '#444', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>{STEP_TITLES[step - 1]}</p>
 
@@ -467,7 +467,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                     <button
                       type="button"
                       onClick={() => window.dispatchEvent(new CustomEvent('open-privacy'))}
-                      style={{ color: '#c8102e', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem', padding: 0, textDecoration: 'underline' }}
+                      style={{ color: '#f5b935', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem', padding: 0, textDecoration: 'underline' }}
                     >
                       Privacy Policy
                     </button>
@@ -499,7 +499,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="button" onClick={back}
                     className="text-white text-xs font-bold px-6 py-3 rounded tracking-widest uppercase transition-colors"
-                    style={{ border: '1px solid #243650' }}
+                    style={{ border: '1px solid #1c3a63' }}
                   >
                     Back
                   </button>
@@ -509,9 +509,9 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="button" onClick={next}
                     className="text-white text-xs font-black px-8 py-3 rounded tracking-widest uppercase transition-colors"
-                    style={{ background: '#c8102e' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#a30c26')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#c8102e')}
+                    style={{ background: '#bfa162' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
                   >
                     Next Step
                   </button>
@@ -519,7 +519,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="submit" disabled={submitting}
                     className="inline-flex items-center gap-3 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
-                    style={{ background: submitting ? '#5c0e14' : '#c8102e' }}
+                    style={{ background: submitting ? '#7a6530' : '#bfa162', color: '#0a1a33' }}
                   >
                     {submitting ? 'Sending…' : 'Submit Application'}
                     {!submitting && (

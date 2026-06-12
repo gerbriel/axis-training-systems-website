@@ -36,20 +36,20 @@ export default function BlogIndex() {
   }, [])
 
   return (
-    <div style={{ background: '#10131a', minHeight: '100vh' }}>
+    <div style={{ background: '#0a1a33', minHeight: '100vh' }}>
       {/* Mini nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(16,19,26,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #112038', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,26,51,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #1c3a63', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#112038' }}>›</span>
+        <span style={{ color: '#1c3a63' }}>›</span>
         <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Blog</span>
       </nav>
 
       {/* Header */}
-      <section style={{ padding: '6rem 2rem 4rem', borderBottom: '1px solid #0a1f3c' }}>
+      <section style={{ padding: '6rem 2rem 4rem', borderBottom: '1px solid #0b2f5b' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Axis Blog</p>
+          <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Axis Blog</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2.5rem, 7vw, 5rem)', textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: .9 }}>
             Meet Recaps &<br />Case Studies
           </h1>
@@ -61,18 +61,18 @@ export default function BlogIndex() {
 
       {/* Post list */}
       <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#0a1f3c' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#0b2f5b' }}>
           {allPosts.map(post => (
             <a
               key={post.slug}
               href={href(`/blog/${post.slug}`)}
-              style={{ display: 'block', background: '#10131a', padding: '2.5rem 2rem', textDecoration: 'none', transition: 'background .15s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#0e1c30')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#10131a')}
+              style={{ display: 'block', background: '#0a1a33', padding: '2.5rem 2rem', textDecoration: 'none', transition: 'background .15s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#0a1a33')}
             >
               <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
                 {post.tags.map(t => (
-                  <span key={t} style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.2)', color: '#c8102e', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
+                  <span key={t} style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.2)', color: '#f5b935', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
                 ))}
               </div>
               <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.05, marginBottom: '.75rem' }}>
@@ -85,7 +85,7 @@ export default function BlogIndex() {
                     <a
                       href={coachHref(post.coachSlug)}
                       onClick={e => e.stopPropagation()}
-                      style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 700, textDecoration: 'none' }}
+                      style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 700, textDecoration: 'none' }}
                       onMouseEnter={el => el.currentTarget.style.textDecoration = 'underline'}
                       onMouseLeave={el => el.currentTarget.style.textDecoration = 'none'}
                     >
@@ -94,10 +94,10 @@ export default function BlogIndex() {
                   ) : (
                     <span style={{ color: '#3a3f47', fontSize: '.7rem', fontWeight: 700 }}>{post.author}</span>
                   )}
-                  <span style={{ color: '#152842' }}>·</span>
-                  <span style={{ color: '#243650', fontSize: '.7rem' }}>{post.date}</span>
+                  <span style={{ color: '#1c3a63' }}>·</span>
+                  <span style={{ color: '#1c3a63', fontSize: '.7rem' }}>{post.date}</span>
                 </div>
-                <span style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>Read →</span>
+                <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>Read →</span>
               </div>
             </a>
           ))}
@@ -105,7 +105,7 @@ export default function BlogIndex() {
       </section>
 
       {/* Footer strip */}
-      <div style={{ background: '#10131a', borderTop: '1px solid #0a1f3c', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: '#0a1a33', borderTop: '1px solid #0b2f5b', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 20, filter: 'brightness(0) invert(1)' }} />
         </a>

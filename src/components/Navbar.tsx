@@ -26,9 +26,9 @@ export default function Navbar() {
     <nav
       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={scrolled ? {
-        background: 'rgba(16,19,26,0.95)',
+        background: 'rgba(10,26,51,0.95)',
         backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #152842',
+        borderBottom: '1px solid #1c3a63',
       } : {}}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -61,18 +61,18 @@ export default function Navbar() {
           <a
             href="#coaches"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
-            style={{ border: '1px solid #243650' }}
+            style={{ border: '1px solid #1c3a63' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = '#243650')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#1c3a63')}
           >
             Book a Call
           </a>
           <a
             href="#coaches"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
-            style={{ background: '#c8102e' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#a30c26')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#c8102e')}
+            style={{ background: '#bfa162' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
           >
             Work With Us
           </a>
@@ -94,7 +94,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden px-6 pb-6 pt-2 flex flex-col gap-5" style={{ background: '#0c1827', borderTop: '1px solid #152842' }}>
+        <div className="md:hidden px-6 pb-6 pt-2 flex flex-col gap-5" style={{ background: '#0a1a33', borderTop: '1px solid #1c3a63' }}>
           {NAV_LINKS.map(link => (
             <a
               key={link.label}
@@ -116,7 +116,7 @@ export default function Navbar() {
             href="#coaches"
             onClick={() => setMenuOpen(false)}
             className="text-white text-xs font-black px-5 py-3 rounded text-center tracking-widest uppercase"
-            style={{ background: '#c8102e' }}
+            style={{ background: '#bfa162' }}
           >
             Work With Us
           </a>

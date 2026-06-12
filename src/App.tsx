@@ -79,7 +79,7 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ background: '#10131a', minHeight: '100vh' }}>
+    <div style={{ background: '#0a1a33', minHeight: '100vh' }}>
       <Navbar />
       <Hero />
       <Philosophy />

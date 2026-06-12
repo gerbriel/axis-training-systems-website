@@ -47,12 +47,12 @@ export default function AdminLogin({ onDemo }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#10131a' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a1a33' }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div className="text-center mb-10">
           <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 28, filter: 'brightness(0) invert(1)', margin: '0 auto 1.5rem' }} />
-          <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Admin</p>
+          <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Admin</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.75rem', textTransform: 'uppercase', letterSpacing: '-.02em' }}>Sign In</h1>
         </div>
 
@@ -88,8 +88,8 @@ export default function AdminLogin({ onDemo }: Props) {
           <button
             type="submit" disabled={loading || isBlocked}
             style={{ background: loading ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a30c26' }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#c8102e' }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9a7c3a' }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#bfa162' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>
@@ -99,16 +99,16 @@ export default function AdminLogin({ onDemo }: Props) {
         {onDemo && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #112038' }} />
-              <span style={{ color: '#263450', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #112038' }} />
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
+              <span style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
             </div>
             <button
               type="button"
               onClick={onDemo}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #152842', color: '#666', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #1c3a63', color: '#666', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#aaa' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#152842'; e.currentTarget.style.color = '#666' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#666' }}
             >
               View Demo →
             </button>

@@ -56,7 +56,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 
 export default function Footer() {
   return (
-    <footer style={{ background: '#10131a', borderTop: '1px solid #0d2040', padding: '5rem 1.5rem 3rem' }}>
+    <footer style={{ background: '#0a1a33', borderTop: '1px solid #0b2f5b', padding: '5rem 1.5rem 3rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-3 gap-12 mb-12">
 
@@ -81,7 +81,7 @@ export default function Footer() {
 
           {/* Navigate */}
           <div>
-            <p style={{ color: '#1c3255', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
+            <p style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Navigate</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               {NAV_LINKS.map(l => <FooterLink key={l.label} href={l.href}>{l.label}</FooterLink>)}
               <FooterLink href={adminHref()}>Admin</FooterLink>
@@ -90,7 +90,7 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <p style={{ color: '#1c3255', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
+            <p style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Connect</p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               <FooterLink href="https://www.instagram.com/axistrainingsystems/">@axistrainingsystems</FooterLink>
               <FooterLink href="https://www.youtube.com/@axistrainingsystems">YouTube</FooterLink>
@@ -99,13 +99,13 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #0d2040', color: '#152842', fontSize: '.75rem' }}>
+        <div className="flex flex-col md:flex-row justify-between gap-4 pt-8" style={{ borderTop: '1px solid #0b2f5b', color: '#1c3a63', fontSize: '.75rem' }}>
           <p>© {new Date().getFullYear()} Axis Training Systems. All rights reserved.</p>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-privacy'))}
-            style={{ color: '#263450', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
+            style={{ color: '#1c3a63', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.75rem', padding: 0, transition: 'color .2s' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#888')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#263450')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#1c3a63')}
           >
             Privacy Policy
           </button>
