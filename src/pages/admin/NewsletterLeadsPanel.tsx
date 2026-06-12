@@ -58,7 +58,7 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
       )}
 
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d2040', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <input
           className="field"
           placeholder="Search name or email…"
@@ -69,9 +69,9 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
 
         <button
           onClick={refresh}
-          style={{ background: 'none', border: '1px solid #152842', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+          style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = '#152842'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
         >
           ↺ Refresh
         </button>
@@ -79,9 +79,9 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
         <button
           onClick={() => exportNewsletterCsv(filtered)}
           disabled={filtered.length === 0}
-          style={{ background: '#c8102e', border: 'none', color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.4 : 1, marginLeft: 'auto' }}
-          onMouseEnter={e => { if (filtered.length > 0) e.currentTarget.style.background = '#a30c26' }}
-          onMouseLeave={e => e.currentTarget.style.background = '#c8102e'}
+          style={{ background: '#bfa162', border: 'none', color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.4 : 1, marginLeft: 'auto' }}
+          onMouseEnter={e => { if (filtered.length > 0) e.currentTarget.style.background = '#9a7c3a' }}
+          onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
         >
           ↓ Export CSV ({filtered.length})
         </button>
@@ -89,10 +89,10 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
 
       {/* Source breakdown chips */}
       {!loading && leads.length > 0 && (
-        <div style={{ padding: '.75rem 2rem', borderBottom: '1px solid #0e1c30', display: 'flex', flexWrap: 'wrap', gap: '.5rem', alignItems: 'center' }}>
+        <div style={{ padding: '.75rem 2rem', borderBottom: '1px solid #15375f', display: 'flex', flexWrap: 'wrap', gap: '.5rem', alignItems: 'center' }}>
           <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginRight: '.25rem' }}>By Source:</span>
           {Object.entries(bySrc).sort((a, b) => b[1] - a[1]).map(([src, count]) => (
-            <span key={src} style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.15)', color: '#c8102e', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>
+            <span key={src} style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#f5b935', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>
               {sourceLabel(src)} · {count}
             </span>
           ))}
@@ -100,7 +100,7 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
       )}
 
       {error && (
-        <div style={{ margin: '1.5rem 2rem', padding: '.75rem 1rem', background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.25)', borderRadius: '.25rem', color: '#c8102e', fontSize: '.8rem' }}>
+        <div style={{ margin: '1.5rem 2rem', padding: '.75rem 1rem', background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.25)', borderRadius: '.25rem', color: '#f5b935', fontSize: '.8rem' }}>
           {error}
         </div>
       )}
@@ -116,7 +116,7 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #112038' }}>
+              <tr style={{ borderBottom: '1px solid #1c3a63' }}>
                 {['Signed Up', 'Name', 'Email', 'Source'].map(h => (
                   <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -126,8 +126,8 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
               {filtered.map(lead => (
                 <tr
                   key={lead.id}
-                  style={{ borderBottom: '1px solid #0e1c30' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#0c1827')}
+                  style={{ borderBottom: '1px solid #15375f' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#0a1a33')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '1rem 1.25rem', color: '#555', whiteSpace: 'nowrap' }}>
@@ -138,7 +138,7 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
                   </td>
                   <td style={{ padding: '1rem 1.25rem', color: '#666' }}>{lead.email}</td>
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    <span style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.15)', color: '#c8102e', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem' }}>
+                    <span style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#f5b935', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem' }}>
                       {sourceLabel(lead.source)}
                     </span>
                   </td>

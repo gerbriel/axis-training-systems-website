@@ -38,8 +38,8 @@ export default function CoachAdmin({ slug }: Props) {
 
   if (!coach) {
     return (
-      <div style={{ background: '#10131a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
-        <p style={{ color: '#c8102e', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
+      <div style={{ background: '#0a1a33', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
+        <p style={{ color: '#f5b935', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase' }}>Coach Not Found</h1>
         <a href={adminHref()} style={{ color: '#555', fontSize: '.8rem', textDecoration: 'underline' }}>← Master Admin</a>
       </div>
@@ -47,7 +47,7 @@ export default function CoachAdmin({ slug }: Props) {
   }
 
   if (loading && !isDemo) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#10131a' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a1a33' }}>
       <p style={{ color: '#3a3f47', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
@@ -68,15 +68,15 @@ export default function CoachAdmin({ slug }: Props) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#10131a', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen" style={{ background: '#0a1a33', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
-      <header style={{ background: '#10131a', borderBottom: '1px solid #0d2040', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem', flexShrink: 0 }}>
+      <header style={{ background: '#0a1a33', borderBottom: '1px solid #0b2f5b', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem', flexShrink: 0 }}>
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#112038', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>Coach Portal</span>
-        <span style={{ color: '#243650' }}>›</span>
-        <span style={{ color: '#c8102e', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>{coach.name}</span>
+        <span style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>Coach Portal</span>
+        <span style={{ color: '#1c3a63' }}>›</span>
+        <span style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>{coach.name}</span>
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
@@ -108,9 +108,9 @@ export default function CoachAdmin({ slug }: Props) {
           )}
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid #152842', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+            style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#152842'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
           >
             {isDemo ? 'Exit Demo' : 'Sign Out'}
           </button>
@@ -118,8 +118,8 @@ export default function CoachAdmin({ slug }: Props) {
       </header>
 
       {/* Page header */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d2040', background: '#0c1827' }}>
-        <p style={{ color: '#c8102e', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', background: '#0a1a33' }}>
+        <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
           {tab === 'leads' ? `${coach.firstName}'s Leads` : 'Publish Content'}
         </h1>

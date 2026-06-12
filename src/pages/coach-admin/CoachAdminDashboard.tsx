@@ -85,7 +85,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
       )}
 
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d2040', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <input
           className="field" placeholder="Search name or email…"
           value={search} onChange={e => { setSearch(e.target.value); if (e.target.value) setFilterStatus('all') }}
@@ -99,8 +99,8 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
               key={s}
               onClick={() => setFilterStatus(s)}
               style={{
-                background: filterStatus === s ? (s === 'all' ? '#1c3255' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
-                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#152842'}`,
+                background: filterStatus === s ? (s === 'all' ? '#1c3a63' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
+                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#1c3a63'}`,
                 color: filterStatus === s ? (s === 'all' ? '#fff' : STATUS_COLORS[s as LeadStatus]) : '#444',
                 fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                 padding: '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', whiteSpace: 'nowrap',
@@ -114,9 +114,9 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
         {!isDemo && (
           <button
             onClick={fetchLeads}
-            style={{ background: 'none', border: '1px solid #152842', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
+            style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#152842'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
           >
             ↺ Refresh
           </button>
@@ -130,14 +130,14 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
         <div style={{ padding: '4rem', textAlign: 'center' }}>
           <p style={{ color: '#3a3f47', fontSize: '.8rem', marginBottom: '.5rem' }}>No leads found.</p>
           {leads.length === 0 && !isDemo && (
-            <p style={{ color: '#1c3255', fontSize: '.75rem' }}>Leads submitted to {coach.firstName} will appear here.</p>
+            <p style={{ color: '#1c3a63', fontSize: '.75rem' }}>Leads submitted to {coach.firstName} will appear here.</p>
           )}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #112038' }}>
+              <tr style={{ borderBottom: '1px solid #1c3a63' }}>
                 {['Submitted', 'Name', 'Email', 'Service', 'SBD', 'Status'].map(h => (
                   <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -148,8 +148,8 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
                 <tr
                   key={lead.id}
                   onClick={() => setSelected(lead)}
-                  style={{ borderBottom: '1px solid #0a1f3c', cursor: 'pointer', transition: 'background .1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#0e1c30')}
+                  style={{ borderBottom: '1px solid #0b2f5b', cursor: 'pointer', transition: 'background .1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '1rem 1.25rem', color: '#555', whiteSpace: 'nowrap' }}>

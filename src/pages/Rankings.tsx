@@ -131,14 +131,14 @@ function parseRows(data: { rows?: unknown[][] }): RankRow[] {
 }
 
 const SEL: React.CSSProperties = {
-  background: '#0e1c30', border: '1px solid #152842', borderRadius: '.3rem',
+  background: '#15375f', border: '1px solid #1c3a63', borderRadius: '.3rem',
   color: '#d6d6d6', fontSize: '.78rem', padding: '.65rem .75rem',
   fontFamily: 'inherit', outline: 'none', cursor: 'pointer', width: '100%',
 }
 const TH: React.CSSProperties = {
   padding: '.6rem .8rem', textAlign: 'left', color: '#3a3f47',
   fontSize: '.52rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '.1em', whiteSpace: 'nowrap', background: '#10131a',
+  letterSpacing: '.1em', whiteSpace: 'nowrap', background: '#0a1a33',
 }
 const TD: React.CSSProperties = { padding: '.65rem .8rem', fontSize: '.78rem', whiteSpace: 'nowrap' }
 const LBL: React.CSSProperties = {
@@ -371,12 +371,12 @@ export default function Rankings() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10131a', color: '#fff', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: '100vh', background: '#0a1a33', color: '#fff', fontFamily: 'inherit' }}>
 
       {/* Mini nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,31,60,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #1c3255', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(11,47,91,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #1c3a63', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
         <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/></a>
-        <span style={{ color: '#112038' }}>›</span>
+        <span style={{ color: '#1c3a63' }}>›</span>
         <span style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
       </nav>
 
@@ -384,14 +384,14 @@ export default function Rankings() {
 
         {/* Header */}
         <div style={{ marginBottom: '2.5rem' }}>
-          <p style={{ color: '#c8102e', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
+          <p style={{ color: '#f5b935', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, marginBottom: '.75rem' }}>Powerlifting Rankings</h1>
           <p style={{ color: '#555', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. Filter by federation, equipment, sex, weight class and more.</p>
         </div>
 
         {/* ── Filters ─────────────────────────────────────────────────── */}
-        <div style={{ background: '#0c1827', border: '1px solid #112038', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
-          <p style={{ color: '#243650', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
+        <div style={{ background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
+          <p style={{ color: '#1c3a63', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '.75rem', marginBottom: '1rem' }}>
             <div>
               <label style={LBL}>Lifter Name</label>
@@ -440,7 +440,7 @@ export default function Rankings() {
 
           {/* Unit toggle + search */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', background: '#0a1f3c', border: '1px solid #152842', borderRadius: '.3rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', background: '#0b2f5b', border: '1px solid #1c3a63', borderRadius: '.3rem', overflow: 'hidden' }}>
               {(['lbs', 'kg'] as const).map(u => (
                 <button key={u} onClick={() => setUnit(u)} style={{
                   padding: '.55rem 1.1rem', border: 'none', cursor: 'pointer',
@@ -452,16 +452,16 @@ export default function Rankings() {
               ))}
             </div>
             <button onClick={handleSearch} disabled={loading} style={{
-              background: loading ? '#0a1f3c' : '#c8102e', color: loading ? '#3a3f47' : '#fff',
+              background: loading ? '#0b2f5b' : '#c8102e', color: loading ? '#3a3f47' : '#fff',
               border: 'none', borderRadius: '.3rem', padding: '.6rem 2rem',
               fontWeight: 900, fontSize: '.65rem', letterSpacing: '.15em',
               textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
-              <span style={{ color: '#243650', fontSize: '.72rem', marginLeft: 'auto' }}>
+              <span style={{ color: '#1c3a63', fontSize: '.72rem', marginLeft: 'auto' }}>
                 {rows.length.toLocaleString()} loaded
                 {!name.trim() && totalHint > 0 && (
-                  <span style={{ color: '#112038' }}> / {totalHint.toLocaleString()} total</span>
+                  <span style={{ color: '#1c3a63' }}> / {totalHint.toLocaleString()} total</span>
                 )}
               </span>
             )}
@@ -477,10 +477,10 @@ export default function Rankings() {
 
         {/* ── Results table ─────────────────────────────────────────────── */}
         {rows.length > 0 && (
-          <div style={{ overflowX: 'auto', border: '1px solid #0a1f3c', borderRadius: '.35rem' }}>
+          <div style={{ overflowX: 'auto', border: '1px solid #0b2f5b', borderRadius: '.35rem' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.78rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #0a1f3c' }}>
+                <tr style={{ borderBottom: '1px solid #0b2f5b' }}>
                   {([
                     ['#',                  null],
                     ['Name',               null],
@@ -513,14 +513,14 @@ export default function Rankings() {
                   return (
                     <>
                       <tr key={rk}
-                        style={{ borderBottom: '1px solid #0c1827', cursor: 'pointer', background: isExp ? '#0e0e0e' : 'transparent' }}
+                        style={{ borderBottom: '1px solid #0a1a33', cursor: 'pointer', background: isExp ? '#0e0e0e' : 'transparent' }}
                         onClick={() => toggleHistory(row, rk)}
-                        onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#0e1c30' }}
+                        onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#15375f' }}
                         onMouseLeave={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
                       >
                         <td style={{ ...TD, color: '#3a3f47', width: 36 }}>{i + 1}</td>
-                        <td style={{ ...TD, color: '#c8102e', fontWeight: 700, minWidth: 160 }}>
-                          {row.name}<span style={{ color: '#112038', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
+                        <td style={{ ...TD, color: '#f5b935', fontWeight: 700, minWidth: 160 }}>
+                          {row.name}<span style={{ color: '#1c3a63', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
                         </td>
                         <td style={{ ...TD, color: '#555' }}>{row.federation || '—'}</td>
                         <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
@@ -528,18 +528,18 @@ export default function Rankings() {
                         <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
                         <td style={{ ...TD, color: '#444' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
                         <td style={{ ...TD, color: '#444' }}>{row.age ? row.age.replace('~','') : '—'}</td>
-                        <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#1c3255' }}>{fmt(row.best3SquatKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#1c3255' }}>{fmt(row.best3BenchKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#1c3255' }}>{fmt(row.best3DeadliftKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#1c3255', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3SquatKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3BenchKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3DeadliftKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#1c3a63', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
                         <td style={{ ...TD, color: '#444' }}>{fmtScore(row.dots)}</td>
                         <td style={{ ...TD, color: '#3a3f47' }}>{row.date || '—'}</td>
                       </tr>
 
                       {isExp && (
-                        <tr key={'hist-' + rk} style={{ background: '#10131a' }}>
-                          <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #0e1c30' }}>
-                            {loadingHist && <p style={{ color: '#243650', fontSize: '.75rem' }}>Loading competition history…</p>}
+                        <tr key={'hist-' + rk} style={{ background: '#0a1a33' }}>
+                          <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #15375f' }}>
+                            {loadingHist && <p style={{ color: '#1c3a63', fontSize: '.75rem' }}>Loading competition history…</p>}
                             {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
                             {!loadingHist && !histError && histRows.length > 0 && (
                               <>
@@ -549,7 +549,7 @@ export default function Rankings() {
                                   </p>
                                   <a href={'https://www.openpowerlifting.org/u/' + row.slug}
                                     target="_blank" rel="noopener noreferrer"
-                                    style={{ color: '#c8102e', fontSize: '.65rem', textDecoration: 'none' }}
+                                    style={{ color: '#f5b935', fontSize: '.65rem', textDecoration: 'none' }}
                                     onClick={e => e.stopPropagation()}>View on OPL ↗</a>
                                 </div>
                                 <div style={{ overflowX: 'auto' }}>
@@ -559,13 +559,13 @@ export default function Rankings() {
                                         {['Date', 'Meet', 'Fed', 'Equip', 'Div', 'Wt', 'BW',
                                           'SQ (' + unit + ')', 'BP (' + unit + ')', 'DL (' + unit + ')',
                                           'Total (' + unit + ')', 'Dots', 'Place'].map(h => (
-                                          <th key={h} style={{ ...TH, fontSize: '.5rem', background: '#0c1827' }}>{h}</th>
+                                          <th key={h} style={{ ...TH, fontSize: '.5rem', background: '#0a1a33' }}>{h}</th>
                                         ))}
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {histRows.map((hr, hi) => (
-                                        <tr key={hi} style={{ borderBottom: '1px solid #0e1c30' }}>
+                                        <tr key={hi} style={{ borderBottom: '1px solid #15375f' }}>
                                           <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.date || '—'}</td>
                                           <td style={{ ...TD, color: '#999', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
                                           <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
@@ -573,10 +573,10 @@ export default function Rankings() {
                                           <td style={{ ...TD, color: '#3a3f47', fontSize: '.72rem' }}>{hr.division || '—'}</td>
                                           <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
                                           <td style={{ ...TD, color: '#3a3f47', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
-                                          <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#1c3255', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
-                                          <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#1c3255', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
-                                          <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#1c3255', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
-                                          <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#1c3255', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
+                                          <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#1c3a63', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
                                           <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
                                           <td style={{ ...TD, fontWeight: 700, color: hr.place === '1' ? '#c8102e' : '#666', fontSize: '.72rem' }}>
                                             {hr.place === '1' ? '🥇 1' : (hr.place || '—')}
@@ -607,12 +607,12 @@ export default function Rankings() {
           <>
             <div ref={sentinelRef} style={{ height: 1 }} />
             {loadingMore && (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#243650', fontSize: '.75rem', letterSpacing: '.1em' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#1c3a63', fontSize: '.75rem', letterSpacing: '.1em' }}>
                 Loading more…
               </div>
             )}
             {!loadingMore && !hasMore && rows.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#112038', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
+              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#1c3a63', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
                 — {rows.length.toLocaleString()} results —
               </div>
             )}
@@ -623,20 +623,20 @@ export default function Rankings() {
         {!searched && !loading && (
           <div style={{ textAlign: 'center', padding: '5rem 0' }}>
             <div style={{ fontSize: 44, marginBottom: '1.25rem' }}>🏋️</div>
-            <p style={{ color: '#243650', fontSize: '.875rem', marginBottom: '.5rem' }}>Set your filters and click Browse Rankings.</p>
-            <p style={{ color: '#112038', fontSize: '.75rem' }}>All filters optional — browse the full database or narrow by federation, equipment, and more.</p>
+            <p style={{ color: '#1c3a63', fontSize: '.875rem', marginBottom: '.5rem' }}>Set your filters and click Browse Rankings.</p>
+            <p style={{ color: '#1c3a63', fontSize: '.75rem' }}>All filters optional — browse the full database or narrow by federation, equipment, and more.</p>
           </div>
         )}
         {searched && !loading && rows.length === 0 && !error && (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#243650', fontSize: '.875rem' }}>
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#1c3a63', fontSize: '.875rem' }}>
             No results. Try broadening your filters.
           </div>
         )}
 
         {/* Attribution */}
-        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid #0e1c30', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: '#152842' }}>
+        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid #15375f', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: '#1c3a63' }}>
           <span>Data © OpenPowerlifting contributors — CC BY 4.0 + ODbL</span>
-          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: '#243650', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
+          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: '#1c3a63', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
         </div>
       </div>
     </div>

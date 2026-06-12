@@ -130,13 +130,13 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {routes.map(r => (
-            <div key={r.id} style={{ background: '#0e1c30', border: '1px solid #112038', padding: '1.25rem', borderRadius: '.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div key={r.id} style={{ background: '#15375f', border: '1px solid #1c3a63', padding: '1.25rem', borderRadius: '.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Toggle */}
               <button
                 onClick={() => updateRoute(r.id, 'notify', !r.notify)}
                 style={{
                   width: '2.25rem', height: '1.25rem', borderRadius: '9999px', border: 'none', cursor: 'pointer', flexShrink: 0, position: 'relative', transition: 'background .2s',
-                  background: r.notify ? '#c8102e' : '#1c3255',
+                  background: r.notify ? '#c8102e' : '#1c3a63',
                 }}
                 aria-label={r.notify ? 'Disable notifications' : 'Enable notifications'}
               >
@@ -174,14 +174,14 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <button
           onClick={saveRoutes} disabled={savingRoutes}
           style={{ marginTop: '1.25rem', background: savingRoutes ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#a30c26' }}
-          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#c8102e' }}
+          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#9a7c3a' }}
+          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#bfa162' }}
         >
           {savingRoutes ? 'Saving…' : 'Save Routing'}
         </button>
       </section>
 
-      <div style={{ borderTop: '1px solid #112038', marginBottom: '3rem' }} />
+      <div style={{ borderTop: '1px solid #1c3a63', marginBottom: '3rem' }} />
 
       {/* ── Master Config ── */}
       <section>
@@ -210,7 +210,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
               autoComplete="new-password"
             />
             <p style={{ color: '#3a3f47', fontSize: '.75rem', marginTop: '.4rem' }}>
-              Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>resend.com</a>. Required for email delivery.
+              Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>resend.com</a>. Required for email delivery.
             </p>
           </div>
         </div>
@@ -220,20 +220,20 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <button
           onClick={saveConfig} disabled={savingConfig}
           style={{ marginTop: '1.25rem', background: savingConfig ? '#5c0e14' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#a30c26' }}
-          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#c8102e' }}
+          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#9a7c3a' }}
+          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#bfa162' }}
         >
           {savingConfig ? 'Saving…' : 'Save Config'}
         </button>
       </section>
 
-      <div style={{ borderTop: '1px solid #112038', marginTop: '3rem', paddingTop: '2rem' }}>
+      <div style={{ borderTop: '1px solid #1c3a63', marginTop: '3rem', paddingTop: '2rem' }}>
         <h3 style={{ color: '#3a3f47', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
         <ol style={{ color: '#3a3f47', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
           <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#555' }}>resend.com</a> and verify your sending domain.</li>
           <li>Copy your API key and paste it above.</li>
-          <li>Deploy the Supabase Edge Function from <code style={{ color: '#666', background: '#0a1f3c', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
-          <li>Set the <code style={{ color: '#666', background: '#0a1f3c', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
+          <li>Deploy the Supabase Edge Function from <code style={{ color: '#666', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
+          <li>Set the <code style={{ color: '#666', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
           <li>Set coach emails above and enable notifications per coach.</li>
         </ol>
       </div>

@@ -32,12 +32,12 @@ const STATIC_MEETS = [
 type Meet = typeof STATIC_MEETS[number]
 
 const badgeColor: Record<string, string> = {
-  National: 'rgba(200,16,46,.12)',
+  National: 'rgba(245,185,53,.12)',
   World: 'rgba(245,185,53,.1)',
   Regional: 'rgba(100,180,255,.08)',
 }
 const badgeBorder: Record<string, string> = {
-  National: 'rgba(200,16,46,.3)',
+  National: 'rgba(245,185,53,.3)',
   World: 'rgba(245,185,53,.35)',
   Regional: 'rgba(100,180,255,.25)',
 }
@@ -66,11 +66,11 @@ export default function UpcomingMeets() {
   }, [])
 
   return (
-    <section id="upcoming-meets" style={{ background: '#10131a', borderTop: '1px solid #0e1c30', padding: '6rem 1.5rem' }}>
+    <section id="upcoming-meets" style={{ background: '#0a1a33', borderTop: '1px solid #15375f', padding: '6rem 1.5rem' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1.5rem', marginBottom: '3rem' }}>
           <div>
-            <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Competition Calendar</p>
+            <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Competition Calendar</p>
             <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
               Upcoming<br />Meets
             </h2>
@@ -80,12 +80,12 @@ export default function UpcomingMeets() {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gap: '1px', background: '#0a1f3c' }}>
+        <div style={{ display: 'grid', gap: '1px', background: '#0b2f5b' }}>
           {meets.map((m, i) => (
             <div
               key={i}
               style={{
-                background: '#10131a',
+                background: '#0a1a33',
                 padding: '1.75rem 2rem',
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -93,13 +93,13 @@ export default function UpcomingMeets() {
                 gap: '1.5rem',
                 transition: 'background .15s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#0e1c30')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#10131a')}
+              onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#0a1a33')}
             >
               {/* Type badge */}
               <div style={{
                 background: badgeColor[m.type] ?? 'rgba(255,255,255,.05)',
-                border: `1px solid ${badgeBorder[m.type] ?? '#1c3255'}`,
+                border: `1px solid ${badgeBorder[m.type] ?? '#1c3a63'}`,
                 borderRadius: '.2rem',
                 padding: '.25rem .75rem',
                 flexShrink: 0,
@@ -127,7 +127,7 @@ export default function UpcomingMeets() {
           ))}
         </div>
 
-        <p style={{ color: '#1c3255', fontSize: '.75rem', marginTop: '1.5rem' }}>
+        <p style={{ color: '#1c3a63', fontSize: '.75rem', marginTop: '1.5rem' }}>
           Meet schedule subject to change. Follow{' '}
           <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#3a3f47', textDecoration: 'underline' }}>@axistrainingsystems</a>
           {' '}for real-time updates.

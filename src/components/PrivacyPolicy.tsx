@@ -2,7 +2,7 @@ type Props = { onClose: () => void }
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: '2.5rem' }}>
-    <h3 style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '1rem', borderBottom: '1px solid #112038', paddingBottom: '.75rem' }}>
+    <h3 style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '1rem', borderBottom: '1px solid #1c3a63', paddingBottom: '.75rem' }}>
       {title}
     </h3>
     <div style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.8 }}>
@@ -13,7 +13,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 
 const Li = ({ children }: { children: React.ReactNode }) => (
   <li style={{ marginBottom: '.4rem', paddingLeft: '1rem', position: 'relative' }}>
-    <span style={{ position: 'absolute', left: 0, color: '#c8102e' }}>·</span>
+    <span style={{ position: 'absolute', left: 0, color: '#f5b935' }}>·</span>
     {children}
   </li>
 )
@@ -22,12 +22,12 @@ export default function PrivacyPolicy({ onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
-      style={{ background: 'rgba(16,19,26,0.90)', backdropFilter: 'blur(4px)', padding: '2rem 1rem' }}
+      style={{ background: 'rgba(10,26,51,0.90)', backdropFilter: 'blur(4px)', padding: '2rem 1rem' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         className="relative w-full max-w-3xl"
-        style={{ background: '#0c1827', border: '1px solid #152842', borderRadius: '.25rem', padding: '3rem 2.5rem' }}
+        style={{ background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.25rem', padding: '3rem 2.5rem' }}
       >
         {/* Close */}
         <button
@@ -42,7 +42,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
         </button>
 
         {/* Header */}
-        <p style={{ color: '#c8102e', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Legal</p>
+        <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Legal</p>
         <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.5rem,4vw,2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.75rem' }}>Privacy Policy</h2>
         <p style={{ color: '#444', fontSize: '.8rem', marginBottom: '2.5rem' }}>
           Effective Date: June 10, 2026 &nbsp;·&nbsp; Last Updated: June 10, 2026
@@ -51,8 +51,8 @@ export default function PrivacyPolicy({ onClose }: Props) {
         <Section title="1. Who We Are">
           <p>Axis Training Systems ("Axis," "we," "us," or "our") is a powerlifting coaching business based in California. We can be reached at:</p>
           <p style={{ marginTop: '.75rem', color: '#888' }}>
-            Email: <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#c8102e' }}>coach@axistrainingsystems.com</a><br />
-            Instagram: <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>@axistrainingsystems</a>
+            Email: <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#f5b935' }}>coach@axistrainingsystems.com</a><br />
+            Instagram: <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>@axistrainingsystems</a>
           </p>
         </Section>
 
@@ -86,8 +86,8 @@ export default function PrivacyPolicy({ onClose }: Props) {
             Axis Training Systems uses industry-standard advertising and tracking technologies to measure the performance of our marketing campaigns and to show relevant ads to people who have previously visited this website. These technologies include:
           </p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <Li><strong style={{ color: '#aaa' }}>Meta Pixel (Facebook/Instagram Pixel)</strong> — We use the Meta Pixel to track website events (page views, form submissions) and to build custom audiences for retargeting ads on Facebook and Instagram. Meta may use this data in accordance with its{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Data Policy</a>.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Google Ads & Google Analytics</strong> — We use Google Ads conversion tracking and remarketing tags (via Google Tag Manager) to measure ad performance and serve retargeting ads across Google Search, YouTube, and the Google Display Network. Governed by{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Google's Privacy Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Meta Pixel (Facebook/Instagram Pixel)</strong> — We use the Meta Pixel to track website events (page views, form submissions) and to build custom audiences for retargeting ads on Facebook and Instagram. Meta may use this data in accordance with its{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Data Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Google Ads & Google Analytics</strong> — We use Google Ads conversion tracking and remarketing tags (via Google Tag Manager) to measure ad performance and serve retargeting ads across Google Search, YouTube, and the Google Display Network. Governed by{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Google's Privacy Policy</a>.</Li>
             <Li><strong style={{ color: '#aaa' }}>Retargeting & Custom Audiences</strong> — Using data collected by the above pixels, we may build custom audiences (people who visited this site) and lookalike audiences to run paid ad campaigns on Meta and Google platforms. If you visited this website, you may see Axis Training Systems ads on those platforms.</Li>
             <Li><strong style={{ color: '#aaa' }}>Cookies for advertising</strong> — Third-party advertising platforms (Meta, Google) set first-party and third-party cookies on your browser to identify your visit, attribute conversions, and enable retargeting. These cookies persist across browsing sessions as governed by each platform's cookie policies.</Li>
             <Li><strong style={{ color: '#aaa' }}>Session recording & heatmaps</strong> — We do not currently use session-recording tools such as Hotjar, FullStory, or Microsoft Clarity.</Li>
@@ -95,15 +95,15 @@ export default function PrivacyPolicy({ onClose }: Props) {
           </ul>
           <p style={{ marginTop: '.75rem' }}>
             <strong style={{ color: '#fff' }}>Opt out of ad targeting:</strong> You can limit ad tracking through your device settings, your browser's cookie controls, or directly via platform opt-outs:{' '}
-            <a href="https://www.facebook.com/settings/?tab=ads" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Meta Ad Preferences</a>
+            <a href="https://www.facebook.com/settings/?tab=ads" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Meta Ad Preferences</a>
             {' · '}
-            <a href="https://adssettings.google.com/" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Google Ad Settings</a>
+            <a href="https://adssettings.google.com/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Google Ad Settings</a>
             {' · '}
-            <a href="https://optout.aboutads.info/" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>DAA Opt-Out</a>
+            <a href="https://optout.aboutads.info/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>DAA Opt-Out</a>
           </p>
           <p style={{ marginTop: '.75rem' }}>
             This website is hosted on GitHub Pages. GitHub may collect limited server-level data (such as IP addresses) as part of their standard infrastructure operations. Governed by{' '}
-            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>GitHub's Privacy Statement</a>.
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>GitHub's Privacy Statement</a>.
           </p>
           <p style={{ marginTop: '.75rem' }}>
             Our social media profiles (Instagram, YouTube) are operated by their respective platforms, which may collect data according to their own policies when you visit or interact with those pages.
@@ -113,8 +113,8 @@ export default function PrivacyPolicy({ onClose }: Props) {
         <Section title="5. How We Share Your Information">
           <p style={{ marginBottom: '.75rem' }}>We do not sell or rent your personal information. We share data with the following categories of third parties:</p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <Li><strong style={{ color: '#aaa' }}>Meta Platforms, Inc.</strong> — website visitor event data is shared with Meta via the Meta Pixel for ad measurement and retargeting. Subject to{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Meta's Data Policy</a>.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Google LLC</strong> — website visitor event data is shared with Google via Google Ads tags for conversion tracking and remarketing. Subject to{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#c8102e' }}>Google's Privacy Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Meta Platforms, Inc.</strong> — website visitor event data is shared with Meta via the Meta Pixel for ad measurement and retargeting. Subject to{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Meta's Data Policy</a>.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Google LLC</strong> — website visitor event data is shared with Google via Google Ads tags for conversion tracking and remarketing. Subject to{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>Google's Privacy Policy</a>.</Li>
             <Li><strong style={{ color: '#aaa' }}>Formspree</strong> — processes application form submissions on our behalf (formspree.io). Subject to their privacy policy.</Li>
             <Li><strong style={{ color: '#aaa' }}>Zen Planner</strong> — used for billing and client management. Subject to their privacy policy.</Li>
             <Li><strong style={{ color: '#aaa' }}>Assigned Coach</strong> — your application data is shared with your assigned Axis coach to deliver services.</Li>
@@ -130,13 +130,13 @@ export default function PrivacyPolicy({ onClose }: Props) {
             <Li><strong style={{ color: '#aaa' }}>Right to Know</strong> — You may request disclosure of the categories and specific pieces of personal information we have collected about you.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Delete</strong> — You may request deletion of personal information we have collected, subject to certain exceptions.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Correct</strong> — You may request correction of inaccurate personal information we maintain about you.</Li>
-            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale / Sharing</strong> — We do not sell your personal information. We do share anonymized website visitor data with Meta and Google for cross-context behavioral advertising (retargeting). California residents have the right to opt out of this sharing. To exercise this right, contact us at <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#c8102e' }}>coach@axistrainingsystems.com</a> or use the platform opt-out links in Section 4.</Li>
+            <Li><strong style={{ color: '#aaa' }}>Right to Opt-Out of Sale / Sharing</strong> — We do not sell your personal information. We do share anonymized website visitor data with Meta and Google for cross-context behavioral advertising (retargeting). California residents have the right to opt out of this sharing. To exercise this right, contact us at <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#f5b935' }}>coach@axistrainingsystems.com</a> or use the platform opt-out links in Section 4.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Non-Discrimination</strong> — We will not discriminate against you for exercising any of your privacy rights.</Li>
             <Li><strong style={{ color: '#aaa' }}>Right to Limit Use of Sensitive Information</strong> — We only use sensitive personal information (health data, etc.) to provide the coaching services you requested.</Li>
           </ul>
           <p style={{ marginTop: '.75rem' }}>
             To exercise any of these rights, contact us at{' '}
-            <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#c8102e' }}>coach@axistrainingsystems.com</a>.
+            <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#f5b935' }}>coach@axistrainingsystems.com</a>.
             We will respond within 45 days as required by law.
           </p>
         </Section>
@@ -160,16 +160,16 @@ export default function PrivacyPolicy({ onClose }: Props) {
         <Section title="11. Contact Us">
           <p>
             For privacy-related questions, requests, or complaints, contact:<br />
-            <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#c8102e' }}>coach@axistrainingsystems.com</a>
+            <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#f5b935' }}>coach@axistrainingsystems.com</a>
           </p>
         </Section>
 
         <button
           onClick={onClose}
           className="w-full text-white text-xs font-black py-4 rounded tracking-widest uppercase mt-2"
-          style={{ background: '#c8102e', border: 'none', cursor: 'pointer' }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#a30c26')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#c8102e')}
+          style={{ background: '#bfa162', border: 'none', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
         >
           Close
         </button>
