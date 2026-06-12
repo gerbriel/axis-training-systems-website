@@ -9,7 +9,7 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
   rejected: '#c8102e',
 }
 const lbl: React.CSSProperties = {
-  color: '#555', fontSize: '.6rem', fontWeight: 700,
+  color: '#c7d0de', fontSize: '.6rem', fontWeight: 700,
   letterSpacing: '.15em', textTransform: 'uppercase',
   marginBottom: '.35rem', display: 'block',
 }

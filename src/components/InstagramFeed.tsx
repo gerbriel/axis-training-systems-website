@@ -30,20 +30,20 @@ function SetupCard() {
           <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       </div>
-      <p style={{ color: '#444', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
+      <p style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
         Instagram feed not yet connected
       </p>
-      <p style={{ color: '#1c3a63', fontSize: '.82rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+      <p style={{ color: '#b8c2d4', fontSize: '.82rem', lineHeight: 1.7, marginBottom: '2rem' }}>
         Sign up free at{' '}
         <a href="https://behold.so" target="_blank" rel="noopener noreferrer" style={{ color: '#f5b935' }}>behold.so</a>
-        , connect <strong style={{ color: '#444' }}>@axistrainingsystems</strong>, paste
-        the Feed ID into <code style={{ color: '#555', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>InstagramFeed.tsx</code>.
+        , connect <strong style={{ color: '#c7d0de' }}>@axistrainingsystems</strong>, paste
+        the Feed ID into <code style={{ color: '#c7d0de', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>InstagramFeed.tsx</code>.
       </p>
       <a
         href="https://behold.so" target="_blank" rel="noopener noreferrer"
-        style={{ display: 'inline-block', background: 'transparent', border: '1px solid #1c3a63', color: '#555', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+        style={{ display: 'inline-block', background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#fff' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#555' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
       >
         Set Up at behold.so →
       </a>

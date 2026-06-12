@@ -136,13 +136,13 @@ const SEL: React.CSSProperties = {
   fontFamily: 'inherit', outline: 'none', cursor: 'pointer', width: '100%',
 }
 const TH: React.CSSProperties = {
-  padding: '.6rem .8rem', textAlign: 'left', color: '#3a3f47',
+  padding: '.6rem .8rem', textAlign: 'left', color: '#b8c2d4',
   fontSize: '.52rem', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: '.1em', whiteSpace: 'nowrap', background: '#0a1a33',
 }
 const TD: React.CSSProperties = { padding: '.65rem .8rem', fontSize: '.78rem', whiteSpace: 'nowrap' }
 const LBL: React.CSSProperties = {
-  color: '#3a3f47', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.15em',
+  color: '#b8c2d4', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.15em',
   textTransform: 'uppercase', display: 'block', marginBottom: '.4rem',
 }
 
@@ -376,8 +376,8 @@ export default function Rankings() {
       {/* Mini nav */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(11,47,91,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #1c3a63', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
         <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/></a>
-        <span style={{ color: '#1c3a63' }}>›</span>
-        <span style={{ color: '#444', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
+        <span style={{ color: '#b8c2d4' }}>›</span>
+        <span style={{ color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
       </nav>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '3.5rem 1.5rem 6rem' }}>
@@ -386,12 +386,12 @@ export default function Rankings() {
         <div style={{ marginBottom: '2.5rem' }}>
           <p style={{ color: '#f5b935', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, marginBottom: '.75rem' }}>Powerlifting Rankings</h1>
-          <p style={{ color: '#555', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. Filter by federation, equipment, sex, weight class and more.</p>
+          <p style={{ color: '#c7d0de', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. Filter by federation, equipment, sex, weight class and more.</p>
         </div>
 
         {/* ── Filters ─────────────────────────────────────────────────── */}
         <div style={{ background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
-          <p style={{ color: '#1c3a63', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
+          <p style={{ color: '#b8c2d4', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '.75rem', marginBottom: '1rem' }}>
             <div>
               <label style={LBL}>Lifter Name</label>
@@ -458,10 +458,10 @@ export default function Rankings() {
               textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
-              <span style={{ color: '#1c3a63', fontSize: '.72rem', marginLeft: 'auto' }}>
+              <span style={{ color: '#b8c2d4', fontSize: '.72rem', marginLeft: 'auto' }}>
                 {rows.length.toLocaleString()} loaded
                 {!name.trim() && totalHint > 0 && (
-                  <span style={{ color: '#1c3a63' }}> / {totalHint.toLocaleString()} total</span>
+                  <span style={{ color: '#b8c2d4' }}> / {totalHint.toLocaleString()} total</span>
                 )}
               </span>
             )}
@@ -518,33 +518,33 @@ export default function Rankings() {
                         onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#15375f' }}
                         onMouseLeave={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
                       >
-                        <td style={{ ...TD, color: '#3a3f47', width: 36 }}>{i + 1}</td>
+                        <td style={{ ...TD, color: '#b8c2d4', width: 36 }}>{i + 1}</td>
                         <td style={{ ...TD, color: '#f5b935', fontWeight: 700, minWidth: 160 }}>
-                          {row.name}<span style={{ color: '#1c3a63', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
+                          {row.name}<span style={{ color: '#b8c2d4', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
                         </td>
-                        <td style={{ ...TD, color: '#555' }}>{row.federation || '—'}</td>
-                        <td style={{ ...TD, color: '#444' }}>{row.sex || '—'}</td>
-                        <td style={{ ...TD, color: '#555' }}>{row.equipment || '—'}</td>
-                        <td style={{ ...TD, color: '#555' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
-                        <td style={{ ...TD, color: '#444' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
-                        <td style={{ ...TD, color: '#444' }}>{row.age ? row.age.replace('~','') : '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.federation || '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.sex || '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.equipment || '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{row.age ? row.age.replace('~','') : '—'}</td>
                         <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3SquatKg, unit)}</td>
                         <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3BenchKg, unit)}</td>
                         <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#1c3a63' }}>{fmt(row.best3DeadliftKg, unit)}</td>
                         <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#1c3a63', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
-                        <td style={{ ...TD, color: '#444' }}>{fmtScore(row.dots)}</td>
-                        <td style={{ ...TD, color: '#3a3f47' }}>{row.date || '—'}</td>
+                        <td style={{ ...TD, color: '#c7d0de' }}>{fmtScore(row.dots)}</td>
+                        <td style={{ ...TD, color: '#b8c2d4' }}>{row.date || '—'}</td>
                       </tr>
 
                       {isExp && (
                         <tr key={'hist-' + rk} style={{ background: '#0a1a33' }}>
                           <td colSpan={14} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #15375f' }}>
-                            {loadingHist && <p style={{ color: '#1c3a63', fontSize: '.75rem' }}>Loading competition history…</p>}
+                            {loadingHist && <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>Loading competition history…</p>}
                             {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
                             {!loadingHist && !histError && histRows.length > 0 && (
                               <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                                  <p style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
+                                  <p style={{ color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
                                     {row.name} — {histRows.length} entries
                                   </p>
                                   <a href={'https://www.openpowerlifting.org/u/' + row.slug}
@@ -566,18 +566,18 @@ export default function Rankings() {
                                     <tbody>
                                       {histRows.map((hr, hi) => (
                                         <tr key={hi} style={{ borderBottom: '1px solid #15375f' }}>
-                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.date || '—'}</td>
-                                          <td style={{ ...TD, color: '#999', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
-                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
-                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
-                                          <td style={{ ...TD, color: '#3a3f47', fontSize: '.72rem' }}>{hr.division || '—'}</td>
-                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
-                                          <td style={{ ...TD, color: '#3a3f47', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                                          <td style={{ ...TD, color: '#c7d0de', fontSize: '.72rem' }}>{hr.date || '—'}</td>
+                                          <td style={{ ...TD, color: '#b8c2d4', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
+                                          <td style={{ ...TD, color: '#c7d0de', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
+                                          <td style={{ ...TD, color: '#c7d0de', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
+                                          <td style={{ ...TD, color: '#b8c2d4', fontSize: '.72rem' }}>{hr.division || '—'}</td>
+                                          <td style={{ ...TD, color: '#c7d0de', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
+                                          <td style={{ ...TD, color: '#b8c2d4', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
                                           <td style={{ ...TD, color: toNum(hr.best3SquatKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3SquatKg, unit)}</td>
                                           <td style={{ ...TD, color: toNum(hr.best3BenchKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3BenchKg, unit)}</td>
                                           <td style={{ ...TD, color: toNum(hr.best3DeadliftKg) > 0 ? '#aaa' : '#1c3a63', fontSize: '.72rem' }}>{fmt(hr.best3DeadliftKg, unit)}</td>
                                           <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#1c3a63', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
-                                          <td style={{ ...TD, color: '#444', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
+                                          <td style={{ ...TD, color: '#c7d0de', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
                                           <td style={{ ...TD, fontWeight: 700, color: hr.place === '1' ? '#c8102e' : '#666', fontSize: '.72rem' }}>
                                             {hr.place === '1' ? '🥇 1' : (hr.place || '—')}
                                           </td>
@@ -589,7 +589,7 @@ export default function Rankings() {
                               </>
                             )}
                             {!loadingHist && !histError && histRows.length === 0 && (
-                              <p style={{ color: '#3a3f47', fontSize: '.75rem' }}>No competition history found.</p>
+                              <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>No competition history found.</p>
                             )}
                           </td>
                         </tr>
@@ -607,12 +607,12 @@ export default function Rankings() {
           <>
             <div ref={sentinelRef} style={{ height: 1 }} />
             {loadingMore && (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#1c3a63', fontSize: '.75rem', letterSpacing: '.1em' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#b8c2d4', fontSize: '.75rem', letterSpacing: '.1em' }}>
                 Loading more…
               </div>
             )}
             {!loadingMore && !hasMore && rows.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#1c3a63', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
+              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#b8c2d4', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
                 — {rows.length.toLocaleString()} results —
               </div>
             )}
@@ -623,20 +623,20 @@ export default function Rankings() {
         {!searched && !loading && (
           <div style={{ textAlign: 'center', padding: '5rem 0' }}>
             <div style={{ fontSize: 44, marginBottom: '1.25rem' }}>🏋️</div>
-            <p style={{ color: '#1c3a63', fontSize: '.875rem', marginBottom: '.5rem' }}>Set your filters and click Browse Rankings.</p>
-            <p style={{ color: '#1c3a63', fontSize: '.75rem' }}>All filters optional — browse the full database or narrow by federation, equipment, and more.</p>
+            <p style={{ color: '#b8c2d4', fontSize: '.875rem', marginBottom: '.5rem' }}>Set your filters and click Browse Rankings.</p>
+            <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>All filters optional — browse the full database or narrow by federation, equipment, and more.</p>
           </div>
         )}
         {searched && !loading && rows.length === 0 && !error && (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#1c3a63', fontSize: '.875rem' }}>
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#b8c2d4', fontSize: '.875rem' }}>
             No results. Try broadening your filters.
           </div>
         )}
 
         {/* Attribution */}
-        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid #15375f', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: '#1c3a63' }}>
+        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid #15375f', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: '#b8c2d4' }}>
           <span>Data © OpenPowerlifting contributors — CC BY 4.0 + ODbL</span>
-          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: '#1c3a63', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
+          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: '#b8c2d4', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
         </div>
       </div>
     </div>

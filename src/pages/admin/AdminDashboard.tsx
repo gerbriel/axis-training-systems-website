@@ -111,7 +111,7 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
 
         <button
           onClick={fetchLeads}
-          style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
+          style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
         >
@@ -121,16 +121,16 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
 
       {/* Table */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>Loading leads…</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>Loading leads…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>No leads found.</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>No leads found.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #1c3a63' }}>
                 {['Submitted', 'Name', 'Email', 'Service', 'Coach', 'SBD', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -143,16 +143,16 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
                   onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td style={{ padding: '1rem 1.25rem', color: '#555', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap' }}>
                     {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
                   <td style={{ padding: '1rem 1.25rem', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {lead.first_name} {lead.last_name}
                   </td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#666' }}>{lead.email}</td>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de' }}>{lead.email}</td>
                   <td style={{ padding: '1rem 1.25rem', color: '#aaa', whiteSpace: 'nowrap' }}>{lead.service}</td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#666', whiteSpace: 'nowrap' }}>{lead.coach_pref}</td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#555', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.75rem' }}>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap' }}>{lead.coach_pref}</td>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.75rem' }}>
                     {lead.squat_max && lead.bench_max && lead.dead_max
                       ? `${lead.squat_max} / ${lead.bench_max} / ${lead.dead_max}`
                       : '—'}
@@ -164,7 +164,7 @@ export default function AdminDashboard({ isDemo = false }: { isDemo?: boolean })
               ))}
             </tbody>
           </table>
-          <p style={{ padding: '.75rem 1.25rem', color: '#3a3f47', fontSize: '.7rem' }}>
+          <p style={{ padding: '.75rem 1.25rem', color: '#b8c2d4', fontSize: '.7rem' }}>
             Showing {filtered.length} of {leads.length} leads
           </p>
         </div>

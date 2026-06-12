@@ -96,7 +96,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
   }
 
   if (loading) return (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#3a3f47', fontSize: '.8rem' }}>Loading settings…</div>
+    <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>Loading settings…</div>
   )
 
   return (
@@ -114,18 +114,18 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.5rem' }}>
           Coach Email Routing
         </h2>
-        <p style={{ color: '#444', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+        <p style={{ color: '#c7d0de', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
           When an athlete selects a coach preference, their application is emailed to that coach's address.
           Enable/disable per coach. Leave email blank to skip.
-          The <strong style={{ color: '#888' }}>Calendly URL</strong> is shown as a “Book a Consultation” button on each coach's public profile — leave blank to hide it.
+          The <strong style={{ color: '#b8c2d4' }}>Calendly URL</strong> is shown as a “Book a Consultation” button on each coach's public profile — leave blank to hide it.
         </p>
 
         {/* Column headers */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '0 1.25rem', marginBottom: '.5rem' }}>
           <span style={{ width: '2.25rem', flexShrink: 0 }} />
-          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
-          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
-          <span style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
+          <span style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
+          <span style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
+          <span style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -188,7 +188,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.5rem' }}>
           Notification Config
         </h2>
-        <p style={{ color: '#444', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+        <p style={{ color: '#c7d0de', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
           The master email receives a copy of every lead regardless of coach preference.
           The Resend API key is used by the Edge Function to send notification emails.
         </p>
@@ -200,7 +200,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
               type="email" className="field" placeholder="admin@axistrainingsystems.com"
               value={masterEmail} onChange={e => setMasterEmail(e.target.value)}
             />
-            <p style={{ color: '#3a3f47', fontSize: '.75rem', marginTop: '.4rem' }}>All leads will be CC'd to this address.</p>
+            <p style={{ color: '#b8c2d4', fontSize: '.75rem', marginTop: '.4rem' }}>All leads will be CC'd to this address.</p>
           </div>
           <div>
             <label className="field-label">Resend API Key</label>
@@ -209,7 +209,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
               value={resendKey} onChange={e => setResendKey(e.target.value)}
               autoComplete="new-password"
             />
-            <p style={{ color: '#3a3f47', fontSize: '.75rem', marginTop: '.4rem' }}>
+            <p style={{ color: '#b8c2d4', fontSize: '.75rem', marginTop: '.4rem' }}>
               Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>resend.com</a>. Required for email delivery.
             </p>
           </div>
@@ -228,12 +228,12 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
       </section>
 
       <div style={{ borderTop: '1px solid #1c3a63', marginTop: '3rem', paddingTop: '2rem' }}>
-        <h3 style={{ color: '#3a3f47', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
-        <ol style={{ color: '#3a3f47', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
-          <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#555' }}>resend.com</a> and verify your sending domain.</li>
+        <h3 style={{ color: '#b8c2d4', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
+        <ol style={{ color: '#b8c2d4', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
+          <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: '#c7d0de' }}>resend.com</a> and verify your sending domain.</li>
           <li>Copy your API key and paste it above.</li>
-          <li>Deploy the Supabase Edge Function from <code style={{ color: '#666', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
-          <li>Set the <code style={{ color: '#666', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
+          <li>Deploy the Supabase Edge Function from <code style={{ color: '#c7d0de', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
+          <li>Set the <code style={{ color: '#c7d0de', background: '#0b2f5b', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>
           <li>Set coach emails above and enable notifications per coach.</li>
         </ol>
       </div>

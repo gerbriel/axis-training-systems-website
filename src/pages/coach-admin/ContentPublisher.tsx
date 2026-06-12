@@ -47,7 +47,7 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 const labelStyle: React.CSSProperties = {
-  color: '#555',
+  color: '#c7d0de',
   fontSize: '.6rem',
   fontWeight: 700,
   letterSpacing: '.15em',
@@ -238,7 +238,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               <input style={inputStyle} maxLength={300} placeholder="One-line description for the post header" value={blogSubtitle} onChange={e => setBlogSubtitle(e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>Tags <span style={{ color: '#444', fontWeight: 400 }}>(comma-separated)</span></label>
+              <label style={labelStyle}>Tags <span style={{ color: '#c7d0de', fontWeight: 400 }}>(comma-separated)</span></label>
               <input style={inputStyle} maxLength={200} placeholder="e.g. Meet Recap, USAPL, Case Study" value={blogTags} onChange={e => setBlogTags(e.target.value)} />
             </div>
             <div>
@@ -271,11 +271,11 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                           ))}
                         </select>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '.3rem' }}>
-                          <button onClick={() => moveSection(sec._id, -1)} disabled={idx === 0} style={{ background: 'none', border: '1px solid #1c3a63', color: '#444', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontFamily: 'inherit' }}>↑</button>
-                          <button onClick={() => moveSection(sec._id,  1)} disabled={idx === blogSections.length - 1} style={{ background: 'none', border: '1px solid #1c3a63', color: '#444', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === blogSections.length - 1 ? 'default' : 'pointer', opacity: idx === blogSections.length - 1 ? 0.3 : 1, fontFamily: 'inherit' }}>↓</button>
-                          <button onClick={() => removeSection(sec._id)} style={{ background: 'none', border: '1px solid #1c3a63', color: '#555', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                          <button onClick={() => moveSection(sec._id, -1)} disabled={idx === 0} style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontFamily: 'inherit' }}>↑</button>
+                          <button onClick={() => moveSection(sec._id,  1)} disabled={idx === blogSections.length - 1} style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === blogSections.length - 1 ? 'default' : 'pointer', opacity: idx === blogSections.length - 1 ? 0.3 : 1, fontFamily: 'inherit' }}>↓</button>
+                          <button onClick={() => removeSection(sec._id)} style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: 'pointer', fontFamily: 'inherit' }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#555' }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
                           >✕</button>
                         </div>
                       </div>
@@ -299,7 +299,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                       {/* List — one item per line */}
                       {sec.type === 'list' && (
                         <>
-                          <p style={{ color: '#3a3f47', fontSize: '.6rem', marginBottom: '.35rem' }}>One bullet item per line</p>
+                          <p style={{ color: '#b8c2d4', fontSize: '.6rem', marginBottom: '.35rem' }}>One bullet item per line</p>
                           <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} placeholder={'Item one\nItem two\nItem three'} value={sec.items ?? ''} onChange={e => updateSection(sec._id, { items: e.target.value })} maxLength={4000} />
                         </>
                       )}
@@ -327,9 +327,9 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                   { type: 'week'       as SectionType, label: '+ Week Block'},
                   { type: 'divider'    as SectionType, label: '+ Divider'   },
                 ].map(({ type, label }) => (
-                  <button key={type} onClick={() => addSection(type)} style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#555', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+                  <button key={type} onClick={() => addSection(type)} style={{ background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#d6d6d6' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#555' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
                   >{label}</button>
                 ))}
               </div>
@@ -399,7 +399,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Note <span style={{ color: '#444', fontWeight: 400 }}>(shown on site)</span></label>
+              <label style={labelStyle}>Note <span style={{ color: '#c7d0de', fontWeight: 400 }}>(shown on site)</span></label>
               <input style={inputStyle} maxLength={300} placeholder="e.g. Axis coaches attending & handling" value={meetNote} onChange={e => setMeetNote(e.target.value)} />
             </div>
           </div>
@@ -433,20 +433,20 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
 
       {/* ── Submission history ────────────────────────────────────────────── */}
       <div>
-        <p style={{ color: '#3a3f47', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+        <p style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
           Your Submissions ({loading ? '…' : myItems.length})
         </p>
         {loading ? (
-          <p style={{ color: '#1c3a63', fontSize: '.8rem' }}>Loading…</p>
+          <p style={{ color: '#b8c2d4', fontSize: '.8rem' }}>Loading…</p>
         ) : myItems.length === 0 ? (
-          <p style={{ color: '#1c3a63', fontSize: '.8rem' }}>No submissions yet.</p>
+          <p style={{ color: '#b8c2d4', fontSize: '.8rem' }}>No submissions yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#0b2f5b' }}>
             {myItems.map(item => (
               <div key={item.id} style={{ background: '#0a1a33', padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', marginBottom: '.35rem', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+                    <span style={{ color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>
                       {item.type === 'blog' ? '📝 Blog' : '🏋️ Meet'}
                     </span>
                     <span style={{
@@ -461,21 +461,21 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                     {item.type === 'blog' ? item.title : item.meetName}
                   </p>
                   {item.type === 'meet' && item.meetDate && (
-                    <p style={{ color: '#444', fontSize: '.75rem', marginTop: '.2rem' }}>{item.meetDate} · {item.meetLocation}</p>
+                    <p style={{ color: '#c7d0de', fontSize: '.75rem', marginTop: '.2rem' }}>{item.meetDate} · {item.meetLocation}</p>
                   )}
                   {item.status === 'rejected' && item.rejectionNote && (
                     <p style={{ color: '#f5b935', fontSize: '.75rem', marginTop: '.35rem' }}>Note: {item.rejectionNote}</p>
                   )}
-                  <p style={{ color: '#1c3a63', fontSize: '.65rem', marginTop: '.4rem' }}>
+                  <p style={{ color: '#b8c2d4', fontSize: '.65rem', marginTop: '.4rem' }}>
                     Submitted {new Date(item.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
                 {item.status === 'pending' && (
                   <button
                     onClick={() => handleDelete(item.id)}
-                    style={{ background: 'none', border: '1px solid #1c3a63', color: '#444', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                    style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#444' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
                   >
                     Withdraw
                   </button>

@@ -39,8 +39,8 @@ export default function Hero() {
         <div className="flex flex-wrap gap-x-8 gap-y-3 mb-10">
           {['Solution Focused', 'Evidence Based', 'Transparent', 'Everybody Eats'].map((tag, i, arr) => (
             <span key={tag} className="flex items-center gap-8">
-              <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>{tag}</span>
-              {i < arr.length - 1 && <span style={{ color: '#3a3f47' }}>·</span>}
+              <span style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>{tag}</span>
+              {i < arr.length - 1 && <span style={{ color: '#b8c2d4' }}>·</span>}
             </span>
           ))}
         </div>
@@ -73,14 +73,14 @@ export default function Hero() {
           {STATS.map(s => (
             <div key={s.label}>
               <p className="text-white font-black text-4xl leading-none">{s.number}</p>
-              <p style={{ color: '#555', fontSize: '.65rem', marginTop: '.5rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>{s.label}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.65rem', marginTop: '.5rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Scroll cue */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" style={{ color: '#1c3a63' }}>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" style={{ color: '#b8c2d4' }}>
         <span style={{ fontSize: '.6rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>Scroll</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-bounce"><polyline points="6 9 12 15 18 9"/></svg>
       </div>

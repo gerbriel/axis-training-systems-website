@@ -51,7 +51,7 @@ export default function HowItWorks() {
             <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
             <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>How It Works</h2>
           </div>
-          <p style={{ color: '#444', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
+          <p style={{ color: '#c7d0de', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
             Simple tools, direct communication, no bloated apps. Just you, your coach, and the work.
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function HowItWorks() {
             <div key={s.step} style={{ background: '#0a1a33', padding: '2.5rem' }}>
               <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Step {s.step}</p>
               <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>{s.title}</h3>
-              <p style={{ color: '#444', fontSize: '.875rem', lineHeight: 1.7 }}>{s.desc}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.7 }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -94,7 +94,7 @@ export default function HowItWorks() {
                 {l.icon}
                 <p style={{ color: '#fff', fontWeight: 900, fontSize: l.icon ? '1.1rem' : '1.75rem', lineHeight: 1 }}>{l.value}</p>
               </div>
-              <p style={{ color: '#444', fontSize: '.8rem', lineHeight: 1.5 }}>{l.sub}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.8rem', lineHeight: 1.5 }}>{l.sub}</p>
             </div>
           ))}
         </div>

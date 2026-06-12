@@ -5,7 +5,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
     <h3 style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '1rem', borderBottom: '1px solid #1c3a63', paddingBottom: '.75rem' }}>
       {title}
     </h3>
-    <div style={{ color: '#666', fontSize: '.875rem', lineHeight: 1.8 }}>
+    <div style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.8 }}>
       {children}
     </div>
   </div>
@@ -44,13 +44,13 @@ export default function PrivacyPolicy({ onClose }: Props) {
         {/* Header */}
         <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Legal</p>
         <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.5rem,4vw,2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.75rem' }}>Privacy Policy</h2>
-        <p style={{ color: '#444', fontSize: '.8rem', marginBottom: '2.5rem' }}>
+        <p style={{ color: '#c7d0de', fontSize: '.8rem', marginBottom: '2.5rem' }}>
           Effective Date: June 10, 2026 &nbsp;·&nbsp; Last Updated: June 10, 2026
         </p>
 
         <Section title="1. Who We Are">
           <p>Axis Training Systems ("Axis," "we," "us," or "our") is a powerlifting coaching business based in California. We can be reached at:</p>
-          <p style={{ marginTop: '.75rem', color: '#888' }}>
+          <p style={{ marginTop: '.75rem', color: '#b8c2d4' }}>
             Email: <a href="mailto:coach@axistrainingsystems.com" style={{ color: '#f5b935' }}>coach@axistrainingsystems.com</a><br />
             Instagram: <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#f5b935' }}>@axistrainingsystems</a>
           </p>

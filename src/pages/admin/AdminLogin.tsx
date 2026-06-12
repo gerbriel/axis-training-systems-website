@@ -100,24 +100,24 @@ export default function AdminLogin({ onDemo }: Props) {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
               <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
-              <span style={{ color: '#1c3a63', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
+              <span style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
               <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
             </div>
             <button
               type="button"
               onClick={onDemo}
-              style={{ width: '100%', background: 'transparent', border: '1px solid #1c3a63', color: '#666', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+              style={{ width: '100%', background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#aaa' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#666' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
             >
               View Demo →
             </button>
           </>
         )}
 
-        <p style={{ color: '#3a3f47', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
+        <p style={{ color: '#b8c2d4', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
           Admin access only.{' '}
-          <a href={(import.meta as any).env?.BASE_URL ?? '/'} style={{ color: '#555', textDecoration: 'underline' }}>← Back to site</a>
+          <a href={(import.meta as any).env?.BASE_URL ?? '/'} style={{ color: '#c7d0de', textDecoration: 'underline' }}>← Back to site</a>
         </p>
       </div>
     </div>

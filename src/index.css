@@ -4,33 +4,36 @@
 
 :root {
   /* Surfaces */
-  --bg:        #0a1a33;   /* deep navy-black — dominant page background */
-  --surface:   #0b2f5b;   /* AXIS navy — cards, panels */
-  --surface-2: #15375f;   /* raised / hover state */
-  --border:    #1c3a63;   /* subtle navy border */
+  --bg:          #0a1a33;   /* deep navy-black — dominant page background */
+  --surface:     #0b2f5b;   /* AXIS navy — cards, panels */
+  --surface-2:   #15375f;   /* raised / hover state */
+  --border:      #1c3a63;   /* subtle navy border */
 
   /* Brand accents — gold leads */
-  --gold:      #f5b935;   /* primary accent: headings, labels, icons */
-  --gold-soft: #ffd782;   /* large fills / highlights */
-  --bronze:    #bfa162;   /* solid button fills */
-  --bronze-dk: #9a7c3a;   /* button hover */
+  --gold:        #f5b935;   /* primary accent: headings, labels, icons */
+  --gold-soft:   #ffd782;   /* large fills / highlights */
+  --bronze:      #bfa162;   /* solid button fills */
+  --bronze-dk:   #9a7c3a;   /* button hover */
 
-  /* Power accent — crimson, used sparingly (hover borders, intensity) */
-  --crimson:   #c8102e;
-  --crimson-dk:#a30c26;
+  /* Power accent — crimson, used sparingly */
+  --crimson:     #c8102e;
+  --crimson-dk:  #a30c26;
 
-  /* Neutrals */
-  --steel:     #3a3f47;
-  --chalk:     #d6d6d6;
-  --text:      #f5f3ee;   /* warm off-white body */
-  --muted:     #9aa3af;
+  /* Text hierarchy — all pass WCAG AA on navy surfaces */
+  --text:        #f5f3ee;   /* primary body — warm off-white, 12:1 on card navy */
+  --text-2:      #c7d0de;   /* secondary / captions — cool light, 9:1 */
+  --text-3:      #b8c2d4;   /* muted — lowest floor, 7.4:1 on #0b2f5b */
+
+  /* UI neutrals */
+  --steel:       #3a3f47;
+  --chalk:       #d6d6d6;
 }
 
 * { -webkit-font-smoothing: antialiased; }
 
 body {
   background: var(--bg);
-  color: #fff;
+  color: var(--text);
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -43,7 +46,7 @@ body {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
-  color: #fff;
+  color: var(--text);
   padding: .75rem 1rem;
   border-radius: .25rem;
   font-size: .875rem;
@@ -53,8 +56,8 @@ body {
   font-family: inherit;
 }
 .field:focus { border-color: var(--gold); }
-.field::placeholder { color: #444; }
-select.field option { background: var(--surface); color: #fff; }
+.field::placeholder { color: var(--text-3); }
+select.field option { background: var(--surface); color: var(--text); }
 textarea.field { resize: vertical; }
 
 /* Pill radio/checkbox */
@@ -68,7 +71,7 @@ textarea.field { resize: vertical; }
   border-radius: .25rem;
   cursor: pointer;
   font-size: .8rem;
-  color: #888;
+  color: var(--text-3);
   transition: all .15s;
   user-select: none;
   white-space: nowrap;
@@ -83,7 +86,7 @@ textarea.field { resize: vertical; }
   border: 1px solid var(--border);
   border-radius: .25rem;
   background: var(--surface);
-  color: #666;
+  color: var(--text-3);
   font-size: .8rem;
   font-weight: 700;
   cursor: pointer;
@@ -98,7 +101,7 @@ textarea.field { resize: vertical; }
 /* Field label */
 .field-label {
   display: block;
-  color: #666;
+  color: var(--text-2);
   font-size: .7rem;
   font-weight: 700;
   letter-spacing: .1em;

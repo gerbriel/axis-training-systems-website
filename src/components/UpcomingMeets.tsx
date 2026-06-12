@@ -75,7 +75,7 @@ export default function UpcomingMeets() {
               Upcoming<br />Meets
             </h2>
           </div>
-          <p style={{ color: '#444', fontSize: '.875rem', maxWidth: '22rem', lineHeight: 1.7 }}>
+          <p style={{ color: '#c7d0de', fontSize: '.875rem', maxWidth: '22rem', lineHeight: 1.7 }}>
             Axis coaches are active competitors and handlers. You'll find us on the platform and in the warm-up room at every major meet.
           </p>
         </div>
@@ -110,26 +110,26 @@ export default function UpcomingMeets() {
               {/* Name */}
               <div style={{ flex: '1 1 200px' }}>
                 <p style={{ color: '#fff', fontWeight: 800, fontSize: '.95rem' }}>{m.name}</p>
-                <p style={{ color: '#444', fontSize: '.75rem', marginTop: '.15rem' }}>{m.federation}</p>
+                <p style={{ color: '#c7d0de', fontSize: '.75rem', marginTop: '.15rem' }}>{m.federation}</p>
               </div>
 
               {/* Date */}
               <div style={{ flexShrink: 0, minWidth: 160 }}>
-                <p style={{ color: '#888', fontSize: '.8rem', fontWeight: 600 }}>{m.date}</p>
-                <p style={{ color: '#3a3f47', fontSize: '.7rem', marginTop: '.15rem' }}>{m.location}</p>
+                <p style={{ color: '#b8c2d4', fontSize: '.8rem', fontWeight: 600 }}>{m.date}</p>
+                <p style={{ color: '#b8c2d4', fontSize: '.7rem', marginTop: '.15rem' }}>{m.location}</p>
               </div>
 
               {/* Note */}
               <div style={{ flexShrink: 0 }}>
-                <p style={{ color: '#3a3f47', fontSize: '.7rem', fontWeight: 600, letterSpacing: '.05em' }}>{m.note}</p>
+                <p style={{ color: '#b8c2d4', fontSize: '.7rem', fontWeight: 600, letterSpacing: '.05em' }}>{m.note}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <p style={{ color: '#1c3a63', fontSize: '.75rem', marginTop: '1.5rem' }}>
+        <p style={{ color: '#b8c2d4', fontSize: '.75rem', marginTop: '1.5rem' }}>
           Meet schedule subject to change. Follow{' '}
-          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#3a3f47', textDecoration: 'underline' }}>@axistrainingsystems</a>
+          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#b8c2d4', textDecoration: 'underline' }}>@axistrainingsystems</a>
           {' '}for real-time updates.
         </p>
       </div>

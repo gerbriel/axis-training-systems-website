@@ -42,8 +42,8 @@ export default function BlogIndex() {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#1c3a63' }}>›</span>
-        <span style={{ color: '#555', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Blog</span>
+        <span style={{ color: '#b8c2d4' }}>›</span>
+        <span style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Blog</span>
       </nav>
 
       {/* Header */}
@@ -53,7 +53,7 @@ export default function BlogIndex() {
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2.5rem, 7vw, 5rem)', textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: .9 }}>
             Meet Recaps &<br />Case Studies
           </h1>
-          <p style={{ color: '#444', fontSize: '.9rem', marginTop: '1.25rem', maxWidth: 480, lineHeight: 1.7 }}>
+          <p style={{ color: '#c7d0de', fontSize: '.9rem', marginTop: '1.25rem', maxWidth: 480, lineHeight: 1.7 }}>
             In-depth breakdowns from the Axis coaching staff — programming decisions, injury management, meet strategy, and athlete outcomes.
           </p>
         </div>
@@ -78,7 +78,7 @@ export default function BlogIndex() {
               <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.05, marginBottom: '.75rem' }}>
                 {post.title}
               </h2>
-              <p style={{ color: '#555', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.25rem', maxWidth: 600 }}>{post.summary}</p>
+              <p style={{ color: '#c7d0de', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.25rem', maxWidth: 600 }}>{post.summary}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
                   {post.coachSlug ? (
@@ -92,10 +92,10 @@ export default function BlogIndex() {
                       {post.author}
                     </a>
                   ) : (
-                    <span style={{ color: '#3a3f47', fontSize: '.7rem', fontWeight: 700 }}>{post.author}</span>
+                    <span style={{ color: '#b8c2d4', fontSize: '.7rem', fontWeight: 700 }}>{post.author}</span>
                   )}
-                  <span style={{ color: '#1c3a63' }}>·</span>
-                  <span style={{ color: '#1c3a63', fontSize: '.7rem' }}>{post.date}</span>
+                  <span style={{ color: '#b8c2d4' }}>·</span>
+                  <span style={{ color: '#b8c2d4', fontSize: '.7rem' }}>{post.date}</span>
                 </div>
                 <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>Read →</span>
               </div>
@@ -109,7 +109,7 @@ export default function BlogIndex() {
         <a href={href('/')}>
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 20, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <a href={href('/')} style={{ color: '#3a3f47', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Back to site</a>
+        <a href={href('/')} style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', textDecoration: 'none' }}>← Back to site</a>
       </div>
     </div>
   )
