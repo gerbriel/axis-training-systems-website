@@ -135,7 +135,7 @@ const fmtScore = (v: string | undefined) => {
 // [0]=idx [1]=rank [2]=name [3]=slug [4]=social [5]=badge
 // [6]=country [7]=state [8]=fed [9]=date [10]=meet-country [11]=state
 // [12]=meet-path [13]=sex [14]=equip [15]=age [16]=division
-// [17]=wt-class-kg [18]=bw-kg [19]=squat [20]=bench [21]=dead [22]=total [23]=dots
+// [17]=bw-kg [18]=wt-class-kg [19]=squat [20]=bench [21]=dead [22]=total [23]=dots
 function parseRows(data: { rows?: unknown[][] }): RankRow[] {
   const rows: unknown[][] = data?.rows ?? []
   return rows.map(row => {
@@ -148,8 +148,8 @@ function parseRows(data: { rows?: unknown[][] }): RankRow[] {
       date:            s(9),
       country:         s(6),   // lifter's nationality (col 6)
       division:        s(16),
-      weightClassKg:   s(17),  // wt-class-kg
-      bodyweightKg:    s(18),  // bw-kg
+      bodyweightKg:    s(17),  // bw-kg (col 17 = actual bodyweight)
+      weightClassKg:   s(18),  // wt-class-kg (col 18 = weight class)
       equipment:       s(14),
       best3SquatKg:    s(19),
       best3BenchKg:    s(20),
@@ -372,7 +372,24 @@ export default function Rankings() {
 
       if (searchName) {
         // Name search: filtered API context + parallel row fetches + session cache
-        const allRows = await nameSearch(searchName, suffix, signal)
+        let allRows = await nameSearch(searchName, suffix, signal)
+        // If meetName filter is active, enrich rows with real meet names from history CSV
+        // (nameSearch returns meet path like "amp/2026-CA-02", not the full name)
+        if (meetName.trim()) {
+          const uniqueSlugs = [...new Set(allRows.map(r => r.slug).filter(Boolean))]
+          const histMap = new Map<string, HistRow[]>()
+          await Promise.all(uniqueSlugs.map(async slug => {
+            try { histMap.set(slug, await fetchLifterHistory(slug)) } catch { /* ignore */ }
+          }))
+          allRows = allRows.map(row => {
+            if (!row.slug || !histMap.has(row.slug)) return row
+            const hist = histMap.get(row.slug)!
+            // Find the matching history entry by date
+            const match = hist.find(h => h.date === row.date)
+            if (match) return { ...row, meetName: match.meetName }
+            return row
+          })
+        }
         newRows.push(...applyClientFilters(allRows))
         if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
         setHasMore(false)
@@ -690,7 +707,7 @@ export default function Rankings() {
             <div>
               <label style={LBL}>Meet Name <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
               <input type="text" value={meetName} onChange={e => setMeetName(e.target.value)}
-                placeholder="e.g. Arnold Classic" maxLength={80}
+                placeholder="e.g. Arnold Classic or amp/2026" maxLength={80}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
