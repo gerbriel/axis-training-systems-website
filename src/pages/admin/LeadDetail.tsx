@@ -12,8 +12,8 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
 function Row({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null
   return (
-    <div style={{ display: 'flex', gap: '1rem', padding: '.6rem 0', borderBottom: '1px solid #0b2f5b', fontSize: '.85rem' }}>
-      <span style={{ minWidth: '10rem', color: '#c7d0de', flexShrink: 0 }}>{label}</span>
+    <div style={{ display: 'flex', gap: '1rem', padding: '.6rem 0', borderBottom: '1px solid #0d0d0d', fontSize: '.85rem' }}>
+      <span style={{ minWidth: '10rem', color: '#c7c7c7', flexShrink: 0 }}>{label}</span>
       <span style={{ color: '#d6d6d6', wordBreak: 'break-word' }}>{value}</span>
     </div>
   )
@@ -21,7 +21,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 
 function SectionHead({ label }: { label: string }) {
   return (
-    <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', margin: '1.75rem 0 .5rem' }}>{label}</p>
+    <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', margin: '1.75rem 0 .5rem' }}>{label}</p>
   )
 }
 
@@ -59,12 +59,12 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
-      style={{ background: 'rgba(10,26,51,0.90)', backdropFilter: 'blur(4px)', padding: '2rem 1rem' }}
+      style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)', padding: '2rem 1rem' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full relative" style={{ maxWidth: 680, background: '#0a1a33', border: '1px solid #1c3a63', borderRadius: '.25rem', padding: '2.5rem' }}>
+      <div className="w-full relative" style={{ maxWidth: 680, background: '#000000', border: '1px solid #222222', borderRadius: '.25rem', padding: '2.5rem' }}>
         {/* Close */}
-        <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'none', border: 'none', color: '#c7d0de', cursor: 'pointer', padding: '.25rem' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'none', border: 'none', color: '#c7c7c7', cursor: 'pointer', padding: '.25rem' }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
 
@@ -74,7 +74,7 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
             <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-.02em' }}>
               {lead.first_name} {lead.last_name}
             </h2>
-            <p style={{ color: '#c7d0de', fontSize: '.8rem', marginTop: '.25rem' }}>
+            <p style={{ color: '#c7c7c7', fontSize: '.8rem', marginTop: '.25rem' }}>
               {lead.email} · {new Date(lead.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
@@ -124,8 +124,8 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
         <Row label="Further Goals" value={lead.goals} />
 
         {/* Admin controls */}
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #1c3a63', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase' }}>Admin</p>
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #222222', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase' }}>Admin</p>
 
           <div>
             <label className="field-label">Status</label>

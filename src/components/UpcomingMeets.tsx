@@ -66,26 +66,26 @@ export default function UpcomingMeets() {
   }, [])
 
   return (
-    <section id="upcoming-meets" style={{ background: '#0a1a33', borderTop: '1px solid #15375f', padding: '6rem 1.5rem' }}>
+    <section id="upcoming-meets" style={{ background: '#000000', borderTop: '1px solid #1a1a1a', padding: '6rem 1.5rem' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1.5rem', marginBottom: '3rem' }}>
           <div>
-            <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Competition Calendar</p>
+            <p style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Competition Calendar</p>
             <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
               Upcoming<br />Meets
             </h2>
           </div>
-          <p style={{ color: '#c7d0de', fontSize: '.875rem', maxWidth: '22rem', lineHeight: 1.7 }}>
+          <p style={{ color: '#c7c7c7', fontSize: '.875rem', maxWidth: '22rem', lineHeight: 1.7 }}>
             Axis coaches are active competitors and handlers. You'll find us on the platform and in the warm-up room at every major meet.
           </p>
         </div>
 
-        <div style={{ display: 'grid', gap: '1px', background: '#0b2f5b' }}>
+        <div style={{ display: 'grid', gap: '1px', background: '#0d0d0d' }}>
           {meets.map((m, i) => (
             <div
               key={i}
               style={{
-                background: '#0a1a33',
+                background: '#000000',
                 padding: '1.75rem 2rem',
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -93,13 +93,13 @@ export default function UpcomingMeets() {
                 gap: '1.5rem',
                 transition: 'background .15s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#0a1a33')}
+              onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#000000')}
             >
               {/* Type badge */}
               <div style={{
                 background: badgeColor[m.type] ?? 'rgba(255,255,255,.05)',
-                border: `1px solid ${badgeBorder[m.type] ?? '#1c3a63'}`,
+                border: `1px solid ${badgeBorder[m.type] ?? '#222222'}`,
                 borderRadius: '.2rem',
                 padding: '.25rem .75rem',
                 flexShrink: 0,
@@ -110,26 +110,26 @@ export default function UpcomingMeets() {
               {/* Name */}
               <div style={{ flex: '1 1 200px' }}>
                 <p style={{ color: '#fff', fontWeight: 800, fontSize: '.95rem' }}>{m.name}</p>
-                <p style={{ color: '#c7d0de', fontSize: '.75rem', marginTop: '.15rem' }}>{m.federation}</p>
+                <p style={{ color: '#c7c7c7', fontSize: '.75rem', marginTop: '.15rem' }}>{m.federation}</p>
               </div>
 
               {/* Date */}
               <div style={{ flexShrink: 0, minWidth: 160 }}>
-                <p style={{ color: '#b8c2d4', fontSize: '.8rem', fontWeight: 600 }}>{m.date}</p>
-                <p style={{ color: '#b8c2d4', fontSize: '.7rem', marginTop: '.15rem' }}>{m.location}</p>
+                <p style={{ color: '#888888', fontSize: '.8rem', fontWeight: 600 }}>{m.date}</p>
+                <p style={{ color: '#888888', fontSize: '.7rem', marginTop: '.15rem' }}>{m.location}</p>
               </div>
 
               {/* Note */}
               <div style={{ flexShrink: 0 }}>
-                <p style={{ color: '#b8c2d4', fontSize: '.7rem', fontWeight: 600, letterSpacing: '.05em' }}>{m.note}</p>
+                <p style={{ color: '#888888', fontSize: '.7rem', fontWeight: 600, letterSpacing: '.05em' }}>{m.note}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <p style={{ color: '#b8c2d4', fontSize: '.75rem', marginTop: '1.5rem' }}>
+        <p style={{ color: '#888888', fontSize: '.75rem', marginTop: '1.5rem' }}>
           Meet schedule subject to change. Follow{' '}
-          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#b8c2d4', textDecoration: 'underline' }}>@axistrainingsystems</a>
+          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: '#888888', textDecoration: 'underline' }}>@axistrainingsystems</a>
           {' '}for real-time updates.
         </p>
       </div>

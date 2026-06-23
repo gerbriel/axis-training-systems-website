@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { href, adminHref } from '../utils/nav'
+import { href, adminHref, bookHref } from '../utils/nav'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -26,9 +26,9 @@ export default function Navbar() {
     <nav
       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={scrolled ? {
-        background: 'rgba(10,26,51,0.95)',
+        background: 'rgba(0,0,0,0.95)',
         backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #1c3a63',
+        borderBottom: '1px solid #222222',
       } : {}}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -47,9 +47,9 @@ export default function Navbar() {
             <a
               key={link.label}
               href={link.href}
-              style={{ color: '#c7d0de', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
+              style={{ color: '#c7c7c7', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', transition: 'color .2s' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#c7d0de')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#c7c7c7')}
             >
               {link.label}
             </a>
@@ -59,11 +59,11 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
           <a
-            href="#coaches"
+            href={bookHref()}
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
-            style={{ border: '1px solid #1c3a63' }}
+            style={{ border: '1px solid #222222' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = '#1c3a63')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#222222')}
           >
             Book a Call
           </a>
@@ -94,7 +94,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden px-6 pb-6 pt-2 flex flex-col gap-5" style={{ background: '#0a1a33', borderTop: '1px solid #1c3a63' }}>
+        <div className="md:hidden px-6 pb-6 pt-2 flex flex-col gap-5" style={{ background: '#000000', borderTop: '1px solid #222222' }}>
           {NAV_LINKS.map(link => (
             <a
               key={link.label}
