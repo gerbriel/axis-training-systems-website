@@ -297,6 +297,7 @@ export default function Rankings() {
   const [sortDir,     setSortDir]     = useState<'asc'|'desc'>('desc')
   const [globalSearch, setGlobalSearch] = useState('')  // top bar: client-side all-field + API name when name is empty
   const [meetName,    setMeetName]    = useState('')    // client-side meet name filter
+  const [ageFilter,   setAgeFilter]   = useState('')    // client-side exact or min age filter
 
   const abortRef        = useRef<AbortController | null>(null)
   const sentinelRef     = useRef<HTMLDivElement | null>(null)
@@ -305,7 +306,7 @@ export default function Rankings() {
   const isLoadingRef    = useRef(false)
   const searchGenRef    = useRef(0)   // incremented each search; finally only clears if still current gen
   const handleSearchRef = useRef<() => void>(() => {})
-  const didMountRef     = useRef(false) // skip auto-trigger on initial render
+  const didMountRef     = useRef(true)  // always fire effects — no skip needed
 
   // Filter suffix for the OPL API path (e.g. '/usapl/raw/men/2026')
   // Used in both the rankings browse path and the name search context path
@@ -340,12 +341,17 @@ export default function Rankings() {
           if (age < lo || age > hi) return false
         }
       }
+      if (ageFilter.trim()) {
+        const age = parseFloat(row.age)
+        const target = parseFloat(ageFilter.trim())
+        if (!isNaN(age) && !isNaN(target) && Math.floor(age) !== Math.floor(target)) return false
+      }
       if (country && !row.country.toLowerCase().includes(country.trim().toLowerCase())) return false
       if (division && !row.division.toLowerCase().includes(division.trim().toLowerCase())) return false
       if (meetName.trim() && !row.meetName.toLowerCase().includes(meetName.trim().toLowerCase())) return false
       return true
     })
-  }, [name, weightClass, ageClass, country, division, meetName])
+  }, [name, weightClass, ageClass, ageFilter, country, division, meetName])
 
   const loadChunk = useCallback(async (isInit: boolean) => {
     if (isLoadingRef.current) return
@@ -426,10 +432,10 @@ export default function Rankings() {
   // Live search on name — 400ms debounce
   useEffect(() => {
     if (!name.trim()) {
-      if (searched) handleSearchRef.current()
+      handleSearchRef.current()
       return
     }
-    const t = setTimeout(() => handleSearchRef.current(), 400)
+    const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
@@ -438,43 +444,48 @@ export default function Rankings() {
   useEffect(() => {
     if (name.trim()) return  // name field has priority for API
     if (!globalSearch.trim()) {
-      if (searched) handleSearchRef.current()
+      handleSearchRef.current()
       return
     }
-    const t = setTimeout(() => handleSearchRef.current(), 400)
+    const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalSearch, name])
 
-  // Dropdowns: fire immediately on change, no prior search needed.
-  // didMountRef skips the first fire (initial render with default empty values).
+  // Dropdowns: fire immediately on change
   useEffect(() => {
-    if (!didMountRef.current) { didMountRef.current = true; return }
     handleSearchRef.current()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [federation, sex, equipment, year, weightClass, ageClass])
 
   // Text filter fields: same debounce pattern as name — fire on first use, clear on empty.
   useEffect(() => {
-    if (!country) { if (searched) handleSearchRef.current(); return }
-    const t = setTimeout(() => handleSearchRef.current(), 400)
+    if (!country) { handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country])
 
   useEffect(() => {
-    if (!division) { if (searched) handleSearchRef.current(); return }
-    const t = setTimeout(() => handleSearchRef.current(), 400)
+    if (!division) { handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [division])
 
   useEffect(() => {
-    if (!meetName) { if (searched) handleSearchRef.current(); return }
-    const t = setTimeout(() => handleSearchRef.current(), 400)
+    if (!meetName) { handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetName])
+
+  useEffect(() => {
+    if (!ageFilter) { handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 200)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ageFilter])
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -585,7 +596,7 @@ export default function Rankings() {
         <div style={{ marginBottom: '2.5rem' }}>
           <p style={{ color: '#fff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, marginBottom: '.75rem' }}>Powerlifting Rankings</h1>
-          <p style={{ color: '#c7c7c7', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. Filter by federation, equipment, sex, weight class and more.</p>
+          <p style={{ color: '#c7c7c7', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. All filters update results live — just type or select.</p>
         </div>
 
         {/* ── Global search bar ────────────────────────────────────── */}
@@ -682,6 +693,12 @@ export default function Rankings() {
                 placeholder="e.g. Arnold Classic" maxLength={80}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
+            <div>
+              <label style={LBL}>Age <span style={{ color: '#555', fontWeight: 400 }}>(exact)</span></label>
+              <input type="number" value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
+                placeholder="e.g. 32" min={0} max={100} step={1}
+                style={{ ...SEL, boxSizing: 'border-box' }} />
+            </div>
           </div>
 
           {/* Unit toggle + search button */}
@@ -702,7 +719,7 @@ export default function Rankings() {
               border: 'none', borderRadius: '.3rem', padding: '.6rem 2rem',
               fontWeight: 900, fontSize: '.65rem', letterSpacing: '.15em',
               textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-            }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
+            }}>{loading ? 'Loading…' : 'Refresh'}</button>
             {searched && !loading && (
               <span style={{ color: '#888888', fontSize: '.72rem', marginLeft: 'auto' }}>
                 {displayRows.length !== rows.length
@@ -901,12 +918,12 @@ export default function Rankings() {
           </>
         )}
 
-        {/* Pre-search state */}
-        {!searched && !loading && (
+        {/* Pre-search state — only when no filters set */}
+        {!searched && !loading && !name.trim() && !globalSearch.trim() && !federation && !equipment && !year && !weightClass && !ageClass && !country.trim() && !division.trim() && !meetName.trim() && !ageFilter.trim() && (
           <div style={{ textAlign: 'center', padding: '5rem 0' }}>
             <div style={{ fontSize: 44, marginBottom: '1.25rem' }}>🏋️</div>
-            <p style={{ color: '#888888', fontSize: '.875rem', marginBottom: '.5rem' }}>Type a name or set filters and click Browse Rankings.</p>
-            <p style={{ color: '#888888', fontSize: '.75rem' }}>Name searches update live as you type. Filter changes auto-refresh after first search.</p>
+            <p style={{ color: '#888888', fontSize: '.875rem', marginBottom: '.5rem' }}>Type a name or set any filter — results load instantly.</p>
+            <p style={{ color: '#888888', fontSize: '.75rem' }}>All fields search live as you type. Combine multiple filters for precision.</p>
           </div>
         )}
         {searched && !loading && rows.length === 0 && !error && (
