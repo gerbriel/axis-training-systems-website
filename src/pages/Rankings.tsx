@@ -304,8 +304,8 @@ export default function Rankings() {
   const serverTotalRef  = useRef(Infinity)
   const isLoadingRef    = useRef(false)
   const searchGenRef    = useRef(0)   // incremented each search; finally only clears if still current gen
-  // Stable ref to latest handleSearch — lets effects always call current version
   const handleSearchRef = useRef<() => void>(() => {})
+  const didMountRef     = useRef(false) // skip auto-trigger on initial render
 
   // Filter suffix for the OPL API path (e.g. '/usapl/raw/men/2026')
   // Used in both the rankings browse path and the name search context path
@@ -446,13 +446,35 @@ export default function Rankings() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalSearch, name])
 
-  // Auto-trigger on any dropdown filter change (instant — no debounce needed)
-  // Only fires after the user has already done a search
+  // Dropdowns: fire immediately on change, no prior search needed.
+  // didMountRef skips the first fire (initial render with default empty values).
   useEffect(() => {
-    if (!searched) return
+    if (!didMountRef.current) { didMountRef.current = true; return }
     handleSearchRef.current()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [federation, sex, equipment, year, weightClass, ageClass, country, division])
+  }, [federation, sex, equipment, year, weightClass, ageClass])
+
+  // Text filter fields: same debounce pattern as name — fire on first use, clear on empty.
+  useEffect(() => {
+    if (!country) { if (searched) handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 400)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country])
+
+  useEffect(() => {
+    if (!division) { if (searched) handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 400)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [division])
+
+  useEffect(() => {
+    if (!meetName) { if (searched) handleSearchRef.current(); return }
+    const t = setTimeout(() => handleSearchRef.current(), 400)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetName])
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
