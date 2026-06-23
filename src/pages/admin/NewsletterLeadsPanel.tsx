@@ -52,13 +52,13 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
     <>
       {isDemo && (
         <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.625rem 2rem', display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-          <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
+          <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
           <span style={{ color: '#7a6500', fontSize: '.75rem' }}>{leads.length} sample newsletter leads.</span>
         </div>
       )}
 
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d0d0d', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <input
           className="field"
           placeholder="Search name or email…"
@@ -69,9 +69,9 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
 
         <button
           onClick={refresh}
-          style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+          style={{ background: 'none', border: '1px solid #222222', color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = '#222222'}
         >
           ↺ Refresh
         </button>
@@ -89,10 +89,10 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
 
       {/* Source breakdown chips */}
       {!loading && leads.length > 0 && (
-        <div style={{ padding: '.75rem 2rem', borderBottom: '1px solid #15375f', display: 'flex', flexWrap: 'wrap', gap: '.5rem', alignItems: 'center' }}>
-          <span style={{ color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginRight: '.25rem' }}>By Source:</span>
+        <div style={{ padding: '.75rem 2rem', borderBottom: '1px solid #1a1a1a', display: 'flex', flexWrap: 'wrap', gap: '.5rem', alignItems: 'center' }}>
+          <span style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginRight: '.25rem' }}>By Source:</span>
           {Object.entries(bySrc).sort((a, b) => b[1] - a[1]).map(([src, count]) => (
-            <span key={src} style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#f5b935', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>
+            <span key={src} style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>
               {sourceLabel(src)} · {count}
             </span>
           ))}
@@ -100,25 +100,25 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
       )}
 
       {error && (
-        <div style={{ margin: '1.5rem 2rem', padding: '.75rem 1rem', background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.25)', borderRadius: '.25rem', color: '#f5b935', fontSize: '.8rem' }}>
+        <div style={{ margin: '1.5rem 2rem', padding: '.75rem 1rem', background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.25)', borderRadius: '.25rem', color: '#fff', fontSize: '.8rem' }}>
           {error}
         </div>
       )}
 
       {/* Table */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>Loading newsletter leads…</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#888888', fontSize: '.8rem' }}>Loading newsletter leads…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#888888', fontSize: '.8rem' }}>
           {leads.length === 0 ? 'No newsletter signups yet.' : 'No results for that search.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1c3a63' }}>
+              <tr style={{ borderBottom: '1px solid #222222' }}>
                 {['Signed Up', 'Name', 'Email', 'Source'].map(h => (
-                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#888888', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -126,19 +126,19 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
               {filtered.map(lead => (
                 <tr
                   key={lead.id}
-                  style={{ borderBottom: '1px solid #15375f' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#0a1a33')}
+                  style={{ borderBottom: '1px solid #1a1a1a' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#000000')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7', whiteSpace: 'nowrap' }}>
                     {new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
                   <td style={{ padding: '1rem 1.25rem', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {lead.firstName} {lead.lastName}
                   </td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de' }}>{lead.email}</td>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7' }}>{lead.email}</td>
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    <span style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#f5b935', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem' }}>
+                    <span style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.15)', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem' }}>
                       {sourceLabel(lead.source)}
                     </span>
                   </td>
@@ -146,7 +146,7 @@ export default function NewsletterLeadsPanel({ isDemo = false }: { isDemo?: bool
               ))}
             </tbody>
           </table>
-          <p style={{ padding: '.75rem 1.25rem', color: '#b8c2d4', fontSize: '.7rem' }}>
+          <p style={{ padding: '.75rem 1.25rem', color: '#888888', fontSize: '.7rem' }}>
             Showing {filtered.length} of {leads.length} subscribers
           </p>
         </div>

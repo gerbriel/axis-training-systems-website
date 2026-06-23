@@ -77,7 +77,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
       {/* Demo banner */}
       {isDemo && (
         <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.625rem 2rem', display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-          <span style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
+          <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
           <span style={{ color: '#7a6500', fontSize: '.75rem' }}>
             Showing {demoLeads.length} sample lead{demoLeads.length !== 1 ? 's' : ''} for {coach.firstName}.
           </span>
@@ -85,7 +85,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
       )}
 
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d0d0d', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <input
           className="field" placeholder="Search name or email…"
           value={search} onChange={e => { setSearch(e.target.value); if (e.target.value) setFilterStatus('all') }}
@@ -99,8 +99,8 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
               key={s}
               onClick={() => setFilterStatus(s)}
               style={{
-                background: filterStatus === s ? (s === 'all' ? '#1c3a63' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
-                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#1c3a63'}`,
+                background: filterStatus === s ? (s === 'all' ? '#222222' : STATUS_COLORS[s as LeadStatus] + '22') : 'transparent',
+                border: `1px solid ${filterStatus === s ? (s === 'all' ? '#444' : STATUS_COLORS[s as LeadStatus]) : '#222222'}`,
                 color: filterStatus === s ? (s === 'all' ? '#fff' : STATUS_COLORS[s as LeadStatus]) : '#444',
                 fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                 padding: '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', whiteSpace: 'nowrap',
@@ -114,9 +114,9 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
         {!isDemo && (
           <button
             onClick={fetchLeads}
-            style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
+            style={{ background: 'none', border: '1px solid #222222', color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .875rem', borderRadius: '.25rem', cursor: 'pointer', marginLeft: 'auto' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#444'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#222222'}
           >
             ↺ Refresh
           </button>
@@ -125,21 +125,21 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
 
       {/* Table */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#b8c2d4', fontSize: '.8rem' }}>Loading leads…</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#888888', fontSize: '.8rem' }}>Loading leads…</div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: '4rem', textAlign: 'center' }}>
-          <p style={{ color: '#b8c2d4', fontSize: '.8rem', marginBottom: '.5rem' }}>No leads found.</p>
+          <p style={{ color: '#888888', fontSize: '.8rem', marginBottom: '.5rem' }}>No leads found.</p>
           {leads.length === 0 && !isDemo && (
-            <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>Leads submitted to {coach.firstName} will appear here.</p>
+            <p style={{ color: '#888888', fontSize: '.75rem' }}>Leads submitted to {coach.firstName} will appear here.</p>
           )}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1c3a63' }}>
+              <tr style={{ borderBottom: '1px solid #222222' }}>
                 {['Submitted', 'Name', 'Email', 'Service', 'SBD', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#888888', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -148,19 +148,19 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
                 <tr
                   key={lead.id}
                   onClick={() => setSelected(lead)}
-                  style={{ borderBottom: '1px solid #0b2f5b', cursor: 'pointer', transition: 'background .1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#15375f')}
+                  style={{ borderBottom: '1px solid #0d0d0d', cursor: 'pointer', transition: 'background .1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7', whiteSpace: 'nowrap' }}>
                     {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
                   <td style={{ padding: '1rem 1.25rem', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {lead.first_name} {lead.last_name}
                   </td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de' }}>{lead.email}</td>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7' }}>{lead.email}</td>
                   <td style={{ padding: '1rem 1.25rem', color: '#aaa', whiteSpace: 'nowrap' }}>{lead.service}</td>
-                  <td style={{ padding: '1rem 1.25rem', color: '#c7d0de', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.75rem' }}>
+                  <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '.75rem' }}>
                     {lead.squat_max && lead.bench_max && lead.dead_max
                       ? `${lead.squat_max} / ${lead.bench_max} / ${lead.dead_max}`
                       : '—'}
@@ -172,7 +172,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
               ))}
             </tbody>
           </table>
-          <p style={{ padding: '.75rem 1.25rem', color: '#b8c2d4', fontSize: '.7rem' }}>
+          <p style={{ padding: '.75rem 1.25rem', color: '#888888', fontSize: '.7rem' }}>
             Showing {filtered.length} of {leads.length} leads
           </p>
         </div>

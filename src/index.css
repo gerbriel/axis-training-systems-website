@@ -3,26 +3,35 @@
 @tailwind utilities;
 
 :root {
-  /* Surfaces */
-  --bg:          #0a1a33;   /* deep navy-black — dominant page background */
-  --surface:     #0b2f5b;   /* AXIS navy — cards, panels */
-  --surface-2:   #15375f;   /* raised / hover state */
-  --border:      #1c3a63;   /* subtle navy border */
+  /* Surfaces — true black base */
+  --bg:          #000000;
+  --surface:     #0d0d0d;
+  --surface-2:   #1a1a1a;
+  --border:      #222222;
 
   /* Brand accents — gold leads */
-  --gold:        #f5b935;   /* primary accent: headings, labels, icons */
-  --gold-soft:   #ffd782;   /* large fills / highlights */
-  --bronze:      #bfa162;   /* solid button fills */
-  --bronze-dk:   #9a7c3a;   /* button hover */
+  --gold:        #f5b935;
+  --gold-soft:   #ffd782;
+  --bronze:      #bfa162;
+  --bronze-dk:   #9a7c3a;
+
+  /* Secondary — deep purple/indigo for gradient overlays */
+  --purple-dk:   #0f096b;
+  --purple-lt:   #3b2f85;
+
+  /* Tertiary — electric blues */
+  --blue:        #0d5bae;
+  --cyan:        #009dd6;
+  --cyan-lt:     #00d1f0;
 
   /* Power accent — crimson, used sparingly */
   --crimson:     #c8102e;
   --crimson-dk:  #a30c26;
 
-  /* Text hierarchy — all pass WCAG AA on navy surfaces */
-  --text:        #f5f3ee;   /* primary body — warm off-white, 12:1 on card navy */
-  --text-2:      #c7d0de;   /* secondary / captions — cool light, 9:1 */
-  --text-3:      #b8c2d4;   /* muted — lowest floor, 7.4:1 on #0b2f5b */
+  /* Text hierarchy — white on black */
+  --text:        #ffffff;
+  --text-2:      #c7c7c7;
+  --text-3:      #888888;
 
   /* UI neutrals */
   --steel:       #3a3f47;
@@ -34,8 +43,10 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Neue Montreal', ui-sans-serif, system-ui, sans-serif;
 }
+
+h1, h2, h3, h4, h5, h6 { color: #ffffff; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -77,7 +88,7 @@ textarea.field { resize: vertical; }
   white-space: nowrap;
 }
 .pill-label:hover { border-color: var(--steel); color: #fff; }
-.pill-checked { border-color: var(--gold) !important; color: var(--gold) !important; background: rgba(245,185,53,.08) !important; }
+.pill-checked { border-color: var(--gold) !important; color: #fff !important; background: rgba(245,185,53,.08) !important; }
 
 /* Scale button */
 .scale-btn {
@@ -96,7 +107,7 @@ textarea.field { resize: vertical; }
   justify-content: center;
 }
 .scale-btn:hover,
-.scale-btn.selected { border-color: var(--gold); color: var(--gold); background: rgba(245,185,53,.08); }
+.scale-btn.selected { border-color: var(--gold); color: #fff; background: rgba(245,185,53,.08); }
 
 /* Field label */
 .field-label {
@@ -107,4 +118,18 @@ textarea.field { resize: vertical; }
   letter-spacing: .1em;
   text-transform: uppercase;
   margin-bottom: .5rem;
+}
+
+/* Section label with extending horizontal rule: LABEL ————————— */
+.label-rule {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.label-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.3;
 }

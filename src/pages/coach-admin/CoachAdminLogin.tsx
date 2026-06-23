@@ -63,14 +63,14 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a1a33' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#000000' }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div className="text-center mb-8">
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 28, filter: 'brightness(0) invert(1)', margin: '0 auto 1.5rem' }} />
-          <p style={{ color: '#f5b935', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.25rem' }}>Coach Portal</p>
+          <p style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.25rem' }}>Coach Portal</p>
           <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.75rem', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.5rem' }}>{coach.name}</h1>
-          <p style={{ color: '#b8c2d4', fontSize: '.75rem' }}>{coach.role}</p>
+          <p style={{ color: '#888888', fontSize: '.75rem' }}>{coach.role}</p>
         </div>
 
         {sessionMismatch && onSignOut && (
@@ -104,7 +104,7 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
           </div>
 
           {isBlocked && (
-            <div style={{ background: '#1a1600', border: '1px solid #5c4a00', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#f5b935', fontSize: '.8rem' }}>
+            <div style={{ background: '#1a1600', border: '1px solid #5c4a00', padding: '.875rem 1rem', borderRadius: '.25rem', color: '#fff', fontSize: '.8rem' }}>
               Too many failed attempts. Try again in {formatLockRemaining(lockRemaining)}.
             </div>
           )}
@@ -126,22 +126,22 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
 
         {/* Demo button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
-          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
-          <span style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
-          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #1c3a63' }} />
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #222222' }} />
+          <span style={{ color: '#888888', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>or</span>
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #222222' }} />
         </div>
         <button
           type="button" onClick={onDemo}
-          style={{ width: '100%', background: 'transparent', border: '1px solid #1c3a63', color: '#c7d0de', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+          style={{ width: '100%', background: 'transparent', border: '1px solid #222222', color: '#c7c7c7', fontWeight: 700, fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#aaa' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#c7d0de' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#222222'; e.currentTarget.style.color = '#c7c7c7' }}
         >
           View Demo →
         </button>
 
-        <p style={{ color: '#b8c2d4', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem', lineHeight: 1.6 }}>
+        <p style={{ color: '#888888', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem', lineHeight: 1.6 }}>
           This portal is for {coach.name} only.{' '}
-          <a href={href('/')} style={{ color: '#b8c2d4', textDecoration: 'underline' }}>← Back to site</a>
+          <a href={href('/')} style={{ color: '#888888', textDecoration: 'underline' }}>← Back to site</a>
         </p>
       </div>
     </div>

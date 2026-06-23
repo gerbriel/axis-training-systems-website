@@ -18,6 +18,33 @@ import BlogIndex from './pages/BlogIndex'
 import BlogPostPage from './pages/BlogPostPage'
 import GuidesPage from './pages/GuidesPage'
 import Rankings from './pages/Rankings'
+import BookPage from './pages/BookPage'
+import { trackPageview } from './lib/analytics'
+import { href } from './utils/nav'
+
+function DemoWidget() {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <a
+      href={href('/admin?demo=1')}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
+        display: 'flex', alignItems: 'center', gap: '.5rem',
+        background: hovered ? '#111' : '#0a0a0a',
+        border: '1px solid rgba(245,185,53,.35)',
+        borderRadius: '.4rem', padding: '.55rem 1rem',
+        textDecoration: 'none', transition: 'background .15s, border-color .15s',
+        boxShadow: '0 4px 20px rgba(0,0,0,.6)',
+        ...(hovered ? { borderColor: 'rgba(245,185,53,.65)' } : {}),
+      }}
+    >
+      <span style={{ fontSize: '.7rem', color: 'rgba(245,185,53,.8)', fontWeight: 900, letterSpacing: '.08em' }}>▶</span>
+      <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>View Demo</span>
+    </a>
+  )
+}
 
 // ── Routing ────────────────────────────────────────────────────────────────
 // Strip BASE_URL prefix so we always work with a clean path like /coaches/slug
@@ -54,10 +81,16 @@ function getRoute() {
   // /rankings
   if (path === '/rankings') return { type: 'rankings' }
 
+  // /book
+  if (path === '/book') return { type: 'book' }
+
   return { type: 'home' }
 }
 
 const route = getRoute()
+
+// Track this page load
+trackPageview(path || '/')
 
 export default function App() {
   if (route.type === 'coach-admin') return <CoachAdmin slug={route.slug!} />
@@ -68,6 +101,7 @@ export default function App() {
   if (route.type === 'blog-post') return <BlogPostPage slug={route.slug!} />
   if (route.type === 'guides') return <GuidesPage />
   if (route.type === 'rankings') return <Rankings />
+  if (route.type === 'book') return <BookPage />
 
   // ── Home ──────────────────────────────────────────────────────────────────
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -79,18 +113,19 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ background: '#0a1a33', minHeight: '100vh' }}>
+    <div style={{ background: '#000000', minHeight: '100vh' }}>
       <Navbar />
       <Hero />
       <Philosophy />
       <Services />
       <HowItWorks />
       <Testimonials />
-      <UpcomingMeets />
       <Coaches />
       <Tools />
+      <UpcomingMeets />
       <Footer />
       {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
+      <DemoWidget />
     </div>
   )
 }

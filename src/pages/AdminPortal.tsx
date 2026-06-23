@@ -2,19 +2,24 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import AdminLogin from './admin/AdminLogin'
-import AdminDashboard from './admin/AdminDashboard'
 import AdminSettings from './admin/AdminSettings'
-import ApprovalsPanel from './admin/ApprovalsPanel'
-import NewsletterLeadsPanel from './admin/NewsletterLeadsPanel'
+import CRMPanel from './admin/CRMPanel'
+import BlogPanel from './admin/BlogPanel'
+import MeetsPanel from './admin/MeetsPanel'
+import BookingsPanel from './admin/BookingsPanel'
+import AnalyticsPanel from './admin/AnalyticsPanel'
 import { getPendingContent } from '../data/pendingContent'
 
-type Tab = 'leads' | 'approvals' | 'newsletter' | 'settings'
+type Tab = 'crm' | 'bookings' | 'analytics' | 'blog' | 'meets' | 'settings'
 
 export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('leads')
-  const [isDemo, setIsDemo] = useState(false)
+  const [tab, setTab] = useState<Tab>('crm')
+  const [isDemo, setIsDemo] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('demo') === '1'
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -32,26 +37,27 @@ export default function AdminPortal() {
   }
 
   if (loading && !isDemo) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a1a33' }}>
-      <p style={{ color: '#b8c2d4', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#000000' }}>
+      <p style={{ color: '#888888', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>
   )
 
   if (!session && !isDemo) return <AdminLogin onDemo={() => setIsDemo(true)} />
 
   return (
-    <div className="min-h-screen" style={{ background: '#0a1a33', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen" style={{ background: '#000000', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
-      <header style={{ background: '#0a1a33', borderBottom: '1px solid #0b2f5b', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
+      <header style={{ background: '#000000', borderBottom: '1px solid #0d0d0d', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
         <a href={(import.meta as any).env?.BASE_URL ?? '/'}>
           <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
         </a>
-        <span style={{ color: '#b8c2d4', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
+        <span style={{ color: '#888888', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
 
         {/* Tabs */}
         <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
-        {(['leads', 'approvals', 'newsletter', 'settings'] as Tab[]).map(t => {
-              const pendingCount = t === 'approvals' ? getPendingContent().filter(c => c.status === 'pending').length : 0
+        {(['crm', 'bookings', 'analytics', 'blog', 'meets', 'settings'] as Tab[]).map(t => {
+              const pending = getPendingContent().filter(c => c.status === 'pending')
+              const pendingCount = t === 'blog' ? pending.filter(c => c.type === 'blog').length : t === 'meets' ? pending.filter(c => c.type === 'meet').length : 0
               return (
             <button
               key={t}
@@ -64,10 +70,10 @@ export default function AdminPortal() {
                 paddingBottom: '1px', transition: 'color .15s',
                 display: 'flex', alignItems: 'center', gap: '.35rem',
               }}
-              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#b8c2d4' }}
-              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#c7d0de' }}
+              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = '#888888' }}
+              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = '#c7c7c7' }}
             >
-              {t}
+              {{ crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics', blog: 'Blog', meets: 'Meets', settings: 'Settings' }[t]}
               {pendingCount > 0 && (
                 <span style={{ background: '#bfa162', color: '#fff', fontSize: '.5rem', fontWeight: 900, borderRadius: '10rem', padding: '.1rem .4rem', lineHeight: 1.4 }}>{pendingCount}</span>
               )}
@@ -78,14 +84,14 @@ export default function AdminPortal() {
 
         {/* Right side */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ color: '#b8c2d4', fontSize: '.75rem' }}>
-            {isDemo ? <span style={{ color: '#f5b935', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
+          <span style={{ color: '#888888', fontSize: '.75rem' }}>
+            {isDemo ? <span style={{ color: '#fff', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
           </span>
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid #1c3a63', color: '#c7d0de', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
+            style={{ background: 'none', border: '1px solid #222222', color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#1c3a63'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = '#222222'}
           >
             {isDemo ? 'Exit Demo' : 'Sign Out'}
           </button>
@@ -93,18 +99,20 @@ export default function AdminPortal() {
       </header>
 
       {/* Page header */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0b2f5b', background: '#0a1a33' }}>
+      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #0d0d0d', background: '#000000' }}>
         <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {tab === 'leads'      ? 'Leads' : tab === 'approvals' ? 'Content Approvals' : tab === 'newsletter' ? 'Newsletter' : 'Settings'}
+          {{ crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics', blog: 'Blog', meets: 'Meet Listings', settings: 'Settings' }[tab]}
         </h1>
       </div>
 
       {/* Content */}
       <main style={{ flex: 1, overflowX: 'auto' }}>
-        {tab === 'leads'      && <AdminDashboard isDemo={isDemo} />}
-        {tab === 'approvals'  && <ApprovalsPanel isDemo={isDemo} />}
-        {tab === 'newsletter' && <NewsletterLeadsPanel isDemo={isDemo} />}
-        {tab === 'settings'   && <AdminSettings isDemo={isDemo} />}
+        {tab === 'crm'       && <CRMPanel isDemo={isDemo} />}
+        {tab === 'bookings'  && <BookingsPanel isDemo={isDemo} />}
+        {tab === 'analytics' && <AnalyticsPanel isDemo={isDemo} />}
+        {tab === 'blog'      && <BlogPanel isDemo={isDemo} />}
+        {tab === 'meets'     && <MeetsPanel isDemo={isDemo} />}
+        {tab === 'settings'  && <AdminSettings isDemo={isDemo} />}
       </main>
     </div>
   )

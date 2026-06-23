@@ -15,3 +15,11 @@ export function applyHref(slug: string) {
 export function adminHref(slug?: string) {
   return slug ? href(`/admin/${slug}`) : href('/admin')
 }
+
+export function bookHref() {
+  return href('/book')
+}
+
+export function bookCoachHref(slug: string) {
+  return href(`/book?coach=${encodeURIComponent(slug)}`)
+}

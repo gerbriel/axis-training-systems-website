@@ -53,6 +53,51 @@ export interface AdminConfig {
   value: string
 }
 
+export interface CoachSchedule {
+  id: string
+  coach_slug: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  slot_duration_minutes: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface CoachAvailabilityBlock {
+  id: string
+  coach_slug: string
+  block_date: string
+  start_time: string | null
+  end_time: string | null
+  reason: string | null
+  created_at: string
+}
+
+export interface Booking {
+  id: string
+  coach_slug: string
+  booked_at: string
+  duration_minutes: number
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  service_interest: string | null
+  goals: string | null
+  status: 'pending' | 'confirmed' | 'cancelled'
+  coach_notes: string | null
+  created_at: string
+}
+
+export interface Pageview {
+  id: string
+  path: string
+  referrer: string | null
+  session_id: string
+  created_at: string
+}
+
 // Minimal Supabase Database type shape (enough for our tables)
 export interface Database {
   public: {

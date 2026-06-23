@@ -1,68 +1,143 @@
 import { COACHES } from '../data/coaches'
-import { coachHref, applyHref } from '../utils/nav'
+import { coachHref, applyHref, bookCoachHref } from '../utils/nav'
+
+const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 export default function Coaches() {
   return (
-    <section id="coaches" style={{ background: '#0a1a33', borderTop: '1px solid #0b2f5b', borderBottom: '1px solid #0b2f5b', padding: '8rem 1.5rem' }}>
+    <section id="coaches" style={{ background: '#000000', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <p style={{ color: '#f5b935', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Team</p>
-          <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff', marginBottom: '1.25rem' }}>Our Coaches</h2>
-          <p style={{ color: '#c7d0de', fontSize: '.9rem', maxWidth: '28rem' }}>Browse the team, view each coach's profile, and apply directly to the one that's the right fit for you.</p>
+        {/* Section header */}
+        <div className="mb-12">
+          <p className="label-rule" style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
+            The Team
+          </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>Our Coaches</h2>
+            <p style={{ color: '#888888', fontSize: '.875rem', maxWidth: '22rem', lineHeight: 1.7 }}>
+              Browse the team, view each coach's profile, and apply directly to the one that's the right fit for you.
+            </p>
+          </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {COACHES.map(c => (
-            <div key={c.slug} style={{ background: '#15375f', border: '1px solid #1c3a63', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-              {/* Avatar */}
-              {c.photo ? (
-                <img
-                  src={c.photo} alt={c.name}
-                  style={{ width: '4rem', height: '4rem', borderRadius: '50%', objectFit: 'cover', marginBottom: '1.25rem', flexShrink: 0, border: '2px solid #1c3a63', background: '#1c3a63' }}
-                  loading="lazy"
-                />
-              ) : (
-                <div
-                  className="flex items-center justify-center mb-5"
-                  style={{ width: '3rem', height: '3rem', borderRadius: '50%', background: '#0b2f5b', border: '1px solid #1c3a63', flexShrink: 0 }}
-                >
-                  <span style={{ color: '#f5b935', fontWeight: 900, fontSize: '1.1rem' }}>{c.firstName[0]}</span>
+        {/* Full-bleed photo card grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          {COACHES.map(c => {
+            const photo = c.photo || c.ctaBg
+            const [firstName, ...rest] = c.name.split(' ')
+            const lastName = rest.join(' ')
+            return (
+              <div
+                key={c.slug}
+                style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: '#0d0d0d' }}
+              >
+                {/* Background photo */}
+                {photo && (
+                  <img
+                    src={photo}
+                    alt={c.name}
+                    loading="lazy"
+                    style={{
+                      position: 'absolute', inset: 0,
+                      width: '100%', height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center top',
+                      filter: 'grayscale(20%) brightness(0.75)',
+                      transition: 'transform .4s ease',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
+                    onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                  />
+                )}
+
+                {/* Gradient overlay — purple secondary mid, black at bottom */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(15,9,107,0.25) 30%, rgba(59,47,133,0.35) 55%, rgba(0,0,0,0.88) 75%, rgba(0,0,0,0.98) 100%)',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Top: label + logo stamp */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
+                  padding: '1rem 1.25rem',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                }}>
+                  <span style={{
+                    color: 'rgba(255,255,255,0.65)',
+                    fontSize: '.5rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase',
+                    borderBottom: '1px solid rgba(255,255,255,0.25)', paddingBottom: '.2rem',
+                  }}>
+                    Meet The Team
+                  </span>
+                  <img
+                    src={`${BASE}logo.svg`}
+                    alt="Axis"
+                    style={{ height: 16, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.5 }}
+                  />
                 </div>
-              )}
-              <p className="text-white font-bold text-sm mb-1">{c.name}</p>
-              <p style={{ color: '#f5b935', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{c.role}</p>
-              <p style={{ color: '#c7d0de', fontSize: '.75rem', lineHeight: 1.6, marginBottom: '1.25rem', flex: 1 }}>{c.tagline}</p>
-              {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginTop: 'auto' }}>
-                <a
-                  href={coachHref(c.slug)}
-                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid #1c3a63', color: '#b8c2d4', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c3a63'; e.currentTarget.style.color = '#b8c2d4' }}
-                >
-                  View Profile
-                </a>
-                <a
-                  href={c.bookCallUrl ?? 'https://calendly.com/ronnie-axistrainingsystems'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'block', textAlign: 'center', background: 'transparent', border: '1px solid rgba(245,185,53,.25)', color: '#f5b935', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, background .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.background = 'rgba(245,185,53,.08)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(245,185,53,.25)'; e.currentTarget.style.background = 'transparent' }}
-                >
-                  Book a Call
-                </a>
-                <a
-                  href={applyHref(c.slug)}
-                  style={{ display: 'block', textAlign: 'center', background: '#bfa162', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#9a7c3a' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#bfa162' }}
-                >
-                  Choose This Coach
-                </a>
+
+                {/* Bottom: name + role + actions */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1.25rem' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: '.75rem', textTransform: 'uppercase', letterSpacing: '.05em', lineHeight: 1, marginBottom: '.1rem' }}>
+                    {firstName}
+                  </p>
+                  <p style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.4rem,2.5vw,1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .9, marginBottom: '.75rem' }}>
+                    {lastName}
+                  </p>
+                  <p style={{ color: '#fff', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                    {c.role}
+                  </p>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', marginBottom: '.875rem' }} />
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
+                    <a
+                      href={coachHref(c.slug)}
+                      style={{
+                        display: 'block', textAlign: 'center',
+                        background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: '#fff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+                    >
+                      View Profile
+                    </a>
+                    <a
+                      href={bookCoachHref(c.slug)}
+                      style={{
+                        display: 'block', textAlign: 'center',
+                        background: 'transparent',
+                        border: '1px solid rgba(245,185,53,.3)',
+                        color: '#fff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,185,53,.1)'; e.currentTarget.style.borderColor = '#f5b935' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(245,185,53,.3)' }}
+                    >
+                      Book a Call
+                    </a>
+                    <a
+                      href={applyHref(c.slug)}
+                      style={{
+                        display: 'block', textAlign: 'center',
+                        background: '#bfa162', border: 'none',
+                        color: '#fff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#9a7c3a' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#bfa162' }}
+                    >
+                      Choose This Coach
+                    </a>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>
