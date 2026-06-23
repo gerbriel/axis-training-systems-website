@@ -295,6 +295,8 @@ export default function Rankings() {
   const [histError,   setHistError]   = useState('')
   const [sortKey,     setSortKey]     = useState<string>('dots')
   const [sortDir,     setSortDir]     = useState<'asc'|'desc'>('desc')
+  const [globalSearch, setGlobalSearch] = useState('')  // top bar: client-side all-field + API name when name is empty
+  const [meetName,    setMeetName]    = useState('')    // client-side meet name filter
 
   const abortRef        = useRef<AbortController | null>(null)
   const sentinelRef     = useRef<HTMLDivElement | null>(null)
@@ -325,6 +327,7 @@ export default function Rankings() {
   // are not in the server-side path)
   const applyClientFilters = useCallback((r: RankRow[]) => {
     return r.filter(row => {
+      if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
       if (weightClass) {
         const rowWt = row.weightClassKg.replace(/\.0$/, '')
         const selWt = weightClass.replace(/\.0$/, '')
@@ -339,9 +342,10 @@ export default function Rankings() {
       }
       if (country && !row.country.toLowerCase().includes(country.trim().toLowerCase())) return false
       if (division && !row.division.toLowerCase().includes(division.trim().toLowerCase())) return false
+      if (meetName.trim() && !row.meetName.toLowerCase().includes(meetName.trim().toLowerCase())) return false
       return true
     })
-  }, [weightClass, ageClass, country, division])
+  }, [name, weightClass, ageClass, country, division, meetName])
 
   const loadChunk = useCallback(async (isInit: boolean) => {
     if (isLoadingRef.current) return
@@ -357,10 +361,12 @@ export default function Rankings() {
 
     try {
       const newRows: RankRow[] = []
+      // name field takes priority; globalSearch drives API only when name is empty
+      const searchName = name.trim() || globalSearch.trim()
 
-      if (name.trim()) {
+      if (searchName) {
         // Name search: filtered API context + parallel row fetches + session cache
-        const allRows = await nameSearch(name.trim(), suffix, signal)
+        const allRows = await nameSearch(searchName, suffix, signal)
         newRows.push(...applyClientFilters(allRows))
         if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
         setHasMore(false)
@@ -398,7 +404,7 @@ export default function Rankings() {
         if (isInit) setLoading(false); else setLoadingMore(false)
       }
     }
-  }, [name, weightClass, ageClass, country, division, buildPath, buildFilterSuffix, applyClientFilters])
+  }, [name, globalSearch, weightClass, ageClass, country, division, buildPath, buildFilterSuffix, applyClientFilters])
 
   const handleSearch = useCallback(() => {
     if (abortRef.current) abortRef.current.abort()
@@ -427,6 +433,18 @@ export default function Rankings() {
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
+
+  // Global search bar — same 400ms debounce, but only drives API when name is empty
+  useEffect(() => {
+    if (name.trim()) return  // name field has priority for API
+    if (!globalSearch.trim()) {
+      if (searched) handleSearchRef.current()
+      return
+    }
+    const t = setTimeout(() => handleSearchRef.current(), 400)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalSearch, name])
 
   // Auto-trigger on any dropdown filter change (instant — no debounce needed)
   // Only fires after the user has already done a search
@@ -466,29 +484,33 @@ export default function Rankings() {
     return sortDir === 'desc' ? -diff : diff
   })
 
-  // The name field drives both the API name search (via debounce) AND this instant
-  // client-side filter across every column, so typing finds results from the API
-  // AND narrows already-loaded browse results simultaneously.
-  const displayRows = name.trim()
-    ? sortedRows.filter(row => {
-        const q = name.trim().toLowerCase()
-        return (
-          row.name.toLowerCase().includes(q) ||
-          row.federation.toLowerCase().includes(q) ||
-          row.country.toLowerCase().includes(q) ||
-          row.division.toLowerCase().includes(q) ||
-          row.equipment.toLowerCase().includes(q) ||
-          row.sex.toLowerCase().includes(q) ||
-          row.date.includes(q) ||
-          row.meetName.toLowerCase().includes(q) ||
-          row.weightClassKg.includes(q) ||
-          row.bodyweightKg.includes(q) ||
-          row.totalKg.includes(q) ||
-          row.dots.includes(q) ||
-          row.age.includes(q)
-        )
-      })
-    : sortedRows
+  // displayRows: two independent client-side passes that are both instant.
+  // globalSearch matches every column (broad multi-field find).
+  // meetName matches the meet name column specifically (separate, additive filter).
+  const displayRows = (() => {
+    let result = sortedRows
+    const gq = globalSearch.trim().toLowerCase()
+    if (gq) {
+      result = result.filter(row =>
+        row.name.toLowerCase().includes(gq) ||
+        row.federation.toLowerCase().includes(gq) ||
+        row.country.toLowerCase().includes(gq) ||
+        row.division.toLowerCase().includes(gq) ||
+        row.equipment.toLowerCase().includes(gq) ||
+        row.sex.toLowerCase().includes(gq) ||
+        row.date.includes(gq) ||
+        row.meetName.toLowerCase().includes(gq) ||
+        row.weightClassKg.includes(gq) ||
+        row.bodyweightKg.includes(gq) ||
+        row.totalKg.includes(gq) ||
+        row.dots.includes(gq) ||
+        row.age.includes(gq)
+      )
+    }
+    const mq = meetName.trim().toLowerCase()
+    if (mq) result = result.filter(row => row.meetName.toLowerCase().includes(mq))
+    return result
+  })()
 
   const toggleHistory = async (row: RankRow, key: string) => {
     if (expanded === key) { setExpanded(null); setHistRows([]); return }
@@ -549,19 +571,19 @@ export default function Rankings() {
           <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#555', fontSize: '.9rem', pointerEvents: 'none' }}>⌕</span>
           <input
             type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Search by lifter name, federation, meet, country, division, score…"
+            value={globalSearch}
+            onChange={e => setGlobalSearch(e.target.value)}
+            placeholder="Search all fields — name, federation, meet, country, division, score, date…"
             maxLength={120}
             style={{
               ...SEL, boxSizing: 'border-box', width: '100%',
               padding: '.85rem 1rem .85rem 2.5rem',
               fontSize: '.85rem', borderRadius: '.4rem',
-              border: name ? '1px solid rgba(200,16,46,.4)' : '1px solid #222222',
+              border: globalSearch ? '1px solid rgba(200,16,46,.4)' : '1px solid #222222',
             }}
           />
-          {name && (
-            <button onClick={() => setName('')} style={{
+          {globalSearch && (
+            <button onClick={() => setGlobalSearch('')} style={{
               position: 'absolute', right: '.75rem', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '.9rem', padding: '.25rem',
             }}>✕</button>
@@ -572,6 +594,14 @@ export default function Rankings() {
         <div style={{ background: '#000000', border: '1px solid #222222', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
           <p style={{ color: '#888888', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '.75rem', marginBottom: '1rem' }}>
+
+            {/* Name — live search with 400ms debounce; drives API search */}
+            <div>
+              <label style={LBL}>Lifter Name</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                placeholder="e.g. John Haack" maxLength={80}
+                style={{ ...SEL, boxSizing: 'border-box' }} />
+            </div>
 
             {/* Server-side filters (included in the API path) */}
             <div>
@@ -624,6 +654,12 @@ export default function Rankings() {
                 placeholder="e.g. Open, Masters 1" maxLength={40}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
+            <div>
+              <label style={LBL}>Meet Name <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <input type="text" value={meetName} onChange={e => setMeetName(e.target.value)}
+                placeholder="e.g. Arnold Classic" maxLength={80}
+                style={{ ...SEL, boxSizing: 'border-box' }} />
+            </div>
           </div>
 
           {/* Unit toggle + search button */}
@@ -647,11 +683,11 @@ export default function Rankings() {
             }}>{loading ? 'Loading…' : 'Browse Rankings'}</button>
             {searched && !loading && (
               <span style={{ color: '#888888', fontSize: '.72rem', marginLeft: 'auto' }}>
-                {name.trim() && displayRows.length !== rows.length
+                {displayRows.length !== rows.length
                   ? <>{displayRows.length.toLocaleString()} <span style={{ color: '#555' }}>of {rows.length.toLocaleString()}</span></>
                   : rows.length.toLocaleString()
                 }{' '}loaded
-                {!name.trim() && totalHint > 0 && (
+                {!name.trim() && !globalSearch.trim() && totalHint > 0 && (
                   <span style={{ color: '#555' }}> / {totalHint.toLocaleString()} total</span>
                 )}
               </span>
@@ -858,8 +894,8 @@ export default function Rankings() {
         )}
         {searched && !loading && rows.length > 0 && displayRows.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem 0', color: '#888888', fontSize: '.875rem' }}>
-            No results match "<span style={{ color: '#c7c7c7' }}>{name}</span>".{' '}
-            <button onClick={() => setName('')} style={{ background: 'none', border: 'none', color: '#c8102e', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', padding: 0 }}>Clear search</button>
+            No loaded results match "<span style={{ color: '#c7c7c7' }}>{globalSearch || meetName}</span>".{' '}
+            <button onClick={() => { setGlobalSearch(''); setMeetName('') }} style={{ background: 'none', border: 'none', color: '#c8102e', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', padding: 0 }}>Clear filters</button>
           </div>
         )}
 
