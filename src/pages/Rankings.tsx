@@ -108,9 +108,9 @@ async function oplFetch(url: string, signal?: AbortSignal): Promise<any> {
   }
 }
 
-async function oplFetchText(url: string): Promise<string> {
+async function oplFetchText(url: string, signal?: AbortSignal): Promise<string> {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const res = await fetch(url)
+    const res = await fetch(url, signal ? { signal } : undefined)
     if (res.status === 429) {
       if (attempt < 3) { await sleep(1200 * (attempt + 1)); continue }
       throw new Error('Rate limited.')
@@ -146,10 +146,10 @@ function parseRows(data: { rows?: unknown[][] }): RankRow[] {
       slug:            s(3),
       federation:      s(8),
       date:            s(9),
-      country:         s(6),   // lifter's nationality (col 6)
+      country:         s(6),   // lifter's nationality
       division:        s(16),
-      bodyweightKg:    s(17),  // bw-kg (col 17 = actual bodyweight)
-      weightClassKg:   s(18),  // wt-class-kg (col 18 = weight class)
+      bodyweightKg:    s(17),  // bw-kg   (col 17 = actual scale weight)
+      weightClassKg:   s(18),  // wt-class-kg (col 18 = competitive class)
       equipment:       s(14),
       best3SquatKg:    s(19),
       best3BenchKg:    s(20),
@@ -180,10 +180,10 @@ function parseCSVLine(line: string): string[] {
 }
 
 // Fetch rich lifter history from OPL's CSV endpoint
-async function fetchLifterHistory(slug: string): Promise<HistRow[]> {
+async function fetchLifterHistory(slug: string, signal?: AbortSignal): Promise<HistRow[]> {
   const cached = HIST_CACHE.get(slug)
   if (cached) return cached
-  const csv = await oplFetchText(opl('/api/liftercsv/' + encodeURIComponent(slug)))
+  const csv = await oplFetchText(opl('/api/liftercsv/' + encodeURIComponent(slug)), signal)
   const lines = csv.trim().split('\n').filter(l => l.trim())
   if (lines.length < 2) return []
   const headers = parseCSVLine(lines[0])
@@ -207,6 +207,22 @@ async function fetchLifterHistory(slug: string): Promise<HistRow[]> {
   })
   HIST_CACHE.set(slug, rows)
   return rows
+}
+
+// When a meet name filter is active during a name search, replace the raw meet path
+// stored in row.meetName (e.g. "amp/2026-CA-02") with the real human-readable name
+// (e.g. "Cayco Classic 3") by fetching each unique lifter's history CSV and matching on date.
+async function enrichMeetNames(rows: RankRow[], signal?: AbortSignal): Promise<RankRow[]> {
+  const slugs = [...new Set(rows.map(r => r.slug).filter(Boolean))]
+  await Promise.all(slugs.map(slug =>
+    HIST_CACHE.has(slug) ? Promise.resolve() : fetchLifterHistory(slug, signal).catch(() => {})
+  ))
+  if (signal?.aborted) return rows
+  return rows.map(row => {
+    const history = HIST_CACHE.get(row.slug) ?? []
+    const match = history.find(h => h.date === row.date)
+    return match ? { ...row, meetName: match.meetName } : row
+  })
 }
 
 // Fetch all records for a given name within an optional filter context.
@@ -296,8 +312,8 @@ export default function Rankings() {
   const [sortKey,     setSortKey]     = useState<string>('dots')
   const [sortDir,     setSortDir]     = useState<'asc'|'desc'>('desc')
   const [globalSearch, setGlobalSearch] = useState('')  // top bar: client-side all-field + API name when name is empty
-  const [meetName,    setMeetName]    = useState('')    // client-side meet name filter
-  const [ageFilter,   setAgeFilter]   = useState('')    // client-side exact or min age filter
+  const [meetName,    setMeetName]    = useState('')    // enriched meet name filter (via CSV during name searches)
+  const [ageExact,    setAgeExact]    = useState('')    // exact competition age filter
 
   const abortRef        = useRef<AbortController | null>(null)
   const sentinelRef     = useRef<HTMLDivElement | null>(null)
@@ -341,17 +357,21 @@ export default function Rankings() {
           if (age < lo || age > hi) return false
         }
       }
-      if (ageFilter.trim()) {
+      if (ageExact.trim()) {
         const age = parseFloat(row.age)
-        const target = parseFloat(ageFilter.trim())
+        const target = parseFloat(ageExact.trim())
         if (!isNaN(age) && !isNaN(target) && Math.floor(age) !== Math.floor(target)) return false
       }
       if (country && !row.country.toLowerCase().includes(country.trim().toLowerCase())) return false
       if (division && !row.division.toLowerCase().includes(division.trim().toLowerCase())) return false
       if (meetName.trim() && !row.meetName.toLowerCase().includes(meetName.trim().toLowerCase())) return false
+      if (ageExact.trim()) {
+        const target = parseFloat(ageExact)
+        if (!isNaN(target) && parseFloat(row.age) !== target) return false
+      }
       return true
     })
-  }, [name, weightClass, ageClass, ageFilter, country, division, meetName])
+  }, [name, weightClass, ageClass, country, division, meetName, ageExact])
 
   const loadChunk = useCallback(async (isInit: boolean) => {
     if (isLoadingRef.current) return
@@ -373,22 +393,10 @@ export default function Rankings() {
       if (searchName) {
         // Name search: filtered API context + parallel row fetches + session cache
         let allRows = await nameSearch(searchName, suffix, signal)
-        // If meetName filter is active, enrich rows with real meet names from history CSV
-        // (nameSearch returns meet path like "amp/2026-CA-02", not the full name)
+        // Meet name filter: enrich rows with real meet names from CSV (path → "Cayco Classic 3")
         if (meetName.trim()) {
-          const uniqueSlugs = [...new Set(allRows.map(r => r.slug).filter(Boolean))]
-          const histMap = new Map<string, HistRow[]>()
-          await Promise.all(uniqueSlugs.map(async slug => {
-            try { histMap.set(slug, await fetchLifterHistory(slug)) } catch { /* ignore */ }
-          }))
-          allRows = allRows.map(row => {
-            if (!row.slug || !histMap.has(row.slug)) return row
-            const hist = histMap.get(row.slug)!
-            // Find the matching history entry by date
-            const match = hist.find(h => h.date === row.date)
-            if (match) return { ...row, meetName: match.meetName }
-            return row
-          })
+          allRows = await enrichMeetNames(allRows, signal)
+          if (signal.aborted) return
         }
         newRows.push(...applyClientFilters(allRows))
         if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
@@ -427,7 +435,7 @@ export default function Rankings() {
         if (isInit) setLoading(false); else setLoadingMore(false)
       }
     }
-  }, [name, globalSearch, weightClass, ageClass, country, division, buildPath, buildFilterSuffix, applyClientFilters])
+  }, [name, globalSearch, meetName, weightClass, ageClass, country, division, buildPath, buildFilterSuffix, applyClientFilters])
 
   const handleSearch = useCallback(() => {
     if (abortRef.current) abortRef.current.abort()
@@ -446,7 +454,7 @@ export default function Rankings() {
   // Keep ref current every render so effects can call latest version
   handleSearchRef.current = handleSearch
 
-  // Live search on name — 400ms debounce
+  // Live search on name — 200ms debounce
   useEffect(() => {
     if (!name.trim()) {
       handleSearchRef.current()
@@ -457,7 +465,7 @@ export default function Rankings() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
 
-  // Global search bar — same 400ms debounce, but only drives API when name is empty
+  // Global search bar — same 200ms debounce, only drives API when name is empty
   useEffect(() => {
     if (name.trim()) return  // name field has priority for API
     if (!globalSearch.trim()) {
@@ -475,7 +483,7 @@ export default function Rankings() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [federation, sex, equipment, year, weightClass, ageClass])
 
-  // Text filter fields: same debounce pattern as name — fire on first use, clear on empty.
+  // Text filter fields: 200ms debounce — fire on first use, clear fires immediately if searched.
   useEffect(() => {
     if (!country) { handleSearchRef.current(); return }
     const t = setTimeout(() => handleSearchRef.current(), 200)
@@ -498,11 +506,11 @@ export default function Rankings() {
   }, [meetName])
 
   useEffect(() => {
-    if (!ageFilter) { handleSearchRef.current(); return }
+    if (!ageExact) { handleSearchRef.current(); return }
     const t = setTimeout(() => handleSearchRef.current(), 200)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ageFilter])
+  }, [ageExact])
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -705,15 +713,15 @@ export default function Rankings() {
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={LBL}>Meet Name <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <label style={LBL}>Meet Name <span style={{ color: '#555', fontWeight: 400 }}>(enriched)</span></label>
               <input type="text" value={meetName} onChange={e => setMeetName(e.target.value)}
-                placeholder="e.g. Arnold Classic or amp/2026" maxLength={80}
+                placeholder="e.g. Cayco Classic 3" maxLength={80}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={LBL}>Age <span style={{ color: '#555', fontWeight: 400 }}>(exact)</span></label>
-              <input type="number" value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
-                placeholder="e.g. 32" min={0} max={100} step={1}
+              <label style={LBL}>Age (exact) <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <input type="number" value={ageExact} onChange={e => setAgeExact(e.target.value)}
+                placeholder="e.g. 32" min={5} max={100} step={1}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
           </div>
@@ -936,7 +944,7 @@ export default function Rankings() {
         )}
 
         {/* Pre-search state — only when no filters set */}
-        {!searched && !loading && !name.trim() && !globalSearch.trim() && !federation && !equipment && !year && !weightClass && !ageClass && !country.trim() && !division.trim() && !meetName.trim() && !ageFilter.trim() && (
+        {!searched && !loading && !name.trim() && !globalSearch.trim() && !federation && !equipment && !year && !weightClass && !ageClass && !country.trim() && !division.trim() && !meetName.trim() && !ageExact.trim() && (
           <div style={{ textAlign: 'center', padding: '5rem 0' }}>
             <div style={{ fontSize: 44, marginBottom: '1.25rem' }}>🏋️</div>
             <p style={{ color: '#888888', fontSize: '.875rem', marginBottom: '.5rem' }}>Type a name or set any filter — results load instantly.</p>
