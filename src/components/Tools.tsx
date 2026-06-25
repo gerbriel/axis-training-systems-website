@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
 import { href } from '../utils/nav'
+import Rankings from '../pages/Rankings'
 
 // ── RPE percentage table (Tuchscherer) ───────────────────────────────────────
 // RPE_TABLE[rpe][reps] = fraction of 1RM
@@ -708,9 +709,10 @@ function DotsCalc() {
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'rpe',       label: 'RPE Calculator',  short: 'RPE' },
-  { id: 'dots',      label: 'Dots Score',      short: 'Dots' },
-  { id: 'convert',   label: 'Weight Converter',short: 'Convert' },
-  { id: 'attempts',  label: 'Attempt Planner', short: 'Attempts' },
+  { id: 'dots',      label: 'Dots Score',       short: 'Dots' },
+  { id: 'convert',   label: 'Weight Converter', short: 'Convert' },
+  { id: 'attempts',  label: 'Attempt Planner',  short: 'Attempts' },
+  { id: 'rankings',  label: 'View Rankings',    short: 'Rankings' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
@@ -792,7 +794,7 @@ export default function Tools() {
         </div>
 
         {/* Panel */}
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: '2rem' }}>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: active === 'rankings' ? '0' : '2rem' }}>
           {active === 'rpe'      && <RPECalc />}
           {active === 'attempts' && (
             hasAccess ? <AttemptPlanner /> : (
@@ -835,6 +837,7 @@ export default function Tools() {
           )}
           {active === 'dots'     && <DotsCalc />}
           {active === 'convert'  && <WeightConverter />}
+          {active === 'rankings' && <Rankings embedded />}
         </div>
       </div>
     </section>

@@ -73,7 +73,7 @@ export default function Coaches() {
                   <img
                     src={`${BASE}logo.svg`}
                     alt="Axis"
-                    style={{ height: 16, width: 'auto', filter: 'var(--logo-filter)', opacity: 0.5 }}
+                    style={{ height: 16, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0.5 }}
                   />
                 </div>
 
@@ -82,10 +82,10 @@ export default function Coaches() {
                   <p style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: '.75rem', textTransform: 'uppercase', letterSpacing: '.05em', lineHeight: 1, marginBottom: '.1rem' }}>
                     {firstName}
                   </p>
-                  <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.4rem,2.5vw,1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .9, marginBottom: '.75rem' }}>
+                  <p style={{ color: '#ffffff', fontWeight: 900, fontSize: 'clamp(1.4rem,2.5vw,1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .9, marginBottom: '.75rem' }}>
                     {lastName}
                   </p>
-                  <p style={{ color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>
                     {c.role}
                   </p>
 
@@ -98,7 +98,7 @@ export default function Coaches() {
                         display: 'block', textAlign: 'center',
                         background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: 'var(--text)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)' }}
@@ -112,7 +112,7 @@ export default function Coaches() {
                         display: 'block', textAlign: 'center',
                         background: 'transparent',
                         border: '1px solid rgba(245,185,53,.3)',
-                        color: 'var(--text)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,185,53,.1)'; e.currentTarget.style.borderColor = '#f5b935' }}
@@ -125,7 +125,7 @@ export default function Coaches() {
                       style={{
                         display: 'block', textAlign: 'center',
                         background: '#bfa162', border: 'none',
-                        color: 'var(--text)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        color: '#000000', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#9a7c3a' }}
