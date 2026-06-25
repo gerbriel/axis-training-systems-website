@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { href } from '../utils/nav'
 
+export interface RankingsProps { embedded?: boolean }
+
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const opl = (path: string) =>
   `https://corsproxy.io/?${encodeURIComponent(`https://www.openpowerlifting.org${path}`)}`
@@ -287,7 +289,7 @@ const LBL: React.CSSProperties = {
 const LOAD_SIZE = 100
 
 // ── Component ─────────────────────────────────────────────────────────────
-export default function Rankings() {
+export default function Rankings({ embedded }: RankingsProps = {}) {
   const [name,        setName]        = useState('')
   const [federation,  setFederation]  = useState('')
   const [sex,         setSex]         = useState('')
@@ -606,23 +608,27 @@ export default function Rankings() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: embedded ? undefined : '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit' }}>
 
-      {/* Mini nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--nav-overlay)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
-        <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)' }}/></a>
-        <span style={{ color: 'var(--text-3)' }}>›</span>
-        <span style={{ color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
-      </nav>
+      {/* Mini nav — hidden when embedded inside Tools */}
+      {!embedded && (
+        <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--nav-overlay)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
+          <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)' }}/></a>
+          <span style={{ color: 'var(--text-3)' }}>›</span>
+          <span style={{ color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
+        </nav>
+      )}
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '3.5rem 1.5rem 6rem' }}>
+      <div style={{ maxWidth: embedded ? '100%' : 1200, margin: '0 auto', padding: embedded ? '1.5rem 0 3rem' : '3.5rem 1.5rem 6rem' }}>
 
-        {/* Header */}
+        {/* Header — hidden when embedded */}
+        {!embedded && (
         <div style={{ marginBottom: '2.5rem' }}>
           <p style={{ color: 'var(--text)', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, marginBottom: '.75rem' }}>Powerlifting Rankings</h1>
           <p style={{ color: 'var(--text-2)', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. All filters update results live — just type or select.</p>
         </div>
+        )}
 
         {/* ── Global search bar ────────────────────────────────────── */}
         <div style={{ position: 'relative', marginBottom: '1.25rem' }}>

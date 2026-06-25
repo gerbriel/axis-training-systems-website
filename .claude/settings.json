@@ -4,7 +4,8 @@
       "Read(//Users/gabrielrios/.cache/**)",
       "Read(//Users/gabrielrios/Library/Caches/ms-playwright/**)",
       "Bash(npx --yes playwright@latest --version)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

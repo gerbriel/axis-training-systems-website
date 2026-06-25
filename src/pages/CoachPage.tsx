@@ -221,20 +221,20 @@ export default function CoachPage({ slug }: Props) {
             }}
           />
         )}
-        {/* Dark overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.75) 60%, var(--nav-overlay) 100%)', pointerEvents: 'none' }} />
+        {/* Dark overlay — always dark regardless of theme (it's over a photo) */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.78) 60%, rgba(0,0,0,0.92) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready to Start?</p>
-          <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready to Start?</p>
+          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>
             Apply to Work With {coach.name}
           </h2>
-          <p style={{ color: 'var(--text-dim)', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2.5rem', maxWidth: 480, margin: '0 auto 2.5rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '.95rem', lineHeight: 1.7, marginBottom: '2.5rem', maxWidth: 480, margin: '0 auto 2.5rem' }}>
             Fill out the application form. {coach.firstName} reviews every submission personally and will reach out within 24 hours.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', justifyContent: 'center' }}>
             <a
               href={applyHref(coach.slug)}
-              style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+              style={{ display: 'inline-block', background: '#bfa162', color: '#000000', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
               onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
             >
@@ -242,9 +242,9 @@ export default function CoachPage({ slug }: Props) {
             </a>
             <a
               href={bookCoachHref(slug)}
-              style={{ display: 'inline-block', background: 'transparent', border: '1px solid rgba(255,255,255,.25)', color: 'var(--text)', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
+              style={{ display: 'inline-block', background: 'transparent', border: '1px solid rgba(255,255,255,.35)', color: '#ffffff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
               onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,.25)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,.35)'}
             >
               Book a Consultation
             </a>

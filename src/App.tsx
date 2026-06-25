@@ -97,7 +97,7 @@ function DemoWidget() {
       style={{
         position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
         display: 'flex', alignItems: 'center', gap: '.5rem',
-        background: hovered ? 'var(--surface)' : '#0a0a0a',
+        background: hovered ? '#1a1a1a' : '#0a0a0a',
         border: '1px solid rgba(245,185,53,.35)',
         borderRadius: '.4rem', padding: '.55rem 1rem',
         textDecoration: 'none', transition: 'background .15s, border-color .15s',
@@ -106,7 +106,7 @@ function DemoWidget() {
       }}
     >
       <span style={{ fontSize: '.7rem', color: 'rgba(245,185,53,.8)', fontWeight: 900, letterSpacing: '.08em' }}>▶</span>
-      <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>View Demo</span>
+      <span style={{ color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>View Demo</span>
     </a>
   )
 }
