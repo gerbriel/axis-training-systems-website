@@ -50,7 +50,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function Req() {
-  return <span style={{ color: '#fff' }}> *</span>
+  return <span style={{ color: 'var(--text)' }}> *</span>
 }
 
 function Input({ name, placeholder, type = 'text', value, onChange, required }: {
@@ -127,9 +127,9 @@ function Step1({ data, set, lockedCoach }: { data: FormData; set: (k: keyof Form
       <div>
         <FieldLabel>Coach Preference</FieldLabel>
         {lockedCoach ? (
-          <div style={{ marginTop: '.5rem', display: 'inline-flex', alignItems: 'center', gap: '.75rem', background: '#0d0d0d', border: '1px solid #222222', padding: '.6rem 1rem', borderRadius: '.25rem' }}>
-            <span style={{ color: '#fff', fontWeight: 700, fontSize: '.875rem' }}>{lockedCoach}</span>
-            <span style={{ color: '#c7c7c7', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Selected</span>
+          <div style={{ marginTop: '.5rem', display: 'inline-flex', alignItems: 'center', gap: '.75rem', background: 'var(--surface)', border: '1px solid var(--border)', padding: '.6rem 1rem', borderRadius: '.25rem' }}>
+            <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.875rem' }}>{lockedCoach}</span>
+            <span style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Selected</span>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2 mt-1">
@@ -177,7 +177,7 @@ function Step3({ data, set }: { data: FormData; set: (k: keyof FormData, v: stri
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p style={{ color: '#c7c7c7', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Current Maxes</p>
+        <p style={{ color: 'var(--text-2)', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Current Maxes</p>
         <div className="grid sm:grid-cols-3 gap-5">
           <div><FieldLabel>Squat Max<Req /></FieldLabel><Input name="squatMax" placeholder="e.g. 405 lbs" value={data.squatMax} onChange={v => set('squatMax', v)} required /></div>
           <div><FieldLabel>Bench Max<Req /></FieldLabel><Input name="benchMax" placeholder="e.g. 275 lbs" value={data.benchMax} onChange={v => set('benchMax', v)} required /></div>
@@ -185,7 +185,7 @@ function Step3({ data, set }: { data: FormData; set: (k: keyof FormData, v: stri
         </div>
       </div>
       <div>
-        <p style={{ color: '#c7c7c7', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Weekly Frequencies</p>
+        <p style={{ color: 'var(--text-2)', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Weekly Frequencies</p>
         <div className="grid sm:grid-cols-3 gap-5">
           <div><FieldLabel>Squat Freq.<Req /></FieldLabel><Input name="squatFreq" placeholder="e.g. 2x/week" value={data.squatFreq} onChange={v => set('squatFreq', v)} required /></div>
           <div><FieldLabel>Bench Freq.<Req /></FieldLabel><Input name="benchFreq" placeholder="e.g. 3x/week" value={data.benchFreq} onChange={v => set('benchFreq', v)} required /></div>
@@ -194,7 +194,7 @@ function Step3({ data, set }: { data: FormData; set: (k: keyof FormData, v: stri
       </div>
       <div><FieldLabel>Current Program Description</FieldLabel><Textarea name="currentProgram" placeholder="E.g. Mon – Comp Squat 3x5 @ 77.5%, Tue – Comp Bench 4x5 75%, etc." rows={4} value={data.currentProgram} onChange={v => set('currentProgram', v)} /></div>
       <div>
-        <p style={{ color: '#c7c7c7', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Competition Style</p>
+        <p style={{ color: 'var(--text-2)', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Competition Style</p>
         <div className="grid sm:grid-cols-3 gap-6">
           <div>
             <FieldLabel>Squat<Req /></FieldLabel>
@@ -263,13 +263,13 @@ function Step5({ data, set }: { data: FormData; set: (k: keyof FormData, v: stri
     <div className="flex flex-col gap-5">
       <div><FieldLabel>Expectations of Your Coach<Req /></FieldLabel><Textarea name="expectations" placeholder="What do you expect from the coaching relationship?" rows={4} value={data.expectations} onChange={v => set('expectations', v)} required /></div>
       <div><FieldLabel>Further Goals or Concerns</FieldLabel><Textarea name="goals" placeholder="Anything else — short-term goals, upcoming meets, concerns, etc." rows={4} value={data.goals} onChange={v => set('goals', v)} /></div>
-      <div style={{ background: '#1a1a1a', border: '1px solid #222222', padding: '1.5rem', borderRadius: '.25rem' }}>
-        <p style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Summary</p>
+      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '1.5rem', borderRadius: '.25rem' }}>
+        <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Summary</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
           {summary.map(([k, v]) => (
             <div key={k} className="flex gap-4" style={{ fontSize: '.8rem' }}>
-              <span style={{ minWidth: '7rem', color: '#c7c7c7' }}>{k}</span>
-              <span style={{ color: '#aaa' }}>{v}</span>
+              <span style={{ minWidth: '7rem', color: 'var(--text-2)' }}>{k}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{v}</span>
             </div>
           ))}
         </div>
@@ -412,16 +412,16 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
   const stepProps = { data, set }
 
   return (
-    <section id="apply" style={{ background: '#000000', padding: '8rem 1.5rem' }}>
+    <section id="apply" style={{ background: 'var(--bg)', padding: '8rem 1.5rem' }}>
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="text-center mb-12">
-          <p style={{ color: '#fff', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready To Start?</p>
-          <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5rem)', color: '#fff', marginBottom: '1.25rem' }}>
+          <p style={{ color: 'var(--text)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Ready To Start?</p>
+          <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5rem)', color: 'var(--text)', marginBottom: '1.25rem' }}>
             {preselectedCoach ? `Apply — ${preselectedCoach.split(' ')[0]}` : 'Work With Us'}
           </h2>
-          <p style={{ color: '#c7c7c7', fontSize: '.9rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '.9rem', lineHeight: 1.7 }}>
             {preselectedCoach
               ? `Fill out the application below. ${preselectedCoach} reviews every submission and gets back to you within 24 hours.`
               : 'Fill out the application below. We review every submission and get back to you within 48 hours.'}
@@ -430,20 +430,20 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
 
         {submitted ? (
           <div className="text-center" style={{ padding: '4rem 2rem' }}>
-            <p style={{ color: '#fff', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Received</p>
-            <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '2.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1rem' }}>You're in the queue.</h3>
-            <p style={{ color: '#c7c7c7', fontSize: '.9rem', lineHeight: 1.7, marginBottom: '2rem' }}>We review every application personally. {preselectedCoach ? `${preselectedCoach} will reach out within 24 hours.` : 'Expect a response within 48 hours.'}</p>
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: '#fff', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1rem' }}>Application Received</p>
+            <h3 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '2.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '1rem' }}>You're in the queue.</h3>
+            <p style={{ color: 'var(--text-2)', fontSize: '.9rem', lineHeight: 1.7, marginBottom: '2rem' }}>We review every application personally. {preselectedCoach ? `${preselectedCoach} will reach out within 24 hours.` : 'Expect a response within 48 hours.'}</p>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'var(--text)', fontSize: '.75rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer' }}>
               ← Back to top
             </button>
           </div>
         ) : (
           <>
             {/* Progress bar */}
-            <div style={{ background: '#0d0d0d', borderRadius: 9999, height: 2, marginBottom: '1rem', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface)', borderRadius: 9999, height: 2, marginBottom: '1rem', overflow: 'hidden' }}>
               <div style={{ height: '100%', background: '#bfa162', width: `${pct}%`, borderRadius: 9999, transition: 'width .4s ease' }} />
             </div>
-            <p style={{ color: '#c7c7c7', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>{STEP_TITLES[step - 1]}</p>
+            <p style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>{STEP_TITLES[step - 1]}</p>
 
             <form onSubmit={handleSubmit} noValidate>
               {step === 1 && <Step1 {...stepProps} lockedCoach={preselectedCoach} />}
@@ -462,12 +462,12 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                     onChange={e => { setPrivacyConsent(e.target.checked); setConsentError(false) }}
                     style={{ marginTop: '.2rem', accentColor: '#c8102e', width: '1rem', height: '1rem', flexShrink: 0, cursor: 'pointer' }}
                   />
-                  <label htmlFor="privacy-consent" style={{ color: '#c7c7c7', fontSize: '.8rem', lineHeight: 1.6, cursor: 'pointer' }}>
+                  <label htmlFor="privacy-consent" style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.6, cursor: 'pointer' }}>
                     I have read and agree to the{' '}
                     <button
                       type="button"
                       onClick={() => window.dispatchEvent(new CustomEvent('open-privacy'))}
-                      style={{ color: '#fff', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem', padding: 0, textDecoration: 'underline' }}
+                      style={{ color: 'var(--text)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '.8rem', padding: 0, textDecoration: 'underline' }}
                     >
                       Privacy Policy
                     </button>
@@ -498,8 +498,8 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                 {step > 1 ? (
                   <button
                     type="button" onClick={back}
-                    className="text-white text-xs font-bold px-6 py-3 rounded tracking-widest uppercase transition-colors"
-                    style={{ border: '1px solid #222222' }}
+                    className="text-xs font-bold px-6 py-3 rounded tracking-widest uppercase transition-colors"
+                    style={{ border: '1px solid var(--border)', color: 'var(--text)' }}
                   >
                     Back
                   </button>
@@ -519,7 +519,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="submit" disabled={submitting}
                     className="inline-flex items-center gap-3 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
-                    style={{ background: submitting ? '#7a6530' : '#bfa162', color: '#000000' }}
+                    style={{ background: submitting ? '#7a6530' : '#bfa162', color: 'var(--bg)' }}
                   >
                     {submitting ? 'Sending…' : 'Submit Application'}
                     {!submitting && (

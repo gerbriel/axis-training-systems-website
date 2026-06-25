@@ -35,7 +35,7 @@ function Bar({ height, label, value }: { height: number; label: string; value: n
           style={{ width: '80%', height: `${Math.max(height * 100, 2)}%`, background: '#f5b935', borderRadius: '.1rem .1rem 0 0', opacity: .7, transition: 'height .3s', minHeight: 2 }}
         />
       </div>
-      <span style={{ color: '#555', fontSize: '.5rem', textAlign: 'center', lineHeight: 1 }}>{label}</span>
+      <span style={{ color: 'var(--text-4)', fontSize: '.5rem', textAlign: 'center', lineHeight: 1 }}>{label}</span>
     </div>
   )
 }
@@ -59,14 +59,14 @@ export default function AnalyticsPanel({ isDemo = false }: { isDemo?: boolean })
   useEffect(() => { fetch() }, [fetch])
 
   if (loading) return (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#888', fontSize: '.8rem' }}>Loading analytics…</div>
+    <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>Loading analytics…</div>
   )
 
   if (!supabaseConfigured && !isDemo) return (
     <div style={{ padding: '2rem' }}>
-      <div style={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: '.25rem', padding: '2rem', maxWidth: 560, color: '#c7c7c7', fontSize: '.875rem', lineHeight: 1.7 }}>
-        <p style={{ color: '#fff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Setup Required</p>
-        Run <code style={{ background: '#1a1a1a', padding: '.1rem .4rem', borderRadius: '.2rem', fontSize: '.8rem' }}>supabase/migrations/003_bookings_analytics.sql</code> and add your Supabase env vars to enable real analytics. The tracker records pageviews automatically once connected.
+      <div style={{ background: 'var(--surface)', border: '1px solid #222', borderRadius: '.25rem', padding: '2rem', maxWidth: 560, color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7 }}>
+        <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Setup Required</p>
+        Run <code style={{ background: 'var(--surface-2)', padding: '.1rem .4rem', borderRadius: '.2rem', fontSize: '.8rem' }}>supabase/migrations/003_bookings_analytics.sql</code> and add your Supabase env vars to enable real analytics. The tracker records pageviews automatically once connected.
       </div>
     </div>
   )
@@ -112,29 +112,29 @@ export default function AnalyticsPanel({ isDemo = false }: { isDemo?: boolean })
     <div style={{ padding: '2rem' }}>
       {isDemo && (
         <div style={{ background: '#2d2500', border: '1px solid #5c4800', borderRadius: '.25rem', padding: '.5rem 1rem', marginBottom: '1.5rem', display: 'inline-flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo</span>
+          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo</span>
           <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Showing generated sample data.</span>
         </div>
       )}
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1px', background: '#1a1a1a', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1px', background: 'var(--surface-2)', marginBottom: '2rem' }}>
         {[
           ['Today',           today.length,                   new Set(today.map(v => v.session_id)).size],
           ['This Week',       thisWeek.length,                weekSessions.size],
           ['Last 30 Days',    views.length,                   allSessions.size],
         ].map(([label, views, sessions]) => (
-          <div key={String(label)} style={{ background: '#000', padding: '1.5rem' }}>
-            <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>{label as string}</p>
-            <p style={{ color: '#fff', fontWeight: 900, fontSize: '2rem', lineHeight: 1 }}>{(views as number).toLocaleString()}</p>
-            <p style={{ color: '#888', fontSize: '.7rem', marginTop: '.25rem' }}>{(sessions as number).toLocaleString()} unique sessions</p>
+          <div key={String(label)} style={{ background: 'var(--bg)', padding: '1.5rem' }}>
+            <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>{label as string}</p>
+            <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '2rem', lineHeight: 1 }}>{(views as number).toLocaleString()}</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.25rem' }}>{(sessions as number).toLocaleString()} unique sessions</p>
           </div>
         ))}
       </div>
 
       {/* 30-day bar chart */}
-      <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '2rem' }}>
-        <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>30-Day Pageviews</p>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '2rem' }}>
+        <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>30-Day Pageviews</p>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
           {days.map(d => (
             <Bar key={d.date} height={d.views / maxViews} label={d.date.slice(5)} value={d.views} />
@@ -144,32 +144,32 @@ export default function AnalyticsPanel({ isDemo = false }: { isDemo?: boolean })
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         {/* Top pages */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.5rem' }}>
-          <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>Top Pages</p>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.5rem' }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>Top Pages</p>
           {topPages.length === 0 ? (
-            <p style={{ color: '#555', fontSize: '.8rem' }}>No data yet.</p>
+            <p style={{ color: 'var(--text-4)', fontSize: '.8rem' }}>No data yet.</p>
           ) : topPages.map(([page, count]) => (
-            <div key={page} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
-              <span style={{ color: '#c7c7c7', fontSize: '.8rem', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{page}</span>
+            <div key={page} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 0', borderBottom: '1px solid var(--surface-2)' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.8rem', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{page}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-                <div style={{ width: 60, height: 4, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: 60, height: 4, background: 'var(--surface-2)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${(count / (topPages[0][1] as number)) * 100}%`, height: '100%', background: '#f5b935', borderRadius: 2 }} />
                 </div>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: '.75rem', minWidth: 24, textAlign: 'right' }}>{count as number}</span>
+                <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.75rem', minWidth: 24, textAlign: 'right' }}>{count as number}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Top referrers */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.5rem' }}>
-          <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>Top Referrers</p>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.5rem' }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>Top Referrers</p>
           {topRefs.length === 0 ? (
-            <p style={{ color: '#555', fontSize: '.8rem' }}>No referrer data yet — most traffic is direct.</p>
+            <p style={{ color: 'var(--text-4)', fontSize: '.8rem' }}>No referrer data yet — most traffic is direct.</p>
           ) : topRefs.map(([ref, count]) => (
-            <div key={ref} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
-              <span style={{ color: '#c7c7c7', fontSize: '.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{ref}</span>
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: '.75rem' }}>{count as number}</span>
+            <div key={ref} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '.6rem 0', borderBottom: '1px solid var(--surface-2)' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{ref}</span>
+              <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.75rem' }}>{count as number}</span>
             </div>
           ))}
         </div>

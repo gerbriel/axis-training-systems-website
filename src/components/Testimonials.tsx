@@ -21,13 +21,13 @@ export default function Testimonials() {
   if (items.length === 0) return null
 
   return (
-    <section id="testimonials" style={{ padding: '6rem 2rem', background: '#000000', borderTop: '1px solid #1a1a1a' }}>
+    <section id="testimonials" style={{ padding: '6rem 2rem', background: 'var(--bg)', borderTop: '1px solid var(--surface-2)' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         {/* Header + feature photo */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'flex-end', gap: '2rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
           <div>
-            <p className="label-rule" style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Results</p>
-            <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
+            <p className="label-rule" style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Results</p>
+            <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
               Athletes Who<br />Made The Move
             </h2>
           </div>
@@ -55,8 +55,8 @@ export default function Testimonials() {
             <div
               key={i}
               style={{
-                background: '#000000',
-                border: '1px solid #0d0d0d',
+                background: 'var(--bg)',
+                border: '1px solid var(--surface)',
                 borderRadius: '.25rem',
                 padding: '2.25rem',
                 display: 'flex',
@@ -65,9 +65,9 @@ export default function Testimonials() {
               }}
             >
               {/* Red quote glyph */}
-              <span style={{ color: '#fff', fontSize: '3rem', fontWeight: 900, lineHeight: 1, opacity: .45, marginBottom: '-.5rem' }}>"</span>
+              <span style={{ color: 'var(--text)', fontSize: '3rem', fontWeight: 900, lineHeight: 1, opacity: .45, marginBottom: '-.5rem' }}>"</span>
 
-              <p style={{ color: '#888888', fontSize: '.9rem', lineHeight: 1.85, flex: 1 }}>{t.quote}</p>
+              <p style={{ color: 'var(--text-3)', fontSize: '.9rem', lineHeight: 1.85, flex: 1 }}>{t.quote}</p>
 
               {/* Result badge */}
               <div style={{
@@ -78,34 +78,34 @@ export default function Testimonials() {
                 borderRadius: '.2rem',
                 padding: '.3rem .75rem',
               }}>
-                <span style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>{t.result}</span>
+                <span style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>{t.result}</span>
               </div>
 
               {/* Athlete row */}
-              <div style={{ borderTop: '1px solid #0d0d0d', paddingTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '.875rem' }}>
+              <div style={{ borderTop: '1px solid var(--surface)', paddingTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '.875rem' }}>
                 {t.photo ? (
                   <img
                     src={t.photo}
                     alt={t.athlete}
-                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #222222' }}
+                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border)' }}
                   />
                 ) : (
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#0d0d0d', border: '2px solid #222222', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem' }}>{t.athlete[0]}</span>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem' }}>{t.athlete[0]}</span>
                   </div>
                 )}
                 <div>
-                  <p style={{ color: '#fff', fontWeight: 700, fontSize: '.8rem' }}>{t.athlete}</p>
-                  <p style={{ color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.1rem' }}>
+                  <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.8rem' }}>{t.athlete}</p>
+                  <p style={{ color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.1rem' }}>
                     coached by {t.coachName}
                   </p>
                 </div>
                 {/* Apply link aligned to the right */}
                 <a
                   href={applyHref(t.coachSlug)}
-                  style={{ marginLeft: 'auto', color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap' }}
+                  style={{ marginLeft: 'auto', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#c8102e'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#888888'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}
                 >
                   Apply →
                 </a>

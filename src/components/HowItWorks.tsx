@@ -44,14 +44,14 @@ const LOGISTICS = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" style={{ background: '#000000', padding: '8rem 1.5rem' }}>
+    <section id="how-it-works" style={{ background: 'var(--bg)', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <p className="label-rule" style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
-            <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>How It Works</h2>
+            <p className="label-rule" style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>The Process</p>
+            <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: 'var(--text)' }}>How It Works</h2>
           </div>
-          <p style={{ color: '#c7c7c7', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--text-2)', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
             Simple tools, direct communication, no bloated apps. Just you, your coach, and the work.
           </p>
         </div>
@@ -75,12 +75,12 @@ export default function HowItWorks() {
         </div>
 
         {/* 4-step strip */}
-        <div className="grid md:grid-cols-4 mb-16" style={{ gap: 1, background: '#222222' }}>
+        <div className="grid md:grid-cols-4 mb-16" style={{ gap: 1, background: 'var(--border)' }}>
           {STEPS.map(s => (
-            <div key={s.step} style={{ background: '#000000', padding: '2.5rem' }}>
-              <p style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Step {s.step}</p>
-              <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>{s.title}</h3>
-              <p style={{ color: '#c7c7c7', fontSize: '.875rem', lineHeight: 1.7 }}>{s.desc}</p>
+            <div key={s.step} style={{ background: 'var(--bg)', padding: '2.5rem' }}>
+              <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Step {s.step}</p>
+              <h3 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>{s.title}</h3>
+              <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7 }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -88,13 +88,13 @@ export default function HowItWorks() {
         {/* Logistics cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {LOGISTICS.map(l => (
-            <div key={l.label} style={{ background: '#1a1a1a', border: '1px solid #222222', padding: '1.75rem' }}>
-              <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{l.label}</p>
+            <div key={l.label} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '1.75rem' }}>
+              <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{l.label}</p>
               <div className="flex items-center gap-2 mb-2">
                 {l.icon}
-                <p style={{ color: '#fff', fontWeight: 900, fontSize: l.icon ? '1.1rem' : '1.75rem', lineHeight: 1 }}>{l.value}</p>
+                <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: l.icon ? '1.1rem' : '1.75rem', lineHeight: 1 }}>{l.value}</p>
               </div>
-              <p style={{ color: '#c7c7c7', fontSize: '.8rem', lineHeight: 1.5 }}>{l.sub}</p>
+              <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.5 }}>{l.sub}</p>
             </div>
           ))}
         </div>

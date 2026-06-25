@@ -21,10 +21,10 @@ function toLbs(kg: number) { return kg * 2.20462 }
 
 // ── Shared input style ────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
-  background: '#1a1a1a',
-  border: '1px solid #222222',
+  background: 'var(--surface-2)',
+  border: '1px solid var(--border)',
   borderRadius: '.2rem',
-  color: '#fff',
+  color: 'var(--text)',
   fontSize: '.875rem',
   fontWeight: 600,
   padding: '.6rem .875rem',
@@ -34,7 +34,7 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 const labelStyle: React.CSSProperties = {
-  color: '#c7c7c7',
+  color: 'var(--text-2)',
   fontSize: '.6rem',
   fontWeight: 700,
   letterSpacing: '.15em',
@@ -113,7 +113,7 @@ function RPECalc() {
 
   return (
     <div>
-      <p style={{ color: '#c7c7c7', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
         Based on the Tuchscherer RPE chart used in powerlifting programming. RPE 10 = absolute max, RPE 9 = 1 rep in reserve, RPE 8 = 2 reps in reserve, etc.
       </p>
 
@@ -125,8 +125,8 @@ function RPECalc() {
             onClick={() => setMode(m)}
             style={{
               background: mode === m ? '#c8102e' : 'transparent',
-              border: `1px solid ${mode === m ? '#c8102e' : '#222222'}`,
-              color: mode === m ? '#fff' : '#555',
+              border: `1px solid ${mode === m ? '#c8102e' : 'var(--border)'}`,
+              color: mode === m ? 'var(--text)' : 'var(--text-4)',
               borderRadius: '.2rem',
               padding: '.5rem 1.25rem',
               fontSize: '.65rem',
@@ -172,9 +172,9 @@ function RPECalc() {
           </div>
           {estimated1RM && (
             <div style={resultBox}>
-              <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Estimated 1RM</p>
-              <p style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em' }}>{fmt(estimated1RM)}</p>
-              <p style={{ color: '#c7c7c7', fontSize: '.75rem', marginTop: '.75rem' }}>
+              <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Estimated 1RM</p>
+              <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em' }}>{fmt(estimated1RM)}</p>
+              <p style={{ color: 'var(--text-2)', fontSize: '.75rem', marginTop: '.75rem' }}>
                 {parseInt(reps)}@RPE{rpe} = {Math.round(RPE_TABLE[Math.round(parseFloat(rpe))]?.[parseInt(reps)] * 100)}% of 1RM
               </p>
             </div>
@@ -209,11 +209,11 @@ function RPECalc() {
           </div>
           {prescribed && (
             <div style={resultBox}>
-              <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Prescribed Working Weight</p>
-              <p style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em' }}>
+              <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Prescribed Working Weight</p>
+              <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em' }}>
                 {unit === 'lbs' ? `${Math.round(prescribed)} lbs` : `${prescribed.toFixed(1)} kg`}
               </p>
-              <p style={{ color: '#c7c7c7', fontSize: '.75rem', marginTop: '.75rem' }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '.75rem', marginTop: '.75rem' }}>
                 Rounded target: {unit === 'lbs'
                   ? `${roundToNearest(prescribed, 5)} lbs`
                   : `${roundToNearest(prescribed, 2.5)} kg`}
@@ -286,7 +286,7 @@ function AttemptPlanner() {
 
   return (
     <div>
-      <p style={{ color: '#c7c7c7', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
         Enter your estimated max (gym or training max) for each lift. Conservative style keeps your opener very safe for guaranteed white lights; aggressive style goes for a bigger PR third.
       </p>
 
@@ -328,20 +328,20 @@ function AttemptPlanner() {
             const [a1, a2, a3] = attempts(n)
             const pcts = profiles[style]
             return (
-              <div key={label} style={{ background: '#000000', border: '1px solid #222222', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '1rem' }}>
-                <p style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{label}</p>
+              <div key={label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.25rem', padding: '1.5rem', marginBottom: '1rem' }}>
+                <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>{label}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '.75rem' }}>
                   {[
                     { num: 1, weight: a1, pct: Math.round(pcts.open * 100),   label: 'Opener' },
                     { num: 2, weight: a2, pct: Math.round(pcts.second * 100), label: '2nd Attempt' },
                     { num: 3, weight: a3, pct: Math.round(pcts.third * 100),  label: '3rd Attempt' },
                   ].map(att => (
-                    <div key={att.num} style={{ background: '#1a1a1a', border: `1px solid ${att.num === 3 ? 'rgba(245,185,53,.3)' : '#0d0d0d'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
-                      <p style={{ color: '#888888', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
-                      <p style={{ color: att.num === 3 ? '#c8102e' : '#fff', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-.01em' }}>
-                        {att.weight} <span style={{ fontSize: '.65rem', fontWeight: 600, color: '#c7c7c7' }}>{unit}</span>
+                    <div key={att.num} style={{ background: 'var(--surface-2)', border: `1px solid ${att.num === 3 ? 'rgba(245,185,53,.3)' : 'var(--surface)'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
+                      <p style={{ color: att.num === 3 ? '#c8102e' : 'var(--text)', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-.01em' }}>
+                        {att.weight} <span style={{ fontSize: '.65rem', fontWeight: 600, color: 'var(--text-2)' }}>{unit}</span>
                       </p>
-                      <p style={{ color: '#888888', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
+                      <p style={{ color: 'var(--text-3)', fontSize: '.6rem', marginTop: '.2rem' }}>{att.pct}%</p>
                     </div>
                   ))}
                 </div>
@@ -353,12 +353,12 @@ function AttemptPlanner() {
           {projectedTotal > 0 && (
             <div style={{ background: 'rgba(245,185,53,.06)', border: '1px solid rgba(245,185,53,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Training Max Total</p>
-                <p style={{ color: '#888888', fontSize: '.85rem', fontWeight: 600 }}>{totalEstimate} {unit}</p>
+                <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Training Max Total</p>
+                <p style={{ color: 'var(--text-3)', fontSize: '.85rem', fontWeight: 600 }}>{totalEstimate} {unit}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Projected Meet Total</p>
-                <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.75rem', fontWeight: 600, color: '#fff' }}>{unit}</span></p>
+                <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Projected Meet Total</p>
+                <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--text)' }}>{unit}</span></p>
               </div>
             </div>
           )}
@@ -412,7 +412,7 @@ function WeightConverter() {
 
   return (
     <div>
-      <p style={{ color: '#c7c7c7', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
         Type in either field to instantly convert. All other tools accept both units.
       </p>
 
@@ -434,9 +434,9 @@ function WeightConverter() {
           <button
             onClick={swapValues}
             title="Swap values"
-            style={{ background: 'transparent', border: '1px solid #222222', borderRadius: '.2rem', color: '#fff', fontWeight: 900, fontSize: '1.25rem', width: '2.25rem', height: '2.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .15s, background .15s', fontFamily: 'inherit' }}
+            style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', width: '2.25rem', height: '2.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .15s, background .15s', fontFamily: 'inherit' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.background = 'rgba(245,185,53,.08)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#222222'; e.currentTarget.style.background = 'transparent' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent' }}
           >
             ⇄
           </button>
@@ -457,15 +457,15 @@ function WeightConverter() {
 
       {/* Quick conversions */}
       <div style={{ marginTop: '2rem' }}>
-        <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Common Barbell Weights</p>
+        <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Common Barbell Weights</p>
         <div style={{ display: 'grid', gap: '.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
           {[...barWeights, ...plates].map(({ lbs, kg, label }) => (
             <button
               key={label}
               onClick={() => handleLbs(String(lbs))}
               style={{
-                background: '#1a1a1a',
-                border: '1px solid #222222',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
                 borderRadius: '.2rem',
                 padding: '.6rem .875rem',
                 display: 'flex',
@@ -476,18 +476,18 @@ function WeightConverter() {
                 fontFamily: 'inherit',
               }}
               onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = '#222222'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
-              <span style={{ color: '#c7c7c7', fontSize: '.7rem' }}>{label}</span>
-              <span style={{ color: '#d6d6d6', fontSize: '.75rem', fontWeight: 700 }}>{lbs} lbs · {kg} kg</span>
+              <span style={{ color: 'var(--text-2)', fontSize: '.7rem' }}>{label}</span>
+              <span style={{ color: 'var(--chalk)', fontSize: '.75rem', fontWeight: 700 }}>{lbs} lbs · {kg} kg</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Quick reference formulas */}
-      <div style={{ marginTop: '1.5rem', background: '#000000', border: '1px solid #0d0d0d', borderRadius: '.25rem', padding: '1.25rem' }}>
-        <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Quick Reference</p>
+      <div style={{ marginTop: '1.5rem', background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: '1.25rem' }}>
+        <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Quick Reference</p>
         <div style={{ display: 'grid', gap: '.4rem' }}>
           {[
             ['1 lb', '0.4536 kg'],
@@ -499,9 +499,9 @@ function WeightConverter() {
             ['700 lbs', '317.5 kg'],
             ['800 lbs', '362.9 kg'],
           ].map(([l, r]) => (
-            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '.3rem 0', borderBottom: '1px solid #0d0d0d' }}>
-              <span style={{ color: '#c7c7c7', fontSize: '.8rem' }}>{l}</span>
-              <span style={{ color: '#888888', fontSize: '.8rem', fontWeight: 600 }}>{r}</span>
+            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '.3rem 0', borderBottom: '1px solid var(--surface)' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.8rem' }}>{l}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.8rem', fontWeight: 600 }}>{r}</span>
             </div>
           ))}
         </div>
@@ -581,11 +581,11 @@ function DotsCalc() {
     t === 'World-class' ? '#c8102e'
     : t === 'Elite'     ? '#e84620'
     : t === 'Advanced'  ? '#f5b935'
-    : '#888'
+    : 'var(--text-3)'
 
   return (
     <div>
-      <p style={{ color: '#c7c7c7', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
         The Dots coefficient is the official IPF and USAPL scoring standard for comparing powerlifting totals across all bodyweights and between sexes. Higher is better — enter your lifts to see where you stack up.
       </p>
 
@@ -627,21 +627,21 @@ function DotsCalc() {
         <div style={resultBox}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Dots Score</p>
-              <p style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-.02em', lineHeight: 1 }}>
+              <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Dots Score</p>
+              <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-.02em', lineHeight: 1 }}>
                 {dots.toFixed(2)}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Level</p>
+              <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Level</p>
               <p style={{ color: tierColor(tier), fontWeight: 900, fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>{tier}</p>
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.5rem' }}>
             <div>
-              <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Total</p>
-              <p style={{ color: '#d6d6d6', fontSize: '.9rem', fontWeight: 700 }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Total</p>
+              <p style={{ color: 'var(--chalk)', fontSize: '.9rem', fontWeight: 700 }}>
                 {unit === 'lbs'
                   ? `${Math.round(totalKg / 0.453592)} lbs  ·  ${totalKg.toFixed(1)} kg`
                   : `${totalKg.toFixed(1)} kg  ·  ${Math.round(totalKg * 2.20462)} lbs`
@@ -649,8 +649,8 @@ function DotsCalc() {
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Bodyweight</p>
-              <p style={{ color: '#d6d6d6', fontSize: '.9rem', fontWeight: 700 }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Bodyweight</p>
+              <p style={{ color: 'var(--chalk)', fontSize: '.9rem', fontWeight: 700 }}>
                 {unit === 'lbs'
                   ? `${bw} lbs  ·  ${bwKg!.toFixed(2)} kg`
                   : `${bw} kg`
@@ -661,7 +661,7 @@ function DotsCalc() {
 
           {/* Visual bar */}
           <div style={{ marginBottom: '1rem' }}>
-            <div style={{ height: 4, background: '#222222', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 width: `${Math.min(dots / 500 * 100, 100)}%`,
@@ -671,20 +671,20 @@ function DotsCalc() {
               }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.3rem' }}>
-              <span style={{ color: '#888888', fontSize: '.6rem' }}>0</span>
-              <span style={{ color: '#888888', fontSize: '.6rem' }}>500+</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.6rem' }}>0</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.6rem' }}>500+</span>
             </div>
           </div>
 
           {/* Benchmarks */}
-          <p style={{ color: '#888888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Score Ranges</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Score Ranges</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '.4rem' }}>
             {DOTS_BENCHMARKS.map(b => (
               <div
                 key={b.label}
                 style={{
-                  background: tier === b.label ? 'rgba(245,185,53,.12)' : '#1a1a1a',
-                  border: `1px solid ${tier === b.label ? 'rgba(245,185,53,.4)' : '#222222'}`,
+                  background: tier === b.label ? 'rgba(245,185,53,.12)' : 'var(--surface-2)',
+                  border: `1px solid ${tier === b.label ? 'rgba(245,185,53,.4)' : 'var(--border)'}`,
                   borderRadius: '.2rem',
                   padding: '.5rem .75rem',
                   display: 'flex',
@@ -692,8 +692,8 @@ function DotsCalc() {
                   alignItems: 'center',
                 }}
               >
-                <span style={{ color: tier === b.label ? '#fff' : '#444', fontSize: '.65rem', fontWeight: 700 }}>{b.label}</span>
-                <span style={{ color: tier === b.label ? '#c8102e' : '#3a3f47', fontSize: '.65rem', fontWeight: 700 }}>{b.range}</span>
+                <span style={{ color: tier === b.label ? 'var(--text)' : 'var(--text-dim)', fontSize: '.65rem', fontWeight: 700 }}>{b.label}</span>
+                <span style={{ color: tier === b.label ? '#c8102e' : 'var(--steel)', fontSize: '.65rem', fontWeight: 700 }}>{b.range}</span>
               </div>
             ))}
           </div>
@@ -749,21 +749,21 @@ export default function Tools() {
   }
 
   return (
-    <section id="tools" style={{ padding: '6rem 2rem', background: '#000000', borderTop: '1px solid #1a1a1a' }}>
+    <section id="tools" style={{ padding: '6rem 2rem', background: 'var(--bg)', borderTop: '1px solid var(--surface-2)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: '3rem' }}>
-          <p className="label-rule" style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Free Tools</p>
-          <h2 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
+          <p className="label-rule" style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Free Tools</p>
+          <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: .95 }}>
             Powerlifting<br />Calculators
           </h2>
-          <p style={{ color: '#c7c7c7', fontSize: '.85rem', marginTop: '1rem', maxWidth: 480 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '.85rem', marginTop: '1rem', maxWidth: 480 }}>
             Calculate your estimated max, plan training loads, set up meet attempts, and convert between lbs and kg — all in one place.
           </p>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: '1px solid #0d0d0d', paddingBottom: '0' }}>
+        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: '1px solid var(--surface)', paddingBottom: '0' }}>
           {TABS.map(tab => (
             <button
               key={tab.id}
@@ -772,7 +772,7 @@ export default function Tools() {
                 background: 'transparent',
                 border: 'none',
                 borderBottom: `2px solid ${active === tab.id ? '#c8102e' : 'transparent'}`,
-                color: active === tab.id ? '#fff' : '#444',
+                color: active === tab.id ? 'var(--text)' : 'var(--text-dim)',
                 fontSize: '.7rem',
                 fontWeight: 900,
                 letterSpacing: '.15em',
@@ -783,8 +783,8 @@ export default function Tools() {
                 transition: 'color .15s',
                 marginBottom: '-1px',
               }}
-              onMouseEnter={e => { if (active !== tab.id) e.currentTarget.style.color = '#888888' }}
-              onMouseLeave={e => { if (active !== tab.id) e.currentTarget.style.color = '#c7c7c7' }}
+              onMouseEnter={e => { if (active !== tab.id) e.currentTarget.style.color = 'var(--text-3)' }}
+              onMouseLeave={e => { if (active !== tab.id) e.currentTarget.style.color = 'var(--text-2)' }}
             >
               {tab.label}
             </button>
@@ -792,43 +792,43 @@ export default function Tools() {
         </div>
 
         {/* Panel */}
-        <div style={{ background: '#000000', border: '1px solid #0d0d0d', borderRadius: '.25rem', padding: '2rem' }}>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: '2rem' }}>
           {active === 'rpe'      && <RPECalc />}
           {active === 'attempts' && (
             hasAccess ? <AttemptPlanner /> : (
               <div>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                   <span style={{ display: 'inline-block', fontSize: '2rem', marginBottom: '.75rem' }}>🔒</span>
-                  <h3 style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>Free Access Required</h3>
-                  <p style={{ color: '#c7c7c7', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 400, margin: '0 auto' }}>
+                  <h3 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>Free Access Required</h3>
+                  <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 400, margin: '0 auto' }}>
                     The Attempt Planner is part of our free guides suite. Sign up with your email — it takes 5 seconds and unlocks all 6 powerlifting tools and guides.
                   </p>
                 </div>
                 <form onSubmit={handleGateSubmit} style={{ maxWidth: 440, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem' }}>
                     <div>
-                      <label style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>First Name <span style={{ color: '#fff' }}>*</span></label>
+                      <label style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>First Name <span style={{ color: 'var(--text)' }}>*</span></label>
                       <input required placeholder="Jane" value={gateFirst} onChange={e => setGateFirst(e.target.value)} maxLength={100}
-                        style={{ background: '#1a1a1a', border: '1px solid #222222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     </div>
                     <div>
-                      <label style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Last Name</label>
+                      <label style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Last Name</label>
                       <input placeholder="Smith" value={gateLast} onChange={e => setGateLast(e.target.value)} maxLength={100}
-                        style={{ background: '#1a1a1a', border: '1px solid #222222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     </div>
                   </div>
                   <div>
-                    <label style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Email <span style={{ color: '#fff' }}>*</span></label>
+                    <label style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>Email <span style={{ color: 'var(--text)' }}>*</span></label>
                     <input type="email" required placeholder="jane@example.com" value={gateEmail} onChange={e => setGateEmail(e.target.value)} maxLength={254}
-                      style={{ background: '#1a1a1a', border: '1px solid #222222', borderRadius: '.2rem', color: '#fff', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                      style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontSize: '.875rem', padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                   </div>
-                  {gateError && <p style={{ color: '#fff', fontSize: '.8rem' }}>{gateError}</p>}
+                  {gateError && <p style={{ color: 'var(--text)', fontSize: '.8rem' }}>{gateError}</p>}
                   <button type="submit" disabled={gateLoading || !gateFirst.trim() || !gateEmail.trim()}
-                    style={{ background: '#bfa162', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
+                    style={{ background: '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
                     onMouseEnter={e => { if (!gateLoading) e.currentTarget.style.background = '#9a7c3a' }}
                     onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
                   >{gateLoading ? 'Unlocking…' : 'Unlock Attempt Planner →'}</button>
-                  <p style={{ color: '#888888', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks all <a href={href('/guides')} style={{ color: '#c7c7c7', textDecoration: 'underline' }}>6 free guides</a>. No spam.</p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks all <a href={href('/guides')} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>6 free guides</a>. No spam.</p>
                 </form>
               </div>
             )
