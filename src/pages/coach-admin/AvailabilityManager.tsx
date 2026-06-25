@@ -134,7 +134,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
   }
 
   if (loading) return (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#888', fontSize: '.8rem' }}>Loading availability…</div>
+    <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>Loading availability…</div>
   )
 
 
@@ -147,7 +147,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
   })
 
   const fieldStyle: React.CSSProperties = {
-    background: '#0d0d0d', border: '1px solid #222', color: '#fff',
+    background: 'var(--surface)', border: '1px solid #222', color: 'var(--text)',
     padding: '.6rem .75rem', borderRadius: '.25rem', fontSize: '.8rem',
     outline: 'none', fontFamily: 'inherit', appearance: 'none' as const,
   }
@@ -156,33 +156,33 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
     <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2.5rem', maxWidth: 760 }}>
       {useDemoStore && (
         <div style={{ background: '#2d2500', border: '1px solid #5c4800', borderRadius: '.25rem', padding: '.5rem 1rem', display: 'inline-flex', gap: '.75rem', alignItems: 'center', alignSelf: 'flex-start' }}>
-          <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Preview Mode</span>
+          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Preview Mode</span>
           <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Changes are in-memory — the booking page reflects them instantly for testing.</span>
         </div>
       )}
 
       {/* Weekly schedule */}
       <section>
-        <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Weekly Schedule</p>
-        <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1.5rem' }}>Recurring Availability</h2>
+        <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Weekly Schedule</p>
+        <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1.5rem' }}>Recurring Availability</h2>
 
         {/* Existing schedule rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '1.5rem' }}>
           {DAYS.map((dayName, dow) => {
             const daySched = byDay.get(dow) ?? []
             return (
-              <div key={dow} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 1rem', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem' }}>
-                <span style={{ color: '#888', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', minWidth: 80 }}>{dayName}</span>
+              <div key={dow} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 1rem', background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem' }}>
+                <span style={{ color: 'var(--text-3)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', minWidth: 80 }}>{dayName}</span>
                 <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}>
                   {daySched.length === 0 ? (
-                    <span style={{ color: '#444', fontSize: '.75rem' }}>No availability</span>
+                    <span style={{ color: 'var(--text-dim)', fontSize: '.75rem' }}>No availability</span>
                   ) : daySched.map(s => (
                     <span key={s.id} style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.25)', borderRadius: '.2rem', padding: '.25rem .65rem', display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
-                      <span style={{ color: '#fff', fontSize: '.72rem', fontWeight: 700 }}>
+                      <span style={{ color: 'var(--text)', fontSize: '.72rem', fontWeight: 700 }}>
                         {fmtTimePretty(s.start_time)} – {fmtTimePretty(s.end_time)}
-                        <span style={{ color: '#888', fontWeight: 400 }}> · {s.slot_duration_minutes}min slots</span>
+                        <span style={{ color: 'var(--text-3)', fontWeight: 400 }}> · {s.slot_duration_minutes}min slots</span>
                       </span>
-                      <button onClick={() => removeSchedule(s.id)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '.75rem', padding: 0, lineHeight: 1, fontFamily: 'inherit' }}>×</button>
+                      <button onClick={() => removeSchedule(s.id)} style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '.75rem', padding: 0, lineHeight: 1, fontFamily: 'inherit' }}>×</button>
                     </span>
                   ))}
                 </div>
@@ -192,32 +192,32 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
         </div>
 
         {/* Add hours form */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'flex-end' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'flex-end' }}>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Day</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Day</label>
             <select value={addDay} onChange={e => setAddDay(Number(e.target.value))} style={fieldStyle}>
               {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>From</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>From</label>
             <select value={addStart} onChange={e => setAddStart(e.target.value)} style={fieldStyle}>
               {TIMES.map(t => <option key={t} value={t}>{fmtTimePretty(t)}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>To</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>To</label>
             <select value={addEnd} onChange={e => setAddEnd(e.target.value)} style={fieldStyle}>
               {TIMES.map(t => <option key={t} value={t}>{fmtTimePretty(t)}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Slot Length</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Slot Length</label>
             <select value={addDuration} onChange={e => setAddDuration(Number(e.target.value))} style={fieldStyle}>
               {SLOT_DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}
             </select>
           </div>
-          <button onClick={addSchedule} disabled={adding || addEnd <= addStart} style={{ background: adding || addEnd <= addStart ? '#222' : '#bfa162', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={addSchedule} disabled={adding || addEnd <= addStart} style={{ background: adding || addEnd <= addStart ? 'var(--border)' : '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
             {adding ? 'Adding…' : '+ Add Hours'}
           </button>
         </div>
@@ -225,41 +225,41 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
 
       {/* Block a date */}
       <section>
-        <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Blocks</p>
-        <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1.5rem' }}>Mark Time Off</h2>
+        <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Blocks</p>
+        <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1.5rem' }}>Mark Time Off</h2>
 
         {/* Existing blocks */}
         {blocks.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '1.25rem' }}>
             {blocks.map(b => (
-              <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 1rem', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem' }}>
-                <span style={{ color: '#c7c7c7', fontSize: '.8rem', fontWeight: 600 }}>
+              <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 1rem', background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem' }}>
+                <span style={{ color: 'var(--text-2)', fontSize: '.8rem', fontWeight: 600 }}>
                   {new Date(b.block_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
-                <span style={{ color: '#888', fontSize: '.75rem' }}>
+                <span style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>
                   {!b.start_time ? 'All day' : `${fmtTimePretty(b.start_time)} – ${fmtTimePretty(b.end_time!)}`}
                 </span>
-                {b.reason && <span style={{ color: '#555', fontSize: '.75rem', fontStyle: 'italic' }}>{b.reason}</span>}
-                <button onClick={() => removeBlock(b.id)} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #333', color: '#555', cursor: 'pointer', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.25rem .6rem', borderRadius: '.2rem', fontFamily: 'inherit' }}>Remove</button>
+                {b.reason && <span style={{ color: 'var(--text-4)', fontSize: '.75rem', fontStyle: 'italic' }}>{b.reason}</span>}
+                <button onClick={() => removeBlock(b.id)} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #333', color: 'var(--text-4)', cursor: 'pointer', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.25rem .6rem', borderRadius: '.2rem', fontFamily: 'inherit' }}>Remove</button>
               </div>
             ))}
           </div>
         )}
 
         {/* Add block form */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'flex-end' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'flex-end' }}>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Date</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Date</label>
             <input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
               style={{ ...fieldStyle, colorScheme: 'dark' }} />
           </div>
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Type</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Type</label>
             <div style={{ display: 'flex', gap: '.5rem' }}>
               {[['Full Day', true], ['Time Range', false]].map(([label, val]) => (
                 <button key={String(val)} onClick={() => setBlockFullDay(val as boolean)}
-                  style={{ background: blockFullDay === val ? '#1a1a1a' : 'transparent', border: `1px solid ${blockFullDay === val ? '#f5b935' : '#333'}`, color: blockFullDay === val ? '#fff' : '#555', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: blockFullDay === val ? 'var(--surface-2)' : 'transparent', border: `1px solid ${blockFullDay === val ? '#f5b935' : 'var(--border-mid)'}`, color: blockFullDay === val ? 'var(--text)' : 'var(--text-4)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
                   {label as string}
                 </button>
               ))}
@@ -268,13 +268,13 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
           {!blockFullDay && (
             <>
               <div>
-                <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>From</label>
+                <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>From</label>
                 <select value={blockStartTime} onChange={e => setBlockStartTime(e.target.value)} style={fieldStyle}>
                   {TIMES.map(t => <option key={t} value={t}>{fmtTimePretty(t)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>To</label>
+                <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>To</label>
                 <select value={blockEndTime} onChange={e => setBlockEndTime(e.target.value)} style={fieldStyle}>
                   {TIMES.map(t => <option key={t} value={t}>{fmtTimePretty(t)}</option>)}
                 </select>
@@ -282,11 +282,11 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
             </>
           )}
           <div>
-            <label style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Reason (optional)</label>
+            <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Reason (optional)</label>
             <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="e.g. Competition weekend" style={{ ...fieldStyle, minWidth: 200 }} />
           </div>
           <button onClick={addBlock} disabled={blocking || !blockDate}
-            style={{ background: blocking || !blockDate ? '#222' : '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ background: blocking || !blockDate ? 'var(--border)' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
             {blocking ? 'Blocking…' : 'Block Date'}
           </button>
         </div>
@@ -294,33 +294,33 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
 
       {/* Upcoming bookings */}
       <section>
-        <p style={{ color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Upcoming</p>
-        <h2 style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1rem' }}>Booked Calls</h2>
+        <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Upcoming</p>
+        <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '1rem' }}>Booked Calls</h2>
 
         {upcoming.length === 0 ? (
-          <p style={{ color: '#555', fontSize: '.875rem' }}>No upcoming bookings.</p>
+          <p style={{ color: 'var(--text-4)', fontSize: '.875rem' }}>No upcoming bookings.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
             {upcoming.map(b => {
               const dt = new Date(b.booked_at)
-              const statusColor: Record<string, string> = { pending: '#f5b935', confirmed: '#22c55e', cancelled: '#555' }
+              const statusColor: Record<string, string> = { pending: '#f5b935', confirmed: '#22c55e', cancelled: 'var(--text-4)' }
               return (
-                <div key={b.id} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div key={b.id} style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 140 }}>
-                    <p style={{ color: '#fff', fontWeight: 700, fontSize: '.85rem' }}>{fmtDate(dt)}</p>
-                    <p style={{ color: '#888', fontSize: '.75rem' }}>{fmtTime(dt)} · {b.duration_minutes} min</p>
+                    <p style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.85rem' }}>{fmtDate(dt)}</p>
+                    <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{fmtTime(dt)} · {b.duration_minutes} min</p>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#fff', fontWeight: 600, fontSize: '.85rem' }}>{b.first_name} {b.last_name}</p>
-                    <p style={{ color: '#888', fontSize: '.75rem' }}>{b.email}</p>
+                    <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '.85rem' }}>{b.first_name} {b.last_name}</p>
+                    <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{b.email}</p>
                   </div>
                   <div style={{ display: 'flex', gap: '.5rem' }}>
                     {(['pending','confirmed','cancelled'] as Booking['status'][]).map(s => (
                       <button key={s} onClick={() => updateBookingStatus(b.id, s)}
                         style={{
                           background: b.status === s ? statusColor[s] + '20' : 'transparent',
-                          border: `1px solid ${b.status === s ? statusColor[s] : '#333'}`,
-                          color: b.status === s ? statusColor[s] : '#555',
+                          border: `1px solid ${b.status === s ? statusColor[s] : 'var(--border-mid)'}`,
+                          color: b.status === s ? statusColor[s] : 'var(--text-4)',
                           fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                           padding: '.25rem .6rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit',
                         }}>

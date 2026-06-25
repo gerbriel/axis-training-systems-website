@@ -9,13 +9,13 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
   rejected: '#c8102e',
 }
 const lbl: React.CSSProperties = {
-  color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700,
+  color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700,
   letterSpacing: '.15em', textTransform: 'uppercase',
   marginBottom: '.35rem', display: 'block',
 }
 const inp: React.CSSProperties = {
-  background: '#1a1a1a', border: '1px solid #222222', borderRadius: '.2rem',
-  color: '#fff', fontSize: '.875rem', fontWeight: 500,
+  background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem',
+  color: 'var(--text)', fontSize: '.875rem', fontWeight: 500,
   padding: '.65rem .875rem', outline: 'none',
   width: '100%', boxSizing: 'border-box', fontFamily: 'inherit',
 }
@@ -59,25 +59,25 @@ function SectionEditor({ sections, onChange }: { sections: EditorSection[]; onCh
       {sections.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: '.75rem' }}>
           {sections.map((sec, idx) => (
-            <div key={sec._id} style={{ background: '#000000', border: '1px solid #222222', borderRadius: '.2rem', padding: '.75rem' }}>
+            <div key={sec._id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.2rem', padding: '.75rem' }}>
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', marginBottom: sec.type === 'divider' ? 0 : '.5rem', flexWrap: 'wrap' }}>
                 <select value={sec.type} onChange={e => upd(sec._id, { type: e.target.value as SectionType })}
                   style={{ ...inp, width: 'auto', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .5rem', appearance: 'none', cursor: 'pointer', flex: 'none' }}>
                   {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
                 </select>
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '.3rem' }}>
-                  <button onClick={() => mov(sec._id, -1)} disabled={idx===0} style={{ background:'none',border:'1px solid #222222',color:'#444',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:idx===0?'default':'pointer',opacity:idx===0?0.3:1,fontFamily:'inherit' }}>&#8593;</button>
-                  <button onClick={() => mov(sec._id, 1)} disabled={idx===sections.length-1} style={{ background:'none',border:'1px solid #222222',color:'#444',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:idx===sections.length-1?'default':'pointer',opacity:idx===sections.length-1?0.3:1,fontFamily:'inherit' }}>&#8595;</button>
-                  <button onClick={() => del(sec._id)} style={{ background:'none',border:'1px solid #222222',color:'#555',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:'pointer',fontFamily:'inherit' }}
+                  <button onClick={() => mov(sec._id, -1)} disabled={idx===0} style={{ background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:idx===0?'default':'pointer',opacity:idx===0?0.3:1,fontFamily:'inherit' }}>&#8593;</button>
+                  <button onClick={() => mov(sec._id, 1)} disabled={idx===sections.length-1} style={{ background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:idx===sections.length-1?'default':'pointer',opacity:idx===sections.length-1?0.3:1,fontFamily:'inherit' }}>&#8595;</button>
+                  <button onClick={() => del(sec._id)} style={{ background:'none',border:'1px solid var(--border)',color:'var(--text-4)',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:'pointer',fontFamily:'inherit' }}
                     onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#c8102e';(e.currentTarget as HTMLButtonElement).style.color='#c8102e'}}
-                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#222222';(e.currentTarget as HTMLButtonElement).style.color='#555'}}>&#x2715;</button>
+                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--text-4)'}}>&#x2715;</button>
                 </div>
               </div>
-              {sec.type==='divider' && <div style={{height:1,background:'#222222',margin:'.3rem 0'}}/>}
+              {sec.type==='divider' && <div style={{height:1,background:'var(--border)',margin:'.3rem 0'}}/>}
               {(sec.type==='heading'||sec.type==='subheading') && <input style={inp} placeholder={sec.type==='heading'?'Section heading':'Subheading text'} value={sec.text??''} onChange={e=>upd(sec._id,{text:e.target.value})} maxLength={200}/>}
               {sec.type==='paragraph' && <textarea style={{...inp,minHeight:80,resize:'vertical'}} placeholder="Paragraph text" value={sec.text??''} onChange={e=>upd(sec._id,{text:e.target.value})} maxLength={2000}/>}
               {sec.type==='callout' && <textarea style={{...inp,minHeight:80,resize:'vertical'}} placeholder="Callout text" value={sec.text??''} onChange={e=>upd(sec._id,{text:e.target.value})} maxLength={1000}/>}
-              {sec.type==='list' && <><p style={{color:'#3a3f47',fontSize:'.6rem',marginBottom:'.35rem'}}>One bullet item per line</p><textarea style={{...inp,minHeight:100,resize:'vertical'}} placeholder="Item one" value={sec.items??''} onChange={e=>upd(sec._id,{items:e.target.value})} maxLength={4000}/></>}
+              {sec.type==='list' && <><p style={{color:'var(--steel)',fontSize:'.6rem',marginBottom:'.35rem'}}>One bullet item per line</p><textarea style={{...inp,minHeight:100,resize:'vertical'}} placeholder="Item one" value={sec.items??''} onChange={e=>upd(sec._id,{items:e.target.value})} maxLength={4000}/></>}
               {sec.type==='week' && <div style={{display:'flex',flexDirection:'column',gap:'.5rem'}}><input style={inp} placeholder="Week label" value={sec.label??''} onChange={e=>upd(sec._id,{label:e.target.value})} maxLength={100}/><textarea style={{...inp,minHeight:80,resize:'vertical'}} placeholder="Squat: 4x5 @ RPE 8" value={sec.items??''} onChange={e=>upd(sec._id,{items:e.target.value})} maxLength={2000}/></div>}
             </div>
           ))}
@@ -86,9 +86,9 @@ function SectionEditor({ sections, onChange }: { sections: EditorSection[]; onCh
       <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
         {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(type=>(
           <button key={type} onClick={()=>add(type)}
-            style={{background:'transparent',border:'1px solid #222222',color:'#444',fontSize:'.6rem',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',padding:'.3rem .7rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}
-            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#444';(e.currentTarget as HTMLButtonElement).style.color='#d6d6d6'}}
-            onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#222222';(e.currentTarget as HTMLButtonElement).style.color='#444'}}
+            style={{background:'transparent',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',padding:'.3rem .7rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}
+            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--text-dim)';(e.currentTarget as HTMLButtonElement).style.color='var(--chalk)'}}
+            onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--text-dim)'}}
           >+ {type.charAt(0).toUpperCase()+type.slice(1)}</button>
         ))}
       </div>
@@ -105,20 +105,20 @@ function BlogPreview({ content }: { content: string }) {
       return (
         <div style={{display:'flex',flexDirection:'column',gap:'.5rem'}}>
           {sections.map((s: any, i: number)=>{
-            if(s.type==='divider') return <div key={i} style={{height:1,background:'#222222',margin:'.25rem 0'}}/>
-            if(s.type==='heading') return <p key={i} style={{color:'#fff',fontWeight:900,fontSize:'.9rem',textTransform:'uppercase'}}>{s.text}</p>
+            if(s.type==='divider') return <div key={i} style={{height:1,background:'var(--border)',margin:'.25rem 0'}}/>
+            if(s.type==='heading') return <p key={i} style={{color:'var(--text)',fontWeight:900,fontSize:'.9rem',textTransform:'uppercase'}}>{s.text}</p>
             if(s.type==='subheading') return <p key={i} style={{color:'#c8102e',fontWeight:900,fontSize:'.7rem',letterSpacing:'.2em',textTransform:'uppercase'}}>{s.text}</p>
-            if(s.type==='paragraph') return <p key={i} style={{color:'#666',fontSize:'.825rem',lineHeight:1.65}}>{s.text}</p>
-            if(s.type==='callout') return <blockquote key={i} style={{borderLeft:'3px solid #c8102e',paddingLeft:'.875rem',color:'#888',fontSize:'.875rem',fontWeight:600,lineHeight:1.7}}>{s.text}</blockquote>
-            if(s.type==='list') return <ul key={i} style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.3rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{display:'flex',gap:'.5rem',color:'#666',fontSize:'.825rem',lineHeight:1.6}}><span style={{color:'#c8102e',flexShrink:0}}>·</span>{item}</li>)}</ul>
-            if(s.type==='week') return <div key={i} style={{background:'#000000',border:'1px solid #222222',borderRadius:'.2rem',padding:'.875rem 1rem'}}><p style={{color:'#fff',fontWeight:700,fontSize:'.75rem',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'.5rem'}}>{s.label}</p><ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.25rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{color:'#555',fontSize:'.8rem',display:'flex',gap:'.5rem'}}><span style={{color:'#c8102e'}}>·</span>{item}</li>)}</ul></div>
+            if(s.type==='paragraph') return <p key={i} style={{color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.65}}>{s.text}</p>
+            if(s.type==='callout') return <blockquote key={i} style={{borderLeft:'3px solid #c8102e',paddingLeft:'.875rem',color:'var(--text-3)',fontSize:'.875rem',fontWeight:600,lineHeight:1.7}}>{s.text}</blockquote>
+            if(s.type==='list') return <ul key={i} style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.3rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{display:'flex',gap:'.5rem',color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.6}}><span style={{color:'#c8102e',flexShrink:0}}>·</span>{item}</li>)}</ul>
+            if(s.type==='week') return <div key={i} style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'.2rem',padding:'.875rem 1rem'}}><p style={{color:'var(--text)',fontWeight:700,fontSize:'.75rem',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'.5rem'}}>{s.label}</p><ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.25rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{color:'var(--text-4)',fontSize:'.8rem',display:'flex',gap:'.5rem'}}><span style={{color:'#c8102e'}}>·</span>{item}</li>)}</ul></div>
             return null
           })}
         </div>
       )
     } catch { /* fallthrough */ }
   }
-  return <>{(content??'').split('\n\n').filter(Boolean).map((p,i)=><p key={i} style={{color:'#666',fontSize:'.825rem',lineHeight:1.65,marginBottom:'.5rem'}}>{p}</p>)}</>
+  return <>{(content??'').split('\n\n').filter(Boolean).map((p,i)=><p key={i} style={{color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.65,marginBottom:'.5rem'}}>{p}</p>)}</>
 }
 
 interface BlogForm { title:string; subtitle:string; tags:string; summary:string; sections:EditorSection[] }
@@ -228,7 +228,7 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
     <div style={{ padding:'2rem', maxWidth:960 }}>
       {isDemo && mode==='list' && (
         <div style={{background:'#2d2500',border:'1px solid #5c4800',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.5rem'}}>
-          <span style={{color:'#fff',fontSize:'.7rem',fontWeight:700}}>Demo Mode — </span>
+          <span style={{color:'var(--text)',fontSize:'.7rem',fontWeight:700}}>Demo Mode — </span>
           <span style={{color:'#a08c30',fontSize:'.75rem'}}>All changes are in-memory and reset on page reload.</span>
         </div>
       )}
@@ -236,17 +236,17 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
       {mode==='list' && (
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'1.75rem',flexWrap:'wrap',gap:'1rem'}}>
           <div>
-            <h2 style={{color:'#fff',fontSize:'1.25rem',fontWeight:900,marginBottom:'.25rem'}}>
+            <h2 style={{color:'var(--text)',fontSize:'1.25rem',fontWeight:900,marginBottom:'.25rem'}}>
               Content Approvals
-              {pendingCount>0 && <span style={{background:'#c8102e',color:'#fff',fontSize:'.6rem',fontWeight:900,borderRadius:'10rem',padding:'.15rem .55rem',marginLeft:'.5rem',verticalAlign:'middle'}}>{pendingCount}</span>}
+              {pendingCount>0 && <span style={{background:'#c8102e',color:'var(--text)',fontSize:'.6rem',fontWeight:900,borderRadius:'10rem',padding:'.15rem .55rem',marginLeft:'.5rem',verticalAlign:'middle'}}>{pendingCount}</span>}
             </h2>
-            <p style={{color:'#3a3f47',fontSize:'.8rem'}}>Review coach submissions or create new content directly.</p>
+            <p style={{color:'var(--steel)',fontSize:'.8rem'}}>Review coach submissions or create new content directly.</p>
           </div>
           <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',alignItems:'center'}}>
-            <button onClick={refresh} style={{background:'none',border:'1px solid #222222',color:'#555',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Refresh</button>
-            <button onClick={()=>openCreate('meet')} style={{background:'transparent',border:'1px solid #222222',color:'#d6d6d6',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
-              onMouseEnter={e=>(e.currentTarget as HTMLButtonElement).style.borderColor='#555'} onMouseLeave={e=>(e.currentTarget as HTMLButtonElement).style.borderColor='#222222'}>+ New Meet</button>
-            <button onClick={()=>openCreate('blog')} style={{background:'#c8102e',border:'1px solid #c8102e',color:'#fff',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
+            <button onClick={refresh} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-4)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Refresh</button>
+            <button onClick={()=>openCreate('meet')} style={{background:'transparent',border:'1px solid var(--border)',color:'var(--chalk)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
+              onMouseEnter={e=>(e.currentTarget as HTMLButtonElement).style.borderColor='var(--text-4)'} onMouseLeave={e=>(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)'}>+ New Meet</button>
+            <button onClick={()=>openCreate('blog')} style={{background:'#c8102e',border:'1px solid #c8102e',color:'var(--text)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
               onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='#a30c26'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='#c8102e'}}>+ New Blog Post</button>
           </div>
         </div>
@@ -255,14 +255,14 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
       {(isCreate||isEdit) && (
         <div>
           <div style={{display:'flex',alignItems:'center',gap:'1rem',marginBottom:'1.75rem',flexWrap:'wrap'}}>
-            <button onClick={cancelForm} style={{background:'none',border:'1px solid #222222',color:'#444',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.4rem .75rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Back</button>
-            <h2 style={{color:'#fff',fontWeight:900,fontSize:'1.1rem',textTransform:'uppercase'}}>{formTitle}</h2>
+            <button onClick={cancelForm} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.4rem .75rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Back</button>
+            <h2 style={{color:'var(--text)',fontWeight:900,fontSize:'1.1rem',textTransform:'uppercase'}}>{formTitle}</h2>
             {isCreate && <span style={{background:'#22c55e18',border:'1px solid #22c55e55',color:'#22c55e',fontSize:'.6rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.2rem .6rem',borderRadius:'.2rem'}}>Auto-Approved</span>}
           </div>
           {actionError && <div style={{background:'#1a0309',border:'1px solid #2d0810',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.25rem',color:'#f87171',fontSize:'.8rem'}}>{actionError}</div>}
 
           {formType==='blog' && (
-            <div style={{background:'#000000',border:'1px solid #222222',borderRadius:'.25rem',padding:'2rem'}}>
+            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'.25rem',padding:'2rem'}}>
               <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
                 <div><label style={lbl}>Title *</label><input style={inp} maxLength={200} placeholder="e.g. Meet Recap USAPL Raw Nationals 2026" value={blog.title} onChange={e=>setBlog(b=>({...b,title:e.target.value}))}/></div>
                 <div><label style={lbl}>Subtitle</label><input style={inp} maxLength={300} placeholder="One-line description shown in the post header" value={blog.subtitle} onChange={e=>setBlog(b=>({...b,subtitle:e.target.value}))}/></div>
@@ -274,7 +274,7 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
           )}
 
           {formType==='meet' && (
-            <div style={{background:'#000000',border:'1px solid #222222',borderRadius:'.25rem',padding:'2rem'}}>
+            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'.25rem',padding:'2rem'}}>
               <div style={{display:'grid',gap:'1.25rem',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))'}}>
                 <div style={{gridColumn:'1/-1'}}><label style={lbl}>Meet Name *</label><input style={inp} maxLength={200} placeholder="e.g. USAPL Raw Nationals 2026" value={meet.meetName} onChange={e=>setMeet(m=>({...m,meetName:e.target.value}))}/></div>
                 <div><label style={lbl}>Date *</label><input style={inp} maxLength={100} placeholder="e.g. July 24-27, 2026" value={meet.meetDate} onChange={e=>setMeet(m=>({...m,meetDate:e.target.value}))}/></div>
@@ -288,10 +288,10 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
 
           <div style={{display:'flex',gap:'.75rem',marginTop:'1.5rem',flexWrap:'wrap',alignItems:'center'}}>
             <button onClick={isEdit?saveEdit:saveCreate} disabled={saving||!formValid}
-              style={{background:'#c8102e',border:'none',color:'#fff',fontWeight:900,fontSize:'.75rem',letterSpacing:'.15em',textTransform:'uppercase',padding:'.75rem 1.75rem',borderRadius:'.25rem',cursor:'pointer',fontFamily:'inherit',opacity:saving||!formValid?0.45:1,transition:'opacity .15s'}}>
+              style={{background:'#c8102e',border:'none',color:'var(--text)',fontWeight:900,fontSize:'.75rem',letterSpacing:'.15em',textTransform:'uppercase',padding:'.75rem 1.75rem',borderRadius:'.25rem',cursor:'pointer',fontFamily:'inherit',opacity:saving||!formValid?0.45:1,transition:'opacity .15s'}}>
               {saving?'Saving...':isEdit?'Save Changes':'Publish Now'}
             </button>
-            <button onClick={cancelForm} style={{background:'none',border:'1px solid #222222',color:'#555',fontSize:'.7rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.7rem 1.25rem',borderRadius:'.25rem',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+            <button onClick={cancelForm} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-4)',fontSize:'.7rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.7rem 1.25rem',borderRadius:'.25rem',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
           </div>
         </div>
       )}
@@ -301,64 +301,64 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
           {actionError && <div style={{background:'#1a0309',border:'1px solid #2d0810',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.5rem',color:'#f87171',fontSize:'.8rem'}}>{actionError}</div>}
           <div style={{display:'flex',gap:'.5rem',marginBottom:'1.5rem',flexWrap:'wrap'}}>
             {(['pending','reviewed'] as FilterStatus[]).map(s=>(
-              <button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?'#0d0d0d':'transparent',border:`1px solid ${filterStatus===s?'#3a3f47':'#222222'}`,color:filterStatus===s?'#fff':'#3a3f47',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+              <button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?'var(--surface)':'transparent',border:`1px solid ${filterStatus===s?'var(--steel)':'var(--border)'}`,color:filterStatus===s?'var(--text)':'var(--steel)',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
                 {s==='pending'?('Pending (' + items.filter(c=>c.status==='pending').length + ')'):'Reviewed'}
               </button>
             ))}
-            <div style={{width:1,background:'#222222',flexShrink:0}}/>
+            <div style={{width:1,background:'var(--border)',flexShrink:0}}/>
             {(['all','blog','meet'] as FilterType[]).map(t=>(
-              <button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?'#0d0d0d':'transparent',border:`1px solid ${filterType===t?'#3a3f47':'#222222'}`,color:filterType===t?'#fff':'#3a3f47',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+              <button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?'var(--surface)':'transparent',border:`1px solid ${filterType===t?'var(--steel)':'var(--border)'}`,color:filterType===t?'var(--text)':'var(--steel)',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
                 {t==='all'?'All':t==='blog'?'Blog':'Meets'}
               </button>
             ))}
           </div>
 
           {loading ? (
-            <div style={{background:'#000000',border:'1px solid #0d0d0d',borderRadius:'.25rem',padding:'3rem 2rem',textAlign:'center'}}><p style={{color:'#222222',fontSize:'.875rem'}}>Loading...</p></div>
+            <div style={{background:'var(--bg)',border:'1px solid var(--surface)',borderRadius:'.25rem',padding:'3rem 2rem',textAlign:'center'}}><p style={{color:'var(--border)',fontSize:'.875rem'}}>Loading...</p></div>
           ) : filtered.length===0 ? (
-            <div style={{background:'#000000',border:'1px solid #0d0d0d',borderRadius:'.25rem',padding:'3rem 2rem',textAlign:'center'}}>
-              <p style={{color:'#222222',fontSize:'.875rem'}}>{filterStatus==='pending'?'No pending submissions.':'No reviewed items.'}</p>
-              <p style={{color:'#222222',fontSize:'.75rem',marginTop:'.5rem'}}>Use the buttons above to create new content directly.</p>
+            <div style={{background:'var(--bg)',border:'1px solid var(--surface)',borderRadius:'.25rem',padding:'3rem 2rem',textAlign:'center'}}>
+              <p style={{color:'var(--border)',fontSize:'.875rem'}}>{filterStatus==='pending'?'No pending submissions.':'No reviewed items.'}</p>
+              <p style={{color:'var(--border)',fontSize:'.75rem',marginTop:'.5rem'}}>Use the buttons above to create new content directly.</p>
             </div>
           ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:'1px',background:'#0d0d0d'}}>
+            <div style={{display:'flex',flexDirection:'column',gap:'1px',background:'var(--surface)'}}>
               {filtered.map(item=>{
                 const isExpanded = expandedId===item.id
                 return (
-                  <div key={item.id} style={{background:'#000000'}}>
+                  <div key={item.id} style={{background:'var(--bg)'}}>
                     <div style={{display:'flex',gap:'1rem',alignItems:'flex-start',padding:'1.25rem 1.5rem',cursor:'pointer',flexWrap:'wrap'}} onClick={()=>setExpandedId(isExpanded?null:item.id)}>
                       <div style={{flex:1,minWidth:200}}>
                         <div style={{display:'flex',gap:'.5rem',alignItems:'center',marginBottom:'.35rem',flexWrap:'wrap'}}>
-                          <span style={{color:'#444',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase'}}>{item.type==='blog'?'Blog':'Meet'}</span>
+                          <span style={{color:'var(--text-dim)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase'}}>{item.type==='blog'?'Blog':'Meet'}</span>
                           <span style={{background:STATUS_COLORS[item.status]+'18',border:`1px solid ${STATUS_COLORS[item.status]}`,color:STATUS_COLORS[item.status],fontSize:'.55rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.15rem .5rem',borderRadius:'.15rem'}}>{item.status}</span>
-                          <span style={{color:'#222222',fontSize:'.65rem',fontWeight:600}}>by {item.coachName}</span>
+                          <span style={{color:'var(--border)',fontSize:'.65rem',fontWeight:600}}>by {item.coachName}</span>
                         </div>
-                        <p style={{color:'#fff',fontWeight:700,fontSize:'.925rem'}}>{item.type==='blog'?item.title:item.meetName}</p>
-                        {item.type==='meet' && <p style={{color:'#444',fontSize:'.75rem',marginTop:'.2rem'}}>{item.meetDate}{item.meetLocation?' · '+item.meetLocation:''}{item.federation?' · '+item.federation:''} · {item.meetType}</p>}
-                        {item.type==='blog' && item.summary && <p style={{color:'#3a3f47',fontSize:'.8rem',marginTop:'.35rem',lineHeight:1.5}}>{item.summary}</p>}
-                        <p style={{color:'#222222',fontSize:'.65rem',marginTop:'.4rem'}}>
+                        <p style={{color:'var(--text)',fontWeight:700,fontSize:'.925rem'}}>{item.type==='blog'?item.title:item.meetName}</p>
+                        {item.type==='meet' && <p style={{color:'var(--text-dim)',fontSize:'.75rem',marginTop:'.2rem'}}>{item.meetDate}{item.meetLocation?' · '+item.meetLocation:''}{item.federation?' · '+item.federation:''} · {item.meetType}</p>}
+                        {item.type==='blog' && item.summary && <p style={{color:'var(--steel)',fontSize:'.8rem',marginTop:'.35rem',lineHeight:1.5}}>{item.summary}</p>}
+                        <p style={{color:'var(--border)',fontSize:'.65rem',marginTop:'.4rem'}}>
                           Submitted {new Date(item.submittedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
                           {item.reviewedAt&&(' · Reviewed ' + new Date(item.reviewedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}))}
                         </p>
                         {item.status==='rejected'&&item.rejectionNote&&<p style={{color:'#c8102e',fontSize:'.75rem',marginTop:'.4rem'}}>Rejection note: {item.rejectionNote}</p>}
                       </div>
-                      <span style={{color:'#222222',fontSize:'.7rem',flexShrink:0,paddingTop:'.2rem'}}>{isExpanded?'▲':'▼'}</span>
+                      <span style={{color:'var(--border)',fontSize:'.7rem',flexShrink:0,paddingTop:'.2rem'}}>{isExpanded?'▲':'▼'}</span>
                     </div>
 
                     {isExpanded && (
-                      <div style={{borderTop:'1px solid #0d0d0d',padding:'1.5rem',display:'flex',flexDirection:'column',gap:'1.25rem'}}>
+                      <div style={{borderTop:'1px solid var(--surface)',padding:'1.5rem',display:'flex',flexDirection:'column',gap:'1.25rem'}}>
                         {item.type==='blog'&&item.content&&(
                           <div>
                             <p style={{...lbl,marginBottom:'.5rem'}}>Content Preview</p>
-                            <div style={{background:'#000000',border:'1px solid #0d0d0d',borderRadius:'.2rem',padding:'1.25rem',maxHeight:320,overflow:'auto'}}><BlogPreview content={item.content}/></div>
-                            {item.tags&&<p style={{color:'#3a3f47',fontSize:'.7rem',marginTop:'.5rem'}}>Tags: {item.tags}</p>}
+                            <div style={{background:'var(--bg)',border:'1px solid var(--surface)',borderRadius:'.2rem',padding:'1.25rem',maxHeight:320,overflow:'auto'}}><BlogPreview content={item.content}/></div>
+                            {item.tags&&<p style={{color:'var(--steel)',fontSize:'.7rem',marginTop:'.5rem'}}>Tags: {item.tags}</p>}
                           </div>
                         )}
-                        {item.type==='meet'&&item.meetNote&&<div><p style={lbl}>Note</p><p style={{color:'#666',fontSize:'.8rem'}}>{item.meetNote}</p></div>}
+                        {item.type==='meet'&&item.meetNote&&<div><p style={lbl}>Note</p><p style={{color:'var(--text-3)',fontSize:'.8rem'}}>{item.meetNote}</p></div>}
                         <div style={{display:'flex',gap:'.6rem',flexWrap:'wrap',alignItems:'center'}}>
                           <button onClick={e=>{e.stopPropagation();openEdit(item)}}
-                            style={{background:'transparent',border:'1px solid #222222',color:'#888',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
-                            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#555';(e.currentTarget as HTMLButtonElement).style.color='#fff'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#222222';(e.currentTarget as HTMLButtonElement).style.color='#888'}}>Edit</button>
+                            style={{background:'transparent',border:'1px solid var(--border)',color:'var(--text-3)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
+                            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--text-4)';(e.currentTarget as HTMLButtonElement).style.color='var(--text)'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--text-3)'}}>Edit</button>
                           {!rejectMode[item.id]&&(
                             <>
                               {item.status!=='approved'&&<button onClick={e=>{e.stopPropagation();approve(item.id)}} disabled={actionId===item.id}
@@ -377,15 +377,15 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
                             <div onClick={e=>e.stopPropagation()} style={{display:'flex',flexDirection:'column',gap:'.6rem',width:'100%',maxWidth:440}}>
                               <div><label style={lbl}>Rejection Note (visible to coach)</label><input style={inp} maxLength={500} placeholder="Explain why..." value={rejectNotes[item.id]??''} onChange={e=>setRejectNotes(p=>({...p,[item.id]:e.target.value}))}/></div>
                               <div style={{display:'flex',gap:'.5rem'}}>
-                                <button onClick={()=>confirmReject(item.id)} disabled={actionId===item.id} style={{background:'#c8102e',border:'none',color:'#fff',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}>{actionId===item.id?'Saving...':'Confirm Reject'}</button>
-                                <button onClick={()=>setRejectMode(p=>({...p,[item.id]:false}))} style={{background:'none',border:'1px solid #222222',color:'#444',fontWeight:700,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                                <button onClick={()=>confirmReject(item.id)} disabled={actionId===item.id} style={{background:'#c8102e',border:'none',color:'var(--text)',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}>{actionId===item.id?'Saving...':'Confirm Reject'}</button>
+                                <button onClick={()=>setRejectMode(p=>({...p,[item.id]:false}))} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontWeight:700,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                               </div>
                             </div>
                           )}
                           <div style={{flex:1}}/>
                           <button onClick={e=>{e.stopPropagation();handleDelete(item.id)}} disabled={actionId===item.id}
-                            style={{background:'none',border:'1px solid #222222',color:'#222222',fontWeight:700,fontSize:'.6rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}
-                            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#c8102e';(e.currentTarget as HTMLButtonElement).style.color='#c8102e'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#222222';(e.currentTarget as HTMLButtonElement).style.color='#222222'}}>Delete</button>
+                            style={{background:'none',border:'1px solid var(--border)',color:'var(--border)',fontWeight:700,fontSize:'.6rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}
+                            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#c8102e';(e.currentTarget as HTMLButtonElement).style.color='#c8102e'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--border)'}}>Delete</button>
                         </div>
                       </div>
                     )}

@@ -269,18 +269,18 @@ async function nameSearch(name: string, filterSuffix: string, signal?: AbortSign
 
 // ── Styles ────────────────────────────────────────────────────────────────
 const SEL: React.CSSProperties = {
-  background: '#1a1a1a', border: '1px solid #222222', borderRadius: '.3rem',
-  color: '#d6d6d6', fontSize: '.78rem', padding: '.65rem .75rem',
+  background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.3rem',
+  color: 'var(--chalk)', fontSize: '.78rem', padding: '.65rem .75rem',
   fontFamily: 'inherit', outline: 'none', cursor: 'pointer', width: '100%',
 }
 const TH: React.CSSProperties = {
-  padding: '.6rem .8rem', textAlign: 'left', color: '#888888',
+  padding: '.6rem .8rem', textAlign: 'left', color: 'var(--text-3)',
   fontSize: '.52rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '.1em', whiteSpace: 'nowrap', background: '#000000',
+  letterSpacing: '.1em', whiteSpace: 'nowrap', background: 'var(--bg)',
 }
 const TD: React.CSSProperties = { padding: '.65rem .8rem', fontSize: '.78rem', whiteSpace: 'nowrap' }
 const LBL: React.CSSProperties = {
-  color: '#888888', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.15em',
+  color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.15em',
   textTransform: 'uppercase', display: 'block', marginBottom: '.4rem',
 }
 
@@ -606,27 +606,27 @@ export default function Rankings() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000000', color: '#fff', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit' }}>
 
       {/* Mini nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #222222', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
-        <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/></a>
-        <span style={{ color: '#888888' }}>›</span>
-        <span style={{ color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--nav-overlay)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem' }}>
+        <a href={href('/')}><img src={BASE + 'logo.svg'} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)' }}/></a>
+        <span style={{ color: 'var(--text-3)' }}>›</span>
+        <span style={{ color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>Rankings</span>
       </nav>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '3.5rem 1.5rem 6rem' }}>
 
         {/* Header */}
         <div style={{ marginBottom: '2.5rem' }}>
-          <p style={{ color: '#fff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
+          <p style={{ color: 'var(--text)', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Powered by OpenPowerlifting</p>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.05, marginBottom: '.75rem' }}>Powerlifting Rankings</h1>
-          <p style={{ color: '#c7c7c7', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. All filters update results live — just type or select.</p>
+          <p style={{ color: 'var(--text-2)', fontSize: '.875rem', maxWidth: 560, lineHeight: 1.7 }}>Browse ranked results from 3M+ competition entries worldwide. All filters update results live — just type or select.</p>
         </div>
 
         {/* ── Global search bar ────────────────────────────────────── */}
         <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#555', fontSize: '.9rem', pointerEvents: 'none' }}>⌕</span>
+          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)', fontSize: '.9rem', pointerEvents: 'none' }}>⌕</span>
           <input
             type="text"
             value={globalSearch}
@@ -637,20 +637,20 @@ export default function Rankings() {
               ...SEL, boxSizing: 'border-box', width: '100%',
               padding: '.85rem 1rem .85rem 2.5rem',
               fontSize: '.85rem', borderRadius: '.4rem',
-              border: globalSearch ? '1px solid rgba(200,16,46,.4)' : '1px solid #222222',
+              border: globalSearch ? '1px solid rgba(200,16,46,.4)' : '1px solid var(--border)',
             }}
           />
           {globalSearch && (
             <button onClick={() => setGlobalSearch('')} style={{
               position: 'absolute', right: '.75rem', top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '.9rem', padding: '.25rem',
+              background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '.9rem', padding: '.25rem',
             }}>✕</button>
           )}
         </div>
 
         {/* ── Filters ─────────────────────────────────────────────────── */}
-        <div style={{ background: '#000000', border: '1px solid #222222', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
-          <p style={{ color: '#888888', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.4rem', padding: '1.25rem 1.5rem', marginBottom: '1.75rem' }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>Filters</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '.75rem', marginBottom: '1rem' }}>
 
             {/* Name — live search with 400ms debounce; drives API search */}
@@ -701,25 +701,25 @@ export default function Rankings() {
               </select>
             </div>
             <div>
-              <label style={LBL}>Country <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <label style={LBL}>Country <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(client)</span></label>
               <input type="text" value={country} onChange={e => setCountry(e.target.value)}
                 placeholder="e.g. USA, Canada" maxLength={40}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={LBL}>Division <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <label style={LBL}>Division <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(client)</span></label>
               <input type="text" value={division} onChange={e => setDivision(e.target.value)}
                 placeholder="e.g. Open, Masters 1" maxLength={40}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={LBL}>Meet Name <span style={{ color: '#555', fontWeight: 400 }}>(enriched)</span></label>
+              <label style={LBL}>Meet Name <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(enriched)</span></label>
               <input type="text" value={meetName} onChange={e => setMeetName(e.target.value)}
                 placeholder="e.g. Cayco Classic 3" maxLength={80}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={LBL}>Age (exact) <span style={{ color: '#555', fontWeight: 400 }}>(client)</span></label>
+              <label style={LBL}>Age (exact) <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(client)</span></label>
               <input type="number" value={ageExact} onChange={e => setAgeExact(e.target.value)}
                 placeholder="e.g. 32" min={5} max={100} step={1}
                 style={{ ...SEL, boxSizing: 'border-box' }} />
@@ -728,31 +728,31 @@ export default function Rankings() {
 
           {/* Unit toggle + search button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', background: '#0d0d0d', border: '1px solid #222222', borderRadius: '.3rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '.3rem', overflow: 'hidden' }}>
               {(['lbs', 'kg'] as const).map(u => (
                 <button key={u} onClick={() => setUnit(u)} style={{
                   padding: '.55rem 1.1rem', border: 'none', cursor: 'pointer',
                   background: unit === u ? '#c8102e' : 'transparent',
-                  color: unit === u ? '#fff' : '#444',
+                  color: unit === u ? 'var(--text)' : 'var(--text-dim)',
                   fontWeight: 700, fontSize: '.62rem', letterSpacing: '.1em',
                   textTransform: 'uppercase', fontFamily: 'inherit',
                 }}>{u}</button>
               ))}
             </div>
             <button onClick={handleSearch} disabled={loading} style={{
-              background: loading ? '#0d0d0d' : '#c8102e', color: loading ? '#3a3f47' : '#fff',
+              background: loading ? 'var(--surface)' : '#c8102e', color: loading ? 'var(--steel)' : 'var(--text)',
               border: 'none', borderRadius: '.3rem', padding: '.6rem 2rem',
               fontWeight: 900, fontSize: '.65rem', letterSpacing: '.15em',
               textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
             }}>{loading ? 'Loading…' : 'Refresh'}</button>
             {searched && !loading && (
-              <span style={{ color: '#888888', fontSize: '.72rem', marginLeft: 'auto' }}>
+              <span style={{ color: 'var(--text-3)', fontSize: '.72rem', marginLeft: 'auto' }}>
                 {displayRows.length !== rows.length
-                  ? <>{displayRows.length.toLocaleString()} <span style={{ color: '#555' }}>of {rows.length.toLocaleString()}</span></>
+                  ? <>{displayRows.length.toLocaleString()} <span style={{ color: 'var(--text-4)' }}>of {rows.length.toLocaleString()}</span></>
                   : rows.length.toLocaleString()
                 }{' '}loaded
                 {!name.trim() && !globalSearch.trim() && totalHint > 0 && (
-                  <span style={{ color: '#555' }}> / {totalHint.toLocaleString()} total</span>
+                  <span style={{ color: 'var(--text-4)' }}> / {totalHint.toLocaleString()} total</span>
                 )}
               </span>
             )}
@@ -768,10 +768,10 @@ export default function Rankings() {
 
         {/* ── Results table ─────────────────────────────────────────────── */}
         {rows.length > 0 && (
-          <div style={{ overflowX: 'auto', border: '1px solid #0d0d0d', borderRadius: '.35rem' }}>
+          <div style={{ overflowX: 'auto', border: '1px solid var(--surface)', borderRadius: '.35rem' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.78rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #0d0d0d' }}>
+                <tr style={{ borderBottom: '1px solid var(--surface)' }}>
                   {([
                     ['#',                   null],
                     ['Name',                null],
@@ -791,7 +791,7 @@ export default function Rankings() {
                     ['Date',                null],
                   ] as [string, string|null][]).map(([label, key]) => (
                     <th key={label} style={{ ...TH, cursor: key ? 'pointer' : 'default',
-                      color: key && key === sortKey ? '#c8102e' : '#3a3f47',
+                      color: key && key === sortKey ? '#c8102e' : 'var(--steel)',
                       userSelect: 'none' }}
                       onClick={() => key && handleSort(key)}>
                       {label}{key && key === sortKey ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -806,45 +806,45 @@ export default function Rankings() {
                   return (
                     <>
                       <tr key={rk}
-                        style={{ borderBottom: '1px solid #000000', cursor: 'pointer', background: isExp ? '#0e0e0e' : 'transparent' }}
+                        style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: isExp ? 'var(--surface)' : 'transparent' }}
                         onClick={() => toggleHistory(row, rk)}
-                        onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = '#1a1a1a' }}
+                        onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--surface-2)' }}
                         onMouseLeave={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
                       >
-                        <td style={{ ...TD, color: '#888888', width: 36 }}>{i + 1}</td>
-                        <td style={{ ...TD, color: '#fff', fontWeight: 700, minWidth: 160 }}>
-                          {row.name}<span style={{ color: '#888888', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
+                        <td style={{ ...TD, color: 'var(--text-3)', width: 36 }}>{i + 1}</td>
+                        <td style={{ ...TD, color: 'var(--text)', fontWeight: 700, minWidth: 160 }}>
+                          {row.name}<span style={{ color: 'var(--text-3)', marginLeft: 6, fontSize: '.6rem' }}>{isExp ? '▲' : '▼'}</span>
                         </td>
-                        <td style={{ ...TD, color: '#888888', fontSize: '.7rem' }}>{row.country || '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.federation || '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.sex || '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.equipment || '—'}</td>
-                        <td style={{ ...TD, color: '#888888', fontSize: '.7rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.division || '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{row.age ? row.age.replace('~','') : '—'}</td>
-                        <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? '#aaa' : '#222222' }}>{fmt(row.best3SquatKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? '#aaa' : '#222222' }}>{fmt(row.best3BenchKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? '#aaa' : '#222222' }}>{fmt(row.best3DeadliftKg, unit)}</td>
-                        <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? '#fff' : '#222222', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
-                        <td style={{ ...TD, color: '#c7c7c7' }}>{fmtScore(row.dots)}</td>
-                        <td style={{ ...TD, color: '#888888' }}>{row.date || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.7rem' }}>{row.country || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.federation || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.sex || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.equipment || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.7rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.division || '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(row.weightClassKg) * 2.20462) + 'lbs' : row.weightClassKg + 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.bodyweightKg ? fmt(row.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{row.age ? row.age.replace('~','') : '—'}</td>
+                        <td style={{ ...TD, color: toNum(row.best3SquatKg) > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{fmt(row.best3SquatKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3BenchKg) > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{fmt(row.best3BenchKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.best3DeadliftKg) > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{fmt(row.best3DeadliftKg, unit)}</td>
+                        <td style={{ ...TD, color: toNum(row.totalKg) > 0 ? 'var(--text)' : 'var(--border)', fontWeight: 700 }}>{fmt(row.totalKg, unit)}</td>
+                        <td style={{ ...TD, color: 'var(--text-2)' }}>{fmtScore(row.dots)}</td>
+                        <td style={{ ...TD, color: 'var(--text-3)' }}>{row.date || '—'}</td>
                       </tr>
 
                       {isExp && (
-                        <tr key={'hist-' + rk} style={{ background: '#000000' }}>
-                          <td colSpan={16} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #1a1a1a' }}>
-                            {loadingHist && <p style={{ color: '#888888', fontSize: '.75rem' }}>Loading competition history…</p>}
+                        <tr key={'hist-' + rk} style={{ background: 'var(--bg)' }}>
+                          <td colSpan={16} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--surface-2)' }}>
+                            {loadingHist && <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>Loading competition history…</p>}
                             {histError  && <p style={{ color: '#f87171',  fontSize: '.75rem' }}>{histError}</p>}
                             {!loadingHist && !histError && histRows.length > 0 && (
                               <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.5rem' }}>
-                                  <p style={{ color: '#c7c7c7', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
+                                  <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}>
                                     {row.name} — {histRows.length} entries
                                   </p>
                                   <a href={'https://www.openpowerlifting.org/u/' + row.slug}
                                     target="_blank" rel="noopener noreferrer"
-                                    style={{ color: '#fff', fontSize: '.65rem', textDecoration: 'none' }}
+                                    style={{ color: 'var(--text)', fontSize: '.65rem', textDecoration: 'none' }}
                                     onClick={e => e.stopPropagation()}>View on OPL ↗</a>
                                 </div>
                                 <div style={{ overflowX: 'auto' }}>
@@ -857,7 +857,7 @@ export default function Rankings() {
                                           'DL1', 'DL2', 'DL3', 'Best DL (' + unit + ')',
                                           'Total (' + unit + ')', 'Dots', 'Wilks', 'GL', 'Tested', 'Place'
                                         ].map(h => (
-                                          <th key={h} style={{ ...TH, fontSize: '.5rem', background: '#000000' }}>{h}</th>
+                                          <th key={h} style={{ ...TH, fontSize: '.5rem', background: 'var(--bg)' }}>{h}</th>
                                         ))}
                                       </tr>
                                     </thead>
@@ -865,15 +865,15 @@ export default function Rankings() {
                                       {histRows.map((hr, hi) => {
                                         const place1 = hr.place === '1'
                                         return (
-                                          <tr key={hi} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                                            <td style={{ ...TD, color: '#c7c7c7', fontSize: '.72rem' }}>{hr.date || '—'}</td>
-                                            <td style={{ ...TD, color: '#888888', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
-                                            <td style={{ ...TD, color: '#555', fontSize: '.72rem' }}>{hr.meetTown || '—'}</td>
-                                            <td style={{ ...TD, color: '#c7c7c7', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
-                                            <td style={{ ...TD, color: '#c7c7c7', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
-                                            <td style={{ ...TD, color: '#888888', fontSize: '.72rem' }}>{hr.division || '—'}</td>
-                                            <td style={{ ...TD, color: '#c7c7c7', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
-                                            <td style={{ ...TD, color: '#888888', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
+                                          <tr key={hi} style={{ borderBottom: '1px solid var(--surface-2)' }}>
+                                            <td style={{ ...TD, color: 'var(--text-2)', fontSize: '.72rem' }}>{hr.date || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.72rem', minWidth: 140 }}>{hr.meetName || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-4)', fontSize: '.72rem' }}>{hr.meetTown || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-2)', fontSize: '.72rem' }}>{hr.federation || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-2)', fontSize: '.72rem' }}>{hr.equipment || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.72rem' }}>{hr.division || '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-2)', fontSize: '.72rem' }}>{hr.weightClassKg ? (unit === 'lbs' ? Math.round(toNum(hr.weightClassKg) * 2.20462) + 'lbs' : hr.weightClassKg + 'kg') : '—'}</td>
+                                            <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.72rem' }}>{hr.bodyweightKg ? fmt(hr.bodyweightKg, unit) + (unit === 'lbs' ? 'lbs' : 'kg') : '—'}</td>
                                             {/* Individual attempts */}
                                             {(['squat1Kg','squat2Kg','squat3Kg','best3SquatKg',
                                                'bench1Kg','bench2Kg','bench3Kg','best3BenchKg',
@@ -883,25 +883,25 @@ export default function Rankings() {
                                               const isMiss = hr[field].startsWith('-')
                                               return (
                                                 <td key={field} style={{ ...TD, fontSize: '.72rem',
-                                                  color: isMiss ? '#c8102e' : (val > 0 ? (isBest ? '#aaa' : '#666') : '#222222'),
+                                                  color: isMiss ? '#c8102e' : (val > 0 ? (isBest ? 'var(--text-dim)' : 'var(--text-3)') : 'var(--border)'),
                                                   fontWeight: isBest ? 600 : 400,
                                                 }}>
                                                   {hr[field] ? fmt(hr[field].replace('-',''), unit) : '—'}
                                                 </td>
                                               )
                                             })}
-                                            <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? '#fff' : '#222222', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
-                                            <td style={{ ...TD, color: '#c7c7c7', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
-                                            <td style={{ ...TD, color: '#888888', fontSize: '.72rem' }}>{fmtScore(hr.wilks)}</td>
-                                            <td style={{ ...TD, color: '#888888', fontSize: '.72rem' }}>{fmtScore(hr.glossbrenner)}</td>
+                                            <td style={{ ...TD, color: toNum(hr.totalKg) > 0 ? 'var(--text)' : 'var(--border)', fontWeight: 700, fontSize: '.72rem' }}>{fmt(hr.totalKg, unit)}</td>
+                                            <td style={{ ...TD, color: 'var(--text-2)', fontSize: '.72rem' }}>{fmtScore(hr.dots)}</td>
+                                            <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.72rem' }}>{fmtScore(hr.wilks)}</td>
+                                            <td style={{ ...TD, color: 'var(--text-3)', fontSize: '.72rem' }}>{fmtScore(hr.glossbrenner)}</td>
                                             <td style={{ ...TD, fontSize: '.72rem' }}>
                                               {hr.tested === 'Yes'
                                                 ? <span style={{ color: '#22c55e', fontWeight: 700 }}>✓</span>
                                                 : hr.tested === 'No'
-                                                  ? <span style={{ color: '#555' }}>—</span>
-                                                  : <span style={{ color: '#555' }}>?</span>}
+                                                  ? <span style={{ color: 'var(--text-4)' }}>—</span>
+                                                  : <span style={{ color: 'var(--text-4)' }}>?</span>}
                                             </td>
-                                            <td style={{ ...TD, fontWeight: 700, color: place1 ? '#c8102e' : '#666', fontSize: '.72rem' }}>
+                                            <td style={{ ...TD, fontWeight: 700, color: place1 ? '#c8102e' : 'var(--text-3)', fontSize: '.72rem' }}>
                                               {place1 ? '🥇 1' : (hr.place || '—')}
                                             </td>
                                           </tr>
@@ -913,7 +913,7 @@ export default function Rankings() {
                               </>
                             )}
                             {!loadingHist && !histError && histRows.length === 0 && (
-                              <p style={{ color: '#888888', fontSize: '.75rem' }}>No competition history found.</p>
+                              <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>No competition history found.</p>
                             )}
                           </td>
                         </tr>
@@ -931,12 +931,12 @@ export default function Rankings() {
           <>
             <div ref={sentinelRef} style={{ height: 1 }} />
             {loadingMore && (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888888', fontSize: '.75rem', letterSpacing: '.1em' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-3)', fontSize: '.75rem', letterSpacing: '.1em' }}>
                 Loading more…
               </div>
             )}
             {!loadingMore && !hasMore && rows.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: '#888888', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
+              <div style={{ textAlign: 'center', padding: '1.75rem 0', color: 'var(--text-3)', fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>
                 — {rows.length.toLocaleString()} results —
               </div>
             )}
@@ -947,26 +947,26 @@ export default function Rankings() {
         {!searched && !loading && !name.trim() && !globalSearch.trim() && !federation && !equipment && !year && !weightClass && !ageClass && !country.trim() && !division.trim() && !meetName.trim() && !ageExact.trim() && (
           <div style={{ textAlign: 'center', padding: '5rem 0' }}>
             <div style={{ fontSize: 44, marginBottom: '1.25rem' }}>🏋️</div>
-            <p style={{ color: '#888888', fontSize: '.875rem', marginBottom: '.5rem' }}>Type a name or set any filter — results load instantly.</p>
-            <p style={{ color: '#888888', fontSize: '.75rem' }}>All fields search live as you type. Combine multiple filters for precision.</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.875rem', marginBottom: '.5rem' }}>Type a name or set any filter — results load instantly.</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>All fields search live as you type. Combine multiple filters for precision.</p>
           </div>
         )}
         {searched && !loading && rows.length === 0 && !error && (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#888888', fontSize: '.875rem' }}>
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-3)', fontSize: '.875rem' }}>
             No results. Try broadening your filters.
           </div>
         )}
         {searched && !loading && rows.length > 0 && displayRows.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: '#888888', fontSize: '.875rem' }}>
-            No loaded results match "<span style={{ color: '#c7c7c7' }}>{globalSearch || meetName}</span>".{' '}
+          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-3)', fontSize: '.875rem' }}>
+            No loaded results match "<span style={{ color: 'var(--text-2)' }}>{globalSearch || meetName}</span>".{' '}
             <button onClick={() => { setGlobalSearch(''); setMeetName('') }} style={{ background: 'none', border: 'none', color: '#c8102e', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', padding: 0 }}>Clear filters</button>
           </div>
         )}
 
         {/* Attribution */}
-        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: '#888888' }}>
+        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid var(--surface-2)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: 'var(--text-3)' }}>
           <span>Data © OpenPowerlifting contributors — CC BY 4.0 + ODbL</span>
-          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: '#888888', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
+          <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
         </div>
       </div>
     </div>

@@ -45,35 +45,35 @@ const Arrow = () => (
 
 export default function Services() {
   return (
-    <section id="services" style={{ background: '#000000', padding: '8rem 1.5rem' }}>
+    <section id="services" style={{ background: 'var(--bg)', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
           <div>
-            <p className="label-rule" style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>What We Offer</p>
-            <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: '#fff' }}>Services</h2>
+            <p className="label-rule" style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>What We Offer</p>
+            <h2 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: 0.9, fontSize: 'clamp(2.5rem,6vw,5.5rem)', color: 'var(--text)' }}>Services</h2>
           </div>
-          <p style={{ color: '#c7c7c7', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--text-2)', maxWidth: '18rem', fontSize: '.875rem', lineHeight: 1.7 }}>
             Four distinct tracks — each designed for a specific stage and goal in your powerlifting journey.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4" style={{ gap: 1, background: '#222222' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4" style={{ gap: 1, background: 'var(--border)' }}>
           {SERVICES.map(s => (
             <article
               key={s.num}
               className="flex flex-col transition-colors"
-              style={{ background: '#000000', padding: '2.5rem', cursor: 'default' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#000000')}
+              style={{ background: 'var(--bg)', padding: '2.5rem', cursor: 'default' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
             >
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: '4rem', lineHeight: 1, marginBottom: '1.5rem', opacity: 0.35 }}>{s.num}</span>
-              <h3 className="text-white font-bold text-lg leading-tight mb-4">
-                {s.title[0]}<br /><span style={{ color: '#c7c7c7', fontSize: '.8rem', fontWeight: 600 }}>{s.title[1]}</span>
+              <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '4rem', lineHeight: 1, marginBottom: '1.5rem', opacity: 0.35 }}>{s.num}</span>
+              <h3 className="font-bold text-lg leading-tight mb-4" style={{ color: 'var(--text)' }}>
+                {s.title[0]}<br /><span style={{ color: 'var(--text-2)', fontSize: '.8rem', fontWeight: 600 }}>{s.title[1]}</span>
               </h3>
-              <p style={{ color: '#c7c7c7', fontSize: '.875rem', lineHeight: 1.7, flex: 1, marginBottom: '2rem' }}>{s.desc}</p>
+              <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7, flex: 1, marginBottom: '2rem' }}>{s.desc}</p>
               <ul style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '.625rem' }}>
                 {s.highlights.map(h => (
-                  <li key={h} className="flex items-center gap-3" style={{ fontSize: '.8rem', color: '#c7c7c7' }}>
+                  <li key={h} className="flex items-center gap-3" style={{ fontSize: '.8rem', color: 'var(--text-2)' }}>
                     <Dot /> {h}
                   </li>
                 ))}
@@ -82,10 +82,10 @@ export default function Services() {
                 href={s.href}
                 target={s.href.startsWith('http') ? '_blank' : undefined}
                 rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="inline-flex items-center gap-2 text-white text-xs font-black px-6 py-3 rounded tracking-widest uppercase transition-colors"
-                style={{ border: '1px solid #222222', width: 'fit-content' }}
+                className="inline-flex items-center gap-2 text-xs font-black px-6 py-3 rounded tracking-widest uppercase transition-colors"
+                style={{ border: '1px solid var(--border)', width: 'fit-content', color: 'var(--text)' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#222222')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
               >
                 {s.cta} <Arrow />
               </a>

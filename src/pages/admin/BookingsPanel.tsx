@@ -8,7 +8,7 @@ type Status = Booking['status']
 const STATUS_COLORS: Record<Status, string> = {
   pending:   '#f5b935',
   confirmed: '#22c55e',
-  cancelled: '#555',
+  cancelled: 'var(--text-4)',
 }
 
 const DEMO_BOOKINGS: Booking[] = [
@@ -107,35 +107,35 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
     <>
       {isDemo && (
         <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.625rem 2rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
+          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
           <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Sample bookings — no database connection.</span>
         </div>
       )}
 
       {/* Stats */}
-      <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #0d0d0d', display: 'flex', gap: '2rem' }}>
+      <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '2rem' }}>
         {[
           ['Upcoming', upcoming, '#f5b935'],
           ['Confirmed', counts.confirmed, '#22c55e'],
           ['Pending', counts.pending, '#f5b935'],
-          ['Total', counts.all, '#888'],
+          ['Total', counts.all, 'var(--text-3)'],
         ].map(([label, val, color]) => (
           <div key={String(label)}>
             <p style={{ color: color as string, fontWeight: 900, fontSize: '1.5rem', lineHeight: 1 }}>{val}</p>
-            <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '.2rem' }}>{label as string}</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '.2rem' }}>{label as string}</p>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div style={{ padding: '1rem 2rem', borderBottom: '1px solid #0d0d0d', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ padding: '1rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: '.5rem' }}>
           {(['all', 'pending', 'confirmed', 'cancelled'] as const).map(s => (
             <button key={s} onClick={() => setFilter(s)}
               style={{
-                background: filter === s ? '#1a1a1a' : 'transparent',
-                border: `1px solid ${filter === s ? '#444' : '#222'}`,
-                color: filter === s ? '#fff' : '#555',
+                background: filter === s ? 'var(--surface-2)' : 'transparent',
+                border: `1px solid ${filter === s ? 'var(--text-dim)' : 'var(--border)'}`,
+                color: filter === s ? 'var(--text)' : 'var(--text-4)',
                 fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                 padding: '.3rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
               }}>
@@ -143,24 +143,24 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
             </button>
           ))}
         </div>
-        <button onClick={fetch} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: '#c7c7c7', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={fetch} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
           ↺ Refresh
         </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#888', fontSize: '.8rem' }}>Loading bookings…</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>Loading bookings…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#888', fontSize: '.8rem' }}>No bookings found.</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>No bookings found.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr' }}>
           {/* Table */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #222' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['Date & Time', 'Name', 'Coach', 'Service', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} style={{ padding: '1rem 1.25rem', textAlign: 'left', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -169,16 +169,16 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
                   const dt = new Date(b.booked_at)
                   return (
                     <tr key={b.id} onClick={() => { setSelected(b); setNotes(b.coach_notes ?? '') }}
-                      style={{ borderBottom: '1px solid #0d0d0d', cursor: 'pointer', background: selected?.id === b.id ? '#0d0d0d' : 'transparent', transition: 'background .1s' }}
-                      onMouseEnter={e => { if (selected?.id !== b.id) e.currentTarget.style.background = '#0d0d0d' }}
+                      style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.id === b.id ? 'var(--surface)' : 'transparent', transition: 'background .1s' }}
+                      onMouseEnter={e => { if (selected?.id !== b.id) e.currentTarget.style.background = 'var(--surface)' }}
                       onMouseLeave={e => { if (selected?.id !== b.id) e.currentTarget.style.background = 'transparent' }}>
                       <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap' }}>
-                        <p style={{ color: '#fff', fontWeight: 600, fontSize: '.8rem' }}>{fmtDate(dt)}</p>
-                        <p style={{ color: '#888', fontSize: '.7rem', marginTop: '.1rem' }}>{fmtTime(dt)}</p>
+                        <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '.8rem' }}>{fmtDate(dt)}</p>
+                        <p style={{ color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.1rem' }}>{fmtTime(dt)}</p>
                       </td>
-                      <td style={{ padding: '1rem 1.25rem', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.first_name} {b.last_name}</td>
-                      <td style={{ padding: '1rem 1.25rem', color: '#c7c7c7', whiteSpace: 'nowrap' }}>{b.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td>
-                      <td style={{ padding: '1rem 1.25rem', color: '#888', whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.service_interest ?? '—'}</td>
+                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.first_name} {b.last_name}</td>
+                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{b.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td>
+                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text-3)', whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.service_interest ?? '—'}</td>
                       <td style={{ padding: '1rem 1.25rem' }}><Badge status={b.status} /></td>
                     </tr>
                   )
@@ -189,17 +189,17 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
 
           {/* Detail panel */}
           {selected && (
-            <div style={{ borderLeft: '1px solid #1a1a1a', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto' }}>
+            <div style={{ borderLeft: '1px solid var(--surface-2)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <p style={{ color: '#fff', fontWeight: 900, fontSize: '1rem' }}>{selected.first_name} {selected.last_name}</p>
-                  <p style={{ color: '#888', fontSize: '.75rem', marginTop: '.2rem' }}>{selected.email}</p>
-                  {selected.phone && <p style={{ color: '#888', fontSize: '.75rem' }}>{selected.phone}</p>}
+                  <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem' }}>{selected.first_name} {selected.last_name}</p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.2rem' }}>{selected.email}</p>
+                  {selected.phone && <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{selected.phone}</p>}
                 </div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', background: '#0d0d0d', borderRadius: '.25rem', padding: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', background: 'var(--surface)', borderRadius: '.25rem', padding: '1rem' }}>
                 {[
                   ['Date',    fmtDate(new Date(selected.booked_at))],
                   ['Time',    fmtTime(new Date(selected.booked_at))],
@@ -207,29 +207,29 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
                   ['Service', selected.service_interest ?? '—'],
                 ].map(([l, v]) => (
                   <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.8rem' }}>
-                    <span style={{ color: '#888' }}>{l}</span>
-                    <span style={{ color: '#fff', fontWeight: 600 }}>{v}</span>
+                    <span style={{ color: 'var(--text-3)' }}>{l}</span>
+                    <span style={{ color: 'var(--text)', fontWeight: 600 }}>{v}</span>
                   </div>
                 ))}
               </div>
 
               {selected.goals && (
                 <div>
-                  <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Goals</p>
-                  <p style={{ color: '#c7c7c7', fontSize: '.8rem', lineHeight: 1.7 }}>{selected.goals}</p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Goals</p>
+                  <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.7 }}>{selected.goals}</p>
                 </div>
               )}
 
               {/* Status actions */}
               <div>
-                <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Status</p>
+                <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Status</p>
                 <div style={{ display: 'flex', gap: '.5rem' }}>
                   {(['pending','confirmed','cancelled'] as Status[]).map(s => (
                     <button key={s} onClick={() => updateStatus(selected.id, s)}
                       style={{
                         background: selected.status === s ? STATUS_COLORS[s] + '22' : 'transparent',
-                        border: `1px solid ${selected.status === s ? STATUS_COLORS[s] : '#333'}`,
-                        color: selected.status === s ? STATUS_COLORS[s] : '#555',
+                        border: `1px solid ${selected.status === s ? STATUS_COLORS[s] : 'var(--border-mid)'}`,
+                        color: selected.status === s ? STATUS_COLORS[s] : 'var(--text-4)',
                         fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                         padding: '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
                       }}>
@@ -241,10 +241,10 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
 
               {/* Coach notes */}
               <div>
-                <p style={{ color: '#888', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
+                <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
                 <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
                 <button onClick={saveNotes} disabled={saving}
-                  style={{ marginTop: '.5rem', background: '#bfa162', border: 'none', color: '#fff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                  style={{ marginTop: '.5rem', background: '#bfa162', border: 'none', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Saving…' : 'Save Notes'}
                 </button>
               </div>

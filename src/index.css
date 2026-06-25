@@ -8,8 +8,9 @@
   --surface:     #0d0d0d;
   --surface-2:   #1a1a1a;
   --border:      #222222;
+  --border-mid:  #2a2a2a;
 
-  /* Brand accents — gold leads */
+  /* Brand accents — gold leads (unchanged in both modes) */
   --gold:        #f5b935;
   --gold-soft:   #ffd782;
   --bronze:      #bfa162;
@@ -24,7 +25,7 @@
   --cyan:        #009dd6;
   --cyan-lt:     #00d1f0;
 
-  /* Power accent — crimson, used sparingly */
+  /* Power accent — crimson, used sparingly (unchanged in both modes) */
   --crimson:     #c8102e;
   --crimson-dk:  #a30c26;
 
@@ -32,10 +33,44 @@
   --text:        #ffffff;
   --text-2:      #c7c7c7;
   --text-3:      #888888;
+  --text-4:      #555555;
+  --text-dim:    #444444;
 
   /* UI neutrals */
   --steel:       #3a3f47;
   --chalk:       #d6d6d6;
+
+  /* Logo / icon filter: white in dark mode */
+  --logo-filter: brightness(0) invert(1);
+  --icon-invert: invert(1);
+
+  /* Frosted-glass overlays */
+  --nav-overlay:   rgba(0,0,0,0.95);
+  --modal-overlay: rgba(0,0,0,0.90);
+}
+
+/* ── Light mode overrides ───────────────────────────────────────────────── */
+html.light {
+  --bg:          #ffffff;
+  --surface:     #f4f4f4;
+  --surface-2:   #ebebeb;
+  --border:      #e0e0e0;
+  --border-mid:  #d0d0d0;
+
+  --text:        #0a0a0a;
+  --text-2:      #333333;
+  --text-3:      #666666;
+  --text-4:      #999999;
+  --text-dim:    #aaaaaa;
+
+  --steel:       #aaaaaa;
+  --chalk:       #222222;
+
+  --logo-filter: brightness(0);
+  --icon-invert: invert(0);
+
+  --nav-overlay:   rgba(255,255,255,0.95);
+  --modal-overlay: rgba(0,0,0,0.50);
 }
 
 * { -webkit-font-smoothing: antialiased; }
@@ -46,7 +81,8 @@ body {
   font-family: 'Neue Montreal', ui-sans-serif, system-ui, sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 { color: #ffffff; }
+h1, h2, h3, h4, h5, h6 { color: var(--text); }
+body { transition: background .2s, color .2s; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
