@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
 import { href } from '../utils/nav'
-import Rankings from '../pages/Rankings'
+import Rankings, { type CompareScore } from '../pages/Rankings'
 
 // ── RPE percentage table (Tuchscherer) ───────────────────────────────────────
 // RPE_TABLE[rpe][reps] = fraction of 1RM
@@ -591,6 +591,38 @@ export function DotsCalc() {
   const [compEquip,    setCompEquip]    = useState('')
   const [compAgeClass, setCompAgeClass] = useState('')
   const [compYear,     setCompYear]     = useState('')
+  // Inline rankings state
+  const [showRankings, setShowRankings] = useState(false)
+  const [rankingsKey,  setRankingsKey]  = useState(0)
+  const [rankingsData, setRankingsData] = useState<CompareScore | null>(null)
+
+  // Restore saved inputs on mount
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem('axis-dots-state') || 'null')
+      if (!d) return
+      if (d.sex === 'm' || d.sex === 'f') setSex(d.sex)
+      if (d.unit === 'lbs' || d.unit === 'kg') setUnit(d.unit)
+      if (d.bw)    setBw(d.bw)
+      if (d.squat) setSquat(d.squat)
+      if (d.bench) setBench(d.bench)
+      if (d.dead)  setDead(d.dead)
+      if (d.compFed)      setCompFed(d.compFed)
+      if (d.compEquip)    setCompEquip(d.compEquip)
+      if (d.compAgeClass) setCompAgeClass(d.compAgeClass)
+      if (d.compYear)     setCompYear(d.compYear)
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist inputs on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem('axis-dots-state', JSON.stringify(
+        { sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear }
+      ))
+    } catch {}
+  }, [sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear])
 
   function switchUnit(next: 'lbs' | 'kg') {
     const factor = next === 'kg' ? 0.453592 : 2.20462
@@ -633,6 +665,20 @@ export function DotsCalc() {
     : t === 'Advanced'  ? '#272C84'
     : 'var(--text-3)'
 
+  function handleFindMyRank() {
+    if (!dots || !bwKg || bwKg <= 0) return
+    const data: CompareScore = {
+      myDots: dots, myTotal: totalKg, myBw: bwKg,
+      mySquat: squatKg ?? 0, myBench: benchKg ?? 0, myDead: deadKg ?? 0,
+      sex: sex === 'm' ? 'M' : 'F',
+      wt: detectWeightClass(bwKg, sex),
+      fed: compFed, equip: compEquip, ageClass: compAgeClass, year: compYear,
+    }
+    setRankingsData(data)
+    setRankingsKey(k => k + 1)
+    setShowRankings(true)
+  }
+
   return (
     <div>
       <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
@@ -672,60 +718,6 @@ export function DotsCalc() {
           </div>
         ))}
       </div>
-
-      {dots !== null && bwKg !== null && bwKg > 0 && (() => {
-        const wt = detectWeightClass(bwKg, sex)
-        const p = new URLSearchParams()
-        p.set('myDots',  dots.toFixed(2))
-        p.set('myTotal', String(Math.round(totalKg)))
-        p.set('myBw',    bwKg.toFixed(1))
-        if (squatKg) p.set('mySquat', String(Math.round(squatKg)))
-        if (benchKg) p.set('myBench', String(Math.round(benchKg)))
-        if (deadKg)  p.set('myDead',  String(Math.round(deadKg)))
-        p.set('sex', sex === 'm' ? 'M' : 'F')
-        p.set('wt', wt)
-        if (compFed)      p.set('fed',   compFed)
-        if (compEquip)    p.set('equip', compEquip)
-        if (compAgeClass) p.set('age',   compAgeClass)
-        if (compYear)     p.set('year',  compYear)
-        const url = href(`/tools/rankings?${p.toString()}`)
-        return (
-          <div style={{ marginTop: '1.5rem', background: 'rgba(39,44,132,.05)', border: '1px solid rgba(39,44,132,.2)', borderRadius: '.35rem', padding: '1.25rem 1.5rem' }}>
-            <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Compare in Rankings</p>
-            <p style={{ color: 'var(--text-2)', fontSize: '.82rem', lineHeight: 1.65, marginBottom: '1.1rem' }}>
-              See where your <strong style={{ color: 'var(--text)' }}>{dots.toFixed(2)} Dots</strong> ranks against real competition results. Weight class and sex pre-set from your inputs — refine as needed.
-            </p>
-            <div style={{ display: 'grid', gap: '.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', marginBottom: '1.1rem' }}>
-              {[
-                { label: 'Federation',  val: compFed,      set: setCompFed,      opts: COMP_FEDS },
-                { label: 'Equipment',   val: compEquip,    set: setCompEquip,    opts: COMP_EQUIP },
-                { label: 'Age Class',   val: compAgeClass, set: setCompAgeClass, opts: COMP_AGE },
-                { label: 'Year',        val: compYear,     set: setCompYear,     opts: [{ value:'', label:'All Years' }, ...Array.from({length:10}, (_,i) => { const y = String(2026-i); return {value:y, label:y} })] },
-              ].map(({ label, val, set, opts }) => (
-                <div key={label}>
-                  <label style={labelStyle}>{label}</label>
-                  <select style={selectStyle} value={val} onChange={e => set(e.target.value)}>
-                    {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <a
-                href={url}
-                style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', border: 'none', fontWeight: 900, fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
-              >
-                Find My Rank →
-              </a>
-              <span style={{ color: 'var(--text-3)', fontSize: '.72rem' }}>
-                Auto-filtered: {sex === 'm' ? 'Men' : 'Women'} · {wt} kg class
-              </span>
-            </div>
-          </div>
-        )
-      })()}
 
       {dots !== null && (
         <div style={resultBox}>
@@ -801,6 +793,60 @@ export function DotsCalc() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {dots !== null && bwKg !== null && bwKg > 0 && (
+        <div style={{ marginTop: '1.5rem', background: 'rgba(39,44,132,.05)', border: '1px solid rgba(39,44,132,.2)', borderRadius: '.35rem', padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Compare in Rankings</p>
+          <p style={{ color: 'var(--text-2)', fontSize: '.82rem', lineHeight: 1.65, marginBottom: '1.1rem' }}>
+            See where your <strong style={{ color: 'var(--text)' }}>{dots.toFixed(2)} Dots</strong> ranks against real competition results. Weight class and sex pre-set from your inputs — refine as needed.
+          </p>
+          <div style={{ display: 'grid', gap: '.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', marginBottom: '1.1rem' }}>
+            {[
+              { label: 'Federation',  val: compFed,      set: setCompFed,      opts: COMP_FEDS },
+              { label: 'Equipment',   val: compEquip,    set: setCompEquip,    opts: COMP_EQUIP },
+              { label: 'Age Class',   val: compAgeClass, set: setCompAgeClass, opts: COMP_AGE },
+              { label: 'Year',        val: compYear,     set: setCompYear,     opts: [{ value:'', label:'All Years' }, ...Array.from({length:10}, (_,i) => { const y = String(2026-i); return {value:y, label:y} })] },
+            ].map(({ label, val, set, opts }) => (
+              <div key={label}>
+                <label style={labelStyle}>{label}</label>
+                <select style={selectStyle} value={val} onChange={e => set(e.target.value)}>
+                  {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleFindMyRank}
+              style={{ background: '#272C84', color: '#ffffff', border: 'none', fontWeight: 900, fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'background .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
+            >
+              {showRankings ? 'Update Ranking ↓' : 'Find My Rank ↓'}
+            </button>
+            <span style={{ color: 'var(--text-3)', fontSize: '.72rem' }}>
+              Auto-filtered: {sex === 'm' ? 'Men' : 'Women'} · {detectWeightClass(bwKg, sex)} kg class
+            </span>
+          </div>
+        </div>
+      )}
+
+      {showRankings && rankingsData && (
+        <div style={{ marginTop: '2rem' }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginBottom: '.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>
+              Rankings — {rankingsData.myDots.toFixed(2)} Dots · {rankingsData.sex === 'M' ? 'Men' : 'Women'} {rankingsData.wt}kg
+            </p>
+            <button
+              onClick={() => setShowRankings(false)}
+              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '.6rem', letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .7rem', borderRadius: '.2rem' }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <Rankings key={rankingsKey} embedded compare={rankingsData} />
         </div>
       )}
     </div>

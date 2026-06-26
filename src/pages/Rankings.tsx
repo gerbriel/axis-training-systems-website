@@ -1,7 +1,13 @@
 import { useState, useCallback, useRef, useEffect, Fragment } from 'react'
 import { href } from '../utils/nav'
 
-export interface RankingsProps { embedded?: boolean }
+export interface CompareScore {
+  myDots: number; myTotal: number; myBw: number
+  mySquat: number; myBench: number; myDead: number
+  sex: string; wt: string; fed: string; equip: string
+  ageClass: string; year: string
+}
+export interface RankingsProps { embedded?: boolean; compare?: CompareScore }
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const opl = (path: string) =>
@@ -323,25 +329,25 @@ function UserScoreRow({ myDots, myTotal, myBw, mySquat, myBench, myDead, unit }:
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
-export default function Rankings({ embedded }: RankingsProps = {}) {
-  // URL params pre-fill filters and user score when arriving from DotsCalc comparison
-  const urlP = useRef(embedded ? new URLSearchParams() : new URLSearchParams(window.location.search)).current
-  const myDots  = parseFloat(urlP.get('myDots')  || '') || 0
-  const myTotal = parseFloat(urlP.get('myTotal') || '') || 0
-  const myBw    = parseFloat(urlP.get('myBw')    || '') || 0
-  const mySquat = parseFloat(urlP.get('mySquat') || '') || 0
-  const myBench = parseFloat(urlP.get('myBench') || '') || 0
-  const myDead  = parseFloat(urlP.get('myDead')  || '') || 0
+export default function Rankings({ embedded, compare }: RankingsProps = {}) {
+  // `compare` prop (inline from DotsCalc) takes priority; URL params are fallback for standalone page
+  const urlP = useRef(new URLSearchParams((embedded && compare) ? '' : window.location.search)).current
+  const myDots  = compare?.myDots  ?? (parseFloat(urlP.get('myDots')  || '') || 0)
+  const myTotal = compare?.myTotal ?? (parseFloat(urlP.get('myTotal') || '') || 0)
+  const myBw    = compare?.myBw    ?? (parseFloat(urlP.get('myBw')    || '') || 0)
+  const mySquat = compare?.mySquat ?? (parseFloat(urlP.get('mySquat') || '') || 0)
+  const myBench = compare?.myBench ?? (parseFloat(urlP.get('myBench') || '') || 0)
+  const myDead  = compare?.myDead  ?? (parseFloat(urlP.get('myDead')  || '') || 0)
 
   const [name,        setName]        = useState(urlP.get('lifter') || '')
-  const [federation,  setFederation]  = useState(urlP.get('fed')    || '')
-  const [sex,         setSex]         = useState(urlP.get('sex')    || '')
-  const [equipment,   setEquipment]   = useState(urlP.get('equip')  || '')
-  const [weightClass, setWeightClass] = useState(urlP.get('wt')     || '')
-  const [ageClass,    setAgeClass]    = useState(urlP.get('age')    || '')
-  const [year,        setYear]        = useState(urlP.get('year')   || '')
+  const [federation,  setFederation]  = useState(compare?.fed      ?? urlP.get('fed')   ?? '')
+  const [sex,         setSex]         = useState(compare?.sex      ?? urlP.get('sex')   ?? '')
+  const [equipment,   setEquipment]   = useState(compare?.equip    ?? urlP.get('equip') ?? '')
+  const [weightClass, setWeightClass] = useState(compare?.wt       ?? urlP.get('wt')    ?? '')
+  const [ageClass,    setAgeClass]    = useState(compare?.ageClass  ?? urlP.get('age')  ?? '')
+  const [year,        setYear]        = useState(compare?.year     ?? urlP.get('year')  ?? '')
   const [country,     setCountry]     = useState('')
-  const [division,    setDivision]    = useState(urlP.get('div')    || '')
+  const [division,    setDivision]    = useState(urlP.get('div')   || '')
   const [unit,        setUnit]        = useState<'lbs' | 'kg'>('lbs')
   const [rows,        setRows]        = useState<RankRow[]>([])
   const [totalHint,   setTotalHint]   = useState(0)
