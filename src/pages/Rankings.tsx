@@ -343,7 +343,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   const [federation,  setFederation]  = useState(compare?.fed      ?? urlP.get('fed')   ?? '')
   const [sex,         setSex]         = useState(compare?.sex      ?? urlP.get('sex')   ?? '')
   const [equipment,   setEquipment]   = useState(compare?.equip    ?? urlP.get('equip') ?? '')
-  const [weightClass, setWeightClass] = useState(compare?.wt       ?? urlP.get('wt')    ?? '')
+  const [weightClass, setWeightClass] = useState(urlP.get('wt') ?? '')
   const [ageClass,    setAgeClass]    = useState(compare?.ageClass  ?? urlP.get('age')  ?? '')
   const [year,        setYear]        = useState(compare?.year     ?? urlP.get('year')  ?? '')
   const [country,     setCountry]     = useState('')
@@ -476,7 +476,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
                   }
                   return applyClientFilters(parseRows(d)) as RankRow[]
                 })
-                .catch((): RankRow[] => [])
+                .catch((e: unknown) => { throw e })
             })
           )
           if (signal.aborted) return
@@ -719,7 +719,8 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           <div style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.35)', borderRadius: '.4rem', padding: '.875rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>▶ Comparison Mode</span>
             <span style={{ color: 'var(--text-2)', fontSize: '.82rem' }}>
-              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted in the results below.
+              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted below.
+              {compare?.wt && <span style={{ color: 'var(--text-3)' }}> Use the Weight Class filter to narrow to {compare.wt}kg.</span>}
             </span>
           </div>
         )}
