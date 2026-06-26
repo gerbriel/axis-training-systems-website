@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, Fragment } from 'react'
 import { href } from '../utils/nav'
 
 export interface RankingsProps { embedded?: boolean }
@@ -288,17 +288,60 @@ const LBL: React.CSSProperties = {
 
 const LOAD_SIZE = 100
 
+// ── User score row (injected from DotsCalc comparison flow) ──────────────
+interface UserScoreRowProps {
+  myDots: number; myTotal: number; myBw: number
+  mySquat: number; myBench: number; myDead: number
+  unit: 'lbs' | 'kg'
+}
+function UserScoreRow({ myDots, myTotal, myBw, mySquat, myBench, myDead, unit }: UserScoreRowProps) {
+  const disp = (v: number) => {
+    if (!v) return '—'
+    const d = unit === 'lbs' ? Math.round(v * 2.20462) : Math.round(v * 10) / 10
+    return d + (unit === 'lbs' ? ' lbs' : ' kg')
+  }
+  return (
+    <tr style={{ background: 'rgba(39,44,132,.1)' }}>
+      <td style={{ ...TD, color: '#272C84', fontWeight: 900, fontSize: '.58rem', letterSpacing: '.1em', textTransform: 'uppercase', borderLeft: '3px solid #272C84' }}>▶ YOU</td>
+      <td style={{ ...TD, color: '#272C84', fontWeight: 900 }}>Your Score</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: 'var(--text-2)' }}>{disp(myBw)}</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: mySquat > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{disp(mySquat)}</td>
+      <td style={{ ...TD, color: myBench > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{disp(myBench)}</td>
+      <td style={{ ...TD, color: myDead  > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{disp(myDead)}</td>
+      <td style={{ ...TD, color: '#272C84', fontWeight: 700 }}>{disp(myTotal)}</td>
+      <td style={{ ...TD, color: '#272C84', fontWeight: 900 }}>{myDots.toFixed(2)}</td>
+      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+    </tr>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────
 export default function Rankings({ embedded }: RankingsProps = {}) {
-  const [name,        setName]        = useState('')
-  const [federation,  setFederation]  = useState('')
-  const [sex,         setSex]         = useState('')
-  const [equipment,   setEquipment]   = useState('')
-  const [weightClass, setWeightClass] = useState('')
-  const [ageClass,    setAgeClass]    = useState('')
-  const [year,        setYear]        = useState('')
+  // URL params pre-fill filters and user score when arriving from DotsCalc comparison
+  const urlP = useRef(embedded ? new URLSearchParams() : new URLSearchParams(window.location.search)).current
+  const myDots  = parseFloat(urlP.get('myDots')  || '') || 0
+  const myTotal = parseFloat(urlP.get('myTotal') || '') || 0
+  const myBw    = parseFloat(urlP.get('myBw')    || '') || 0
+  const mySquat = parseFloat(urlP.get('mySquat') || '') || 0
+  const myBench = parseFloat(urlP.get('myBench') || '') || 0
+  const myDead  = parseFloat(urlP.get('myDead')  || '') || 0
+
+  const [name,        setName]        = useState(urlP.get('lifter') || '')
+  const [federation,  setFederation]  = useState(urlP.get('fed')    || '')
+  const [sex,         setSex]         = useState(urlP.get('sex')    || '')
+  const [equipment,   setEquipment]   = useState(urlP.get('equip')  || '')
+  const [weightClass, setWeightClass] = useState(urlP.get('wt')     || '')
+  const [ageClass,    setAgeClass]    = useState(urlP.get('age')    || '')
+  const [year,        setYear]        = useState(urlP.get('year')   || '')
   const [country,     setCountry]     = useState('')
-  const [division,    setDivision]    = useState('')
+  const [division,    setDivision]    = useState(urlP.get('div')    || '')
   const [unit,        setUnit]        = useState<'lbs' | 'kg'>('lbs')
   const [rows,        setRows]        = useState<RankRow[]>([])
   const [totalHint,   setTotalHint]   = useState(0)
@@ -630,6 +673,16 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
         </div>
         )}
 
+        {/* ── Comparison mode banner ───────────────────────────────── */}
+        {myDots > 0 && (
+          <div style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.35)', borderRadius: '.4rem', padding: '.875rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>▶ Comparison Mode</span>
+            <span style={{ color: 'var(--text-2)', fontSize: '.82rem' }}>
+              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted in the results below.
+            </span>
+          </div>
+        )}
+
         {/* ── Global search bar ────────────────────────────────────── */}
         <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
           <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)', fontSize: '.9rem', pointerEvents: 'none' }}>⌕</span>
@@ -739,7 +792,7 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
                 <button key={u} onClick={() => setUnit(u)} style={{
                   padding: '.55rem 1.1rem', border: 'none', cursor: 'pointer',
                   background: unit === u ? '#272C84' : 'transparent',
-                  color: unit === u ? 'var(--text)' : 'var(--text-dim)',
+                  color: unit === u ? '#ffffff' : 'var(--text-dim)',
                   fontWeight: 700, fontSize: '.62rem', letterSpacing: '.1em',
                   textTransform: 'uppercase', fontFamily: 'inherit',
                 }}>{u}</button>
@@ -806,12 +859,20 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
                 </tr>
               </thead>
               <tbody>
+                {/* User score above all loaded rows */}
+                {myDots > 0 && displayRows.length > 0 && sortKey === 'dots' && sortDir === 'desc'
+                  && parseFloat(displayRows[0].dots || '0') < myDots && (
+                  <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} />
+                )}
                 {displayRows.map((row, i) => {
                   const rk = row.name + '|' + i
                   const isExp = expanded === rk
+                  const insertUserAfter = myDots > 0 && sortKey === 'dots' && sortDir === 'desc'
+                    && parseFloat(row.dots || '0') >= myDots
+                    && (i + 1 >= displayRows.length || parseFloat(displayRows[i + 1].dots || '0') < myDots)
                   return (
-                    <>
-                      <tr key={rk}
+                    <Fragment key={rk}>
+                      <tr
                         style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: isExp ? 'var(--surface)' : 'transparent' }}
                         onClick={() => toggleHistory(row, rk)}
                         onMouseEnter={ev => { if (!isExp) (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--surface-2)' }}
@@ -837,6 +898,9 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
                         <td style={{ ...TD, color: 'var(--text-3)' }}>{row.date || '—'}</td>
                       </tr>
 
+                      {insertUserAfter && (
+                        <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} />
+                      )}
                       {isExp && (
                         <tr key={'hist-' + rk} style={{ background: 'var(--bg)' }}>
                           <td colSpan={16} style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--surface-2)' }}>
@@ -924,7 +988,7 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>
