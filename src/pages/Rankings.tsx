@@ -323,16 +323,16 @@ const LOAD_SIZE = 100
 interface UserScoreRowProps {
   myDots: number; myTotal: number; myBw: number
   mySquat: number; myBench: number; myDead: number
-  unit: 'lbs' | 'kg'
+  unit: 'lbs' | 'kg'; myWtClass?: string
 }
-function UserScoreRow({ myDots, myTotal, myBw, mySquat, myBench, myDead, unit }: UserScoreRowProps) {
+function UserScoreRow({ myDots, myTotal, myBw, mySquat, myBench, myDead, unit, myWtClass }: UserScoreRowProps) {
   const disp = (v: number) => {
     if (!v) return '—'
     const d = unit === 'lbs' ? Math.round(v * 2.20462) : Math.round(v * 10) / 10
     return d + (unit === 'lbs' ? ' lbs' : ' kg')
   }
   return (
-    <tr style={{ background: 'rgba(39,44,132,.1)' }}>
+    <tr data-you-row style={{ background: 'rgba(39,44,132,.1)' }}>
       <td style={{ ...TD, color: '#272C84', fontWeight: 900, fontSize: '.58rem', letterSpacing: '.1em', textTransform: 'uppercase', borderLeft: '3px solid #272C84' }}>▶ YOU</td>
       <td style={{ ...TD, color: '#272C84', fontWeight: 900 }}>Your Score</td>
       <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
@@ -340,7 +340,7 @@ function UserScoreRow({ myDots, myTotal, myBw, mySquat, myBench, myDead, unit }:
       <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
       <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
       <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
-      <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
+      <td style={{ ...TD, color: myWtClass ? 'var(--text-2)' : 'var(--text-3)' }}>{myWtClass || '—'}</td>
       <td style={{ ...TD, color: 'var(--text-2)' }}>{disp(myBw)}</td>
       <td style={{ ...TD, color: 'var(--text-3)' }}>—</td>
       <td style={{ ...TD, color: mySquat > 0 ? 'var(--text-dim)' : 'var(--border)' }}>{disp(mySquat)}</td>
@@ -381,6 +381,10 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error,       setError]       = useState('')
   const [searched,    setSearched]    = useState(false)
+  const [collapsed,   setCollapsed]   = useState(!!compare)
+  const [globalAbove,       setGlobalAbove]       = useState<number | null>(null)
+  const [globalTotal,       setGlobalTotal]       = useState(0)
+  const [globalRankLoading, setGlobalRankLoading] = useState(false)
   const [expanded,    setExpanded]    = useState<string | null>(null)
   const [histRows,    setHistRows]    = useState<HistRow[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
@@ -490,13 +494,96 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
         // Browse mode
         const hasClientFilter = !!(weightClass || ageClass || country || division)
 
-        if (hasClientFilter) {
-          // Client-side filters keep only a fraction of each server page, so a sequential
-          // loop would need many round-trips to fill LOAD_SIZE. Instead, fetch a small burst
-          // of pages concurrently. In compare mode (compare prop set) 1 page is enough — the
-          // ▶ YOU row already shows rank position. In standalone filter mode, fetch 3 pages
-          // for more visible context without risk of excessive concurrent requests.
-          const PARALLEL = compare ? 1 : 3
+        const userDots = compare?.myDots ?? 0
+
+        if (compare && userDots > 0 && isInit) {
+          // Compare initial load: batch until the user's score appears in context.
+          // This path runs REGARDLESS of client filters — filters are applied per-page so
+          // ageClass="Open" or a weight-class pre-selection doesn't short-circuit loading.
+          // 8 pages/batch × 25 batches = up to 20,000 server rows scanned.
+
+          // Fire-and-forget parallel global rank fetch (no federation filter).
+          // Only runs when a federation is active so "Global" differs from "Fed" rank.
+          if (federation) {
+            setGlobalAbove(null)
+            setGlobalTotal(0)
+            setGlobalRankLoading(true)
+            const gParts: string[] = []
+            if (equipment) gParts.push(equipment)
+            if (sex === 'M') gParts.push('men'); else if (sex === 'F') gParts.push('women')
+            if (year) gParts.push(year)
+            const gPath = '/api/rankings' + (gParts.length ? '/' + gParts.join('/') : '')
+            ;(async () => {
+              let gAbove = 0
+              let gOffset = 0
+              const G_BATCH = 8
+              const G_MAX = 30
+              for (let gb = 0; gb < G_MAX; gb++) {
+                if (signal.aborted) return
+                const gPages = await Promise.all(
+                  Array.from({ length: G_BATCH }, (_, gi) => {
+                    const start = gOffset + gi * 100
+                    const q = new URLSearchParams({ ...BASE_PARAMS, start: String(start), end: String(start + 99) })
+                    return oplFetch(opl(gPath + '?' + q), signal)
+                      .then((d: any) => {
+                        if (gi === 0 && gb === 0) {
+                          const gt = (d as any)?.total_length ?? 0
+                          if (gt > 0) setGlobalTotal(gt)
+                        }
+                        return parseRows(d) as RankRow[]
+                      })
+                      .catch(() => [] as RankRow[])
+                  })
+                )
+                if (signal.aborted) return
+                const gRows = gPages.flat()
+                if (!gRows.length) break
+                const gFiltered = hasClientFilter ? applyClientFilters(gRows) : gRows
+                gAbove += gFiltered.filter(r => parseFloat(r.dots || '0') > userDots).length
+                gOffset += G_BATCH * 100
+                setGlobalAbove(gAbove)
+                if (gRows.some(r => parseFloat(r.dots || '0') < userDots)) break
+              }
+              if (!signal.aborted) setGlobalRankLoading(false)
+            })()
+          }
+
+          const BATCH = 8
+          const MAX_BATCHES = 25
+          for (let b = 0; b < MAX_BATCHES; b++) {
+            if (signal.aborted) return
+            const bStart = serverOffsetRef.current
+            if (bStart >= serverTotalRef.current) break
+            const nPages = Math.min(BATCH, Math.ceil((serverTotalRef.current - bStart) / 100))
+            const batchPages = await Promise.all(
+              Array.from({ length: nPages }, (_, i) => {
+                const start = bStart + i * 100
+                if (start >= serverTotalRef.current) return Promise.resolve([] as RankRow[])
+                const q = new URLSearchParams({ ...BASE_PARAMS, start: String(start), end: String(start + 99) })
+                return oplFetch(opl(path + '?' + q), signal)
+                  .then((d: any) => {
+                    if (i === 0 && b === 0) {
+                      const total = d?.total_length ?? serverTotalRef.current
+                      serverTotalRef.current = total
+                      setTotalHint(total)
+                    }
+                    const pageRows = parseRows(d)
+                    return (hasClientFilter ? applyClientFilters(pageRows) : pageRows) as RankRow[]
+                  })
+                  .catch((e: unknown) => { throw e })
+              })
+            )
+            if (signal.aborted) return
+            for (const p of batchPages) newRows.push(...p)
+            serverOffsetRef.current = bStart + nPages * 100
+            // Progressive update so the user sees rows appear while batches land
+            setRows([...newRows])
+            // Stop once ANY loaded row is below the user's score — their position is now visible
+            if (newRows.some(r => parseFloat(r.dots || '0') < userDots)) break
+          }
+        } else if (hasClientFilter) {
+          // Standalone filter mode: 3 parallel pages — enough for browsing context.
+          const PARALLEL = 3
           const start0 = serverOffsetRef.current
           const pages = await Promise.all(
             Array.from({ length: PARALLEL }, (_, i) => {
@@ -518,7 +605,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           for (const page of pages) newRows.push(...page)
           serverOffsetRef.current = start0 + PARALLEL * 100
         } else {
-          // No client-side filter: every server row is displayed, sequential is fine
+          // No filters: sequential browse until LOAD_SIZE rows
           while (newRows.length < LOAD_SIZE && serverOffsetRef.current < serverTotalRef.current) {
             if (signal.aborted) return
             const q = new URLSearchParams({
@@ -726,6 +813,33 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
     finally { setLoadingHist(false) }
   }
 
+  // Comparison rank context — updated as rows load
+  const cmpAbove    = compare ? rows.filter(r => parseFloat(r.dots || '0') > myDots) : []
+  const cmpBelow    = compare ? rows.filter(r => parseFloat(r.dots || '0') < myDots) : []
+  const cmpRank     = cmpAbove.length + 1
+  const cmpPeerAbove = cmpAbove.length > 0 ? cmpAbove[cmpAbove.length - 1] : null
+  const cmpPeerBelow = cmpBelow.length > 0 ? cmpBelow[0] : null
+  const cmpPctTop   = totalHint > 0 ? Math.min(cmpRank / totalHint * 100, 100) : 0
+  const cmpEquipLabel = equipment === 'raw' ? 'Raw' : equipment === 'single-ply' ? 'Single-ply' : equipment === 'multi-ply' ? 'Multi-ply' : equipment === 'wraps' ? 'Wraps' : equipment === 'unlimited' ? 'Unlimited' : equipment || ''
+  const cmpCtx      = [
+    federation ? federation.toUpperCase() : '',
+    cmpEquipLabel,
+    sex === 'M' ? 'Men' : sex === 'F' ? 'Women' : '',
+    year || '',
+  ].filter(Boolean).join(' · ')
+  // Fed rank label: "[USPA] Rank" when fed is set, "Global Rank" otherwise
+  const cmpFedLabel = federation ? federation.toUpperCase() + ' Rank' : 'Global Rank'
+  // National rank: derived from loaded rows — count above-user rows by the most common
+  // country in the data (for USPA this resolves to USA automatically, IPF to whatever dominates)
+  const cmpCountryFreq = rows.reduce((acc, r) => {
+    if (r.country) acc[r.country] = (acc[r.country] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  const cmpTopCountry = Object.entries(cmpCountryFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? ''
+  const cmpNatRank    = cmpTopCountry ? cmpAbove.filter(r => r.country === cmpTopCountry).length + 1 : 0
+  // Global rank: only meaningful when a federation filter is active (otherwise cmpRank IS the global rank)
+  const cmpGlobalRank = (compare && federation) ? (globalAbove !== null ? globalAbove + 1 : null) : null
+
   return (
     <div style={{ minHeight: embedded ? undefined : '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit' }}>
 
@@ -749,18 +863,159 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
         </div>
         )}
 
-        {/* ── Comparison mode banner ───────────────────────────────── */}
-        {myDots > 0 && (
-          <div style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.35)', borderRadius: '.4rem', padding: '.875rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>▶ Comparison Mode</span>
-            <span style={{ color: 'var(--text-2)', fontSize: '.82rem' }}>
-              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted below. Adjust any filter to compare against different variables.
-            </span>
+        {/* ── Comparison mode UI ────────────────────────────────────── */}
+        {compare && myDots > 0 && (collapsed ? (
+
+          /* ── Collapsed: full stat card ─────────────────────────── */
+          <div style={{ background: 'var(--surface)', border: '1px solid rgba(39,44,132,.4)', borderRadius: '.5rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
+
+            {/* Card header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>▶ Comparison Results</span>
+              <button onClick={() => setCollapsed(false)} style={{
+                background: 'transparent', border: '1px solid rgba(39,44,132,.4)', borderRadius: '.25rem',
+                color: '#272C84', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em',
+                textTransform: 'uppercase', padding: '.4rem .9rem', cursor: 'pointer', fontFamily: 'inherit',
+              }}>Expand Table ↓</button>
+            </div>
+
+            {loading && rows.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 0', color: 'var(--text-3)', fontSize: '.75rem', letterSpacing: '.1em' }}>
+                Finding your rank…
+              </div>
+            ) : (
+              <>
+                {/* Key stats: fed rank · nation rank · global rank (when fed set) · dots · percentile */}
+                {(() => {
+                  const hasGlobal = !!federation && (cmpGlobalRank !== null || globalRankLoading)
+                  const cols = hasGlobal ? 3 : 2
+                  const statItems: { value: string; label: string; color: string; sub?: string }[] = [
+                    { value: `#${cmpRank.toLocaleString()}`, label: cmpFedLabel, color: '#272C84', sub: totalHint > 0 ? `of ${totalHint.toLocaleString()} lifters` : undefined },
+                    { value: cmpNatRank > 0 ? `#${cmpNatRank.toLocaleString()}` : (loading ? '…' : '—'), label: cmpTopCountry ? cmpTopCountry + ' Rank' : 'Nation Rank', color: '#272C84', sub: cmpTopCountry || undefined },
+                    ...(hasGlobal ? [{ value: cmpGlobalRank !== null ? `#${cmpGlobalRank.toLocaleString()}` : '…', label: 'Global Rank', color: '#272C84', sub: globalTotal > 0 ? `of ${globalTotal.toLocaleString()} · all feds` : 'all federations' }] : []),
+                    { value: myDots.toFixed(2), label: 'Dots Score', color: 'var(--text)' },
+                    { value: `Top ${cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%`, label: 'Percentile', color: '#c8102e', sub: totalHint > 0 ? `${cmpFedLabel.replace(' Rank', '')}` : undefined },
+                  ]
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '.75rem', marginBottom: '1.5rem' }}>
+                      {statItems.map(({ value, label, color, sub }) => (
+                        <div key={label} style={{ textAlign: 'center', padding: '.875rem .5rem', background: 'var(--bg)', borderRadius: '.35rem' }}>
+                          <div style={{ fontSize: `clamp(.9rem,${cols === 3 ? '2.8' : '3.5'}vw,${cols === 3 ? '1.35' : '1.6'}rem)`, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-.02em' }}>
+                            {value}
+                          </div>
+                          <div style={{ fontSize: '.5rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--text-4)', marginTop: '.4rem' }}>
+                            {label}
+                          </div>
+                          {sub && <div style={{ fontSize: '.48rem', color: 'var(--text-4)', marginTop: '.2rem', letterSpacing: '.06em' }}>{sub}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+
+                {/* Progress bar */}
+                {totalHint > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ position: 'relative', height: 6, background: 'var(--surface-2)', borderRadius: 3, marginBottom: 14 }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${cmpPctTop}%`, background: '#272C84', borderRadius: 3, transition: 'width .5s ease' }} />
+                      <div style={{
+                        position: 'absolute', top: '50%', left: `${cmpPctTop}%`,
+                        transform: 'translate(-50%,-50%)',
+                        width: 14, height: 14, background: '#272C84', borderRadius: '50%',
+                        border: '3px solid var(--bg)', boxShadow: '0 0 0 1px #272C84',
+                        transition: 'left .5s ease',
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.54rem', color: 'var(--text-4)', letterSpacing: '.06em' }}>
+                      <span>Rank 1 ← Strongest</span>
+                      <span>out of {totalHint.toLocaleString()}{cmpCtx ? ' · ' + cmpCtx : ''}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nearest lifters */}
+                <div style={{ border: '1px solid var(--surface-2)', borderRadius: '.35rem', overflow: 'hidden', marginBottom: '1.25rem', fontSize: '.78rem' }}>
+                  {cmpPeerAbove ? (
+                    <div style={{ display: 'flex', padding: '.6rem 1rem', borderBottom: '1px solid var(--surface-2)', alignItems: 'center', gap: '.75rem' }}>
+                      <span style={{ color: 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, minWidth: 56, flexShrink: 0 }}>#{(cmpRank - 1).toLocaleString()}</span>
+                      <span style={{ color: 'var(--text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cmpPeerAbove.name}</span>
+                      {cmpPeerAbove.country && <span style={{ color: 'var(--text-4)', fontSize: '.65rem', flexShrink: 0 }}>{cmpPeerAbove.country}</span>}
+                      <span style={{ color: 'var(--text-2)', fontWeight: 700, flexShrink: 0 }}>{parseFloat(cmpPeerAbove.dots || '0').toFixed(2)}</span>
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: 'flex', padding: '.6rem 1rem', borderBottom: cmpPeerBelow ? '1px solid var(--surface-2)' : undefined, alignItems: 'center', gap: '.75rem', background: 'rgba(39,44,132,.12)', borderLeft: '3px solid #272C84' }}>
+                    <span style={{ color: '#272C84', fontSize: '.52rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', minWidth: 56, flexShrink: 0 }}>▶ YOU</span>
+                    <span style={{ color: '#272C84', fontWeight: 700, flex: 1 }}>Your Score</span>
+                    {compare.wt && <span style={{ color: '#272C84', opacity: .65, fontSize: '.65rem', flexShrink: 0 }}>{compare.wt} kg</span>}
+                    <span style={{ color: '#272C84', fontWeight: 900, flexShrink: 0 }}>{myDots.toFixed(2)}</span>
+                  </div>
+
+                  {cmpPeerBelow ? (
+                    <div style={{ display: 'flex', padding: '.6rem 1rem', alignItems: 'center', gap: '.75rem' }}>
+                      <span style={{ color: 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, minWidth: 56, flexShrink: 0 }}>#{(cmpRank + 1).toLocaleString()}</span>
+                      <span style={{ color: 'var(--text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cmpPeerBelow.name}</span>
+                      {cmpPeerBelow.country && <span style={{ color: 'var(--text-4)', fontSize: '.65rem', flexShrink: 0 }}>{cmpPeerBelow.country}</span>}
+                      <span style={{ color: 'var(--text-2)', fontWeight: 700, flexShrink: 0 }}>{parseFloat(cmpPeerBelow.dots || '0').toFixed(2)}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {loading && rows.length > 0 && (
+                  <p style={{ fontSize: '.6rem', color: 'var(--text-4)', textAlign: 'center', marginBottom: '.75rem', letterSpacing: '.08em' }}>
+                    Refining rank… ({rows.length.toLocaleString()} loaded)
+                  </p>
+                )}
+
+                {/* Jump to full table */}
+                <button
+                  onClick={() => {
+                    setCollapsed(false)
+                    setTimeout(() => {
+                      const el = document.querySelector('[data-you-row]') as HTMLElement
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 150)
+                  }}
+                  style={{ width: '100%', background: '#272C84', color: '#fff', border: 'none', borderRadius: '.3rem', padding: '.875rem', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
+                >
+                  Jump to Full Rankings Table ↓
+                </button>
+              </>
+            )}
           </div>
-        )}
+
+        ) : (
+
+          /* ── Expanded: compact strip ──────────────────────────────── */
+          <div style={{ background: 'rgba(39,44,132,.08)', border: '1px solid rgba(39,44,132,.25)', borderRadius: '.4rem', padding: '.75rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>▶ Comparison Mode</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', fontSize: '.78rem', color: 'var(--text-2)', minWidth: 0 }}>
+              <span>{cmpFedLabel.replace(' Rank', '')} <strong style={{ color: '#272C84' }}>#{cmpRank.toLocaleString()}</strong></span>
+              {cmpNatRank > 0 && cmpTopCountry && <><span style={{ color: 'var(--text-4)' }}>·</span><span>{cmpTopCountry} <strong style={{ color: '#272C84' }}>#{cmpNatRank.toLocaleString()}</strong></span></>}
+              {cmpGlobalRank !== null && <><span style={{ color: 'var(--text-4)' }}>·</span><span>Global (all feds) <strong style={{ color: '#272C84' }}>#{cmpGlobalRank.toLocaleString()}</strong>{globalTotal > 0 && <span style={{ color: 'var(--text-4)', fontWeight: 400 }}> / {globalTotal.toLocaleString()}</span>}</span></>}
+              {federation && globalRankLoading && cmpGlobalRank === null && <><span style={{ color: 'var(--text-4)' }}>·</span><span style={{ color: 'var(--text-4)' }}>Global…</span></>}
+              <span style={{ color: 'var(--text-4)' }}>·</span>
+              <span>Dots <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong></span>
+              <span style={{ color: 'var(--text-4)' }}>·</span>
+              <span>Top <strong style={{ color: '#c8102e' }}>{cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%</strong></span>
+              {totalHint > 0 && <span style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>out of {totalHint.toLocaleString()}</span>}
+            </div>
+            <button onClick={() => setCollapsed(true)} style={{
+              background: 'transparent', border: '1px solid rgba(39,44,132,.35)', borderRadius: '.25rem',
+              color: '#272C84', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em',
+              textTransform: 'uppercase', padding: '.4rem .9rem', cursor: 'pointer',
+              fontFamily: 'inherit', flexShrink: 0,
+            }}>Collapse ↑</button>
+          </div>
+
+        ))}
+
+        {/* ── Filters always visible; table hidden when collapsed ────── */}
 
         {/* ── Global search bar ────────────────────────────────────── */}
-        <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+        <div data-cmp-top style={{ position: 'relative', marginBottom: '1.25rem' }}>
           <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)', fontSize: '.9rem', pointerEvents: 'none' }}>⌕</span>
           <input
             type="text"
@@ -894,6 +1149,9 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           </div>
         </div>
 
+        {/* ── Table + results — hidden when compare is collapsed ───── */}
+        {(!compare || !collapsed) && (<>
+
         {/* Error */}
         {error && (
           <div style={{ background: '#120208', border: '1px solid #2d0810', borderRadius: '.35rem', padding: '.875rem 1.25rem', color: '#f87171', fontSize: '.82rem', marginBottom: '1.5rem' }}>
@@ -938,7 +1196,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
                 {/* User score above all loaded rows */}
                 {myDots > 0 && displayRows.length > 0 && sortKey === 'dots' && sortDir === 'desc'
                   && parseFloat(displayRows[0].dots || '0') < myDots && (
-                  <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} />
+                  <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} myWtClass={compare?.wt} />
                 )}
                 {displayRows.map((row, i) => {
                   const rk = row.name + '|' + i
@@ -975,7 +1233,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
                       </tr>
 
                       {insertUserAfter && (
-                        <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} />
+                        <UserScoreRow myDots={myDots} myTotal={myTotal} myBw={myBw} mySquat={mySquat} myBench={myBench} myDead={myDead} unit={unit} myWtClass={compare?.wt} />
                       )}
                       {isExp && (
                         <tr key={'hist-' + rk} style={{ background: 'var(--bg)' }}>
@@ -1109,12 +1367,59 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           </div>
         )}
 
+        </>)} {/* end (!compare || !collapsed) */}
+
         {/* Attribution */}
-        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid var(--surface-2)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: 'var(--text-3)' }}>
+        <div style={{ marginTop: '4rem', paddingTop: '1.25rem', borderTop: '1px solid var(--surface-2)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem', fontSize: '.65rem', color: 'var(--text-3)', paddingBottom: compare && !collapsed ? '3.5rem' : undefined }}>
           <span>Data © OpenPowerlifting contributors — CC BY 4.0 + ODbL</span>
           <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'none' }}>openpowerlifting.org ↗</a>
         </div>
       </div>
+
+      {/* ── Sticky collapse bar — pinned to bottom when compare table is expanded ── */}
+      {compare && !collapsed && myDots > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
+          background: 'var(--bg)', borderTop: '1px solid var(--border)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '1rem', padding: '.65rem 1.5rem', flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', fontSize: '.72rem', color: 'var(--text-3)' }}>
+            <span style={{ color: '#272C84', fontWeight: 900, fontSize: '.58rem', letterSpacing: '.12em', textTransform: 'uppercase' }}>▶ YOU</span>
+            <span>{cmpFedLabel.replace(' Rank', '')} <strong style={{ color: 'var(--text-2)' }}>#{cmpRank.toLocaleString()}</strong>{totalHint > 0 && <span style={{ color: 'var(--text-4)', fontWeight: 400 }}> / {totalHint.toLocaleString()}</span>}</span>
+            {cmpNatRank > 0 && cmpTopCountry && <><span style={{ color: 'var(--text-4)' }}>·</span><span>{cmpTopCountry} <strong style={{ color: 'var(--text-2)' }}>#{cmpNatRank.toLocaleString()}</strong></span></>}
+            {cmpGlobalRank !== null && <><span style={{ color: 'var(--text-4)' }}>·</span><span>All Feds <strong style={{ color: 'var(--text-2)' }}>#{cmpGlobalRank.toLocaleString()}</strong>{globalTotal > 0 && <span style={{ color: 'var(--text-4)', fontWeight: 400 }}> / {globalTotal.toLocaleString()}</span>}</span></>}
+            {federation && globalRankLoading && cmpGlobalRank === null && <><span style={{ color: 'var(--text-4)' }}>·</span><span style={{ color: 'var(--text-4)', fontSize: '.7rem' }}>All Feds…</span></>}
+            <span style={{ color: 'var(--text-4)' }}>·</span>
+            <span>Dots <strong style={{ color: 'var(--text-2)' }}>{myDots.toFixed(2)}</strong></span>
+            <span style={{ color: 'var(--text-4)' }}>·</span>
+            <span>Top <strong style={{ color: '#c8102e' }}>{cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%</strong></span>
+          </div>
+          <div style={{ display: 'flex', gap: '.75rem', flexShrink: 0 }}>
+            <button
+              onClick={() => {
+                const el = document.querySelector('[data-cmp-top]') as HTMLElement
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+              style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '.25rem', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            >Filters ↑</button>
+            <button
+              onClick={() => {
+                const el = document.querySelector('[data-you-row]') as HTMLElement
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+              style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '.25rem', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            >Find My Row ↑</button>
+            <button
+              onClick={() => setCollapsed(true)}
+              style={{ background: '#272C84', border: 'none', borderRadius: '.25rem', color: '#fff', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.4rem .9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
+            >Collapse ↑</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
