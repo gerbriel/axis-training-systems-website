@@ -551,13 +551,32 @@ function calcGL(bwKg: number, totalKg: number, sex: 'm' | 'f') {
   return totalKg * 100 / denom
 }
 
-const DOTS_BENCHMARKS = [
-  { label: 'Beginner',      range: '< 200' },
-  { label: 'Intermediate',  range: '200 – 300' },
-  { label: 'Advanced',      range: '300 – 380' },
-  { label: 'Elite',         range: '380 – 450' },
-  { label: 'World-class',   range: '450+' },
-]
+// Benchmarks and bar scale for each scoring system.
+// Dots & Wilks share the same scale (scores are numerically similar).
+// GL (Goodlift) uses a 0–120 scale where 100+ is world-class.
+const SCORE_BENCHMARKS = {
+  dots:  { barMax: 500, barLabel: '500+', tiers: [
+    { label: 'Beginner',     range: '< 200',     cutoff: 200 },
+    { label: 'Intermediate', range: '200 – 300', cutoff: 300 },
+    { label: 'Advanced',     range: '300 – 380', cutoff: 380 },
+    { label: 'Elite',        range: '380 – 450', cutoff: 450 },
+    { label: 'World-class',  range: '450+',      cutoff: Infinity },
+  ]},
+  wilks: { barMax: 500, barLabel: '500+', tiers: [
+    { label: 'Beginner',     range: '< 200',     cutoff: 200 },
+    { label: 'Intermediate', range: '200 – 300', cutoff: 300 },
+    { label: 'Advanced',     range: '300 – 380', cutoff: 380 },
+    { label: 'Elite',        range: '380 – 450', cutoff: 450 },
+    { label: 'World-class',  range: '450+',      cutoff: Infinity },
+  ]},
+  gl: { barMax: 120, barLabel: '120+', tiers: [
+    { label: 'Beginner',     range: '< 40',      cutoff: 40  },
+    { label: 'Intermediate', range: '40 – 60',   cutoff: 60  },
+    { label: 'Advanced',     range: '60 – 80',   cutoff: 80  },
+    { label: 'Elite',        range: '80 – 100',  cutoff: 100 },
+    { label: 'World-class',  range: '100+',      cutoff: Infinity },
+  ]},
+}
 
 function detectWeightClass(bwKg: number, sex: 'm' | 'f'): string {
   if (sex === 'm') {
@@ -682,12 +701,9 @@ export function DotsCalc() {
 
   const selectedScore = scoreType === 'wilks' ? wilks : scoreType === 'gl' ? gl : dots
 
-  const tier = dots === null ? null
-    : dots < 200 ? 'Beginner'
-    : dots < 300 ? 'Intermediate'
-    : dots < 380 ? 'Advanced'
-    : dots < 450 ? 'Elite'
-    : 'World-class'
+  const activeSet = SCORE_BENCHMARKS[scoreType]
+  const tier = selectedScore === null ? null
+    : (activeSet.tiers.find(t => selectedScore < t.cutoff) ?? activeSet.tiers[activeSet.tiers.length - 1]).label
 
   const tierColor = (t: string | null) =>
     t === 'World-class' ? '#c8102e'
@@ -824,12 +840,12 @@ export function DotsCalc() {
             ))}
           </div>
 
-          {/* Visual bar */}
+          {/* Visual bar — scaled to the active scoring system's range */}
           <div style={{ marginBottom: '1rem' }}>
             <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
-                width: `${Math.min(dots / 500 * 100, 100)}%`,
+                width: `${Math.min((selectedScore ?? 0) / activeSet.barMax * 100, 100)}%`,
                 background: 'linear-gradient(to right, #c8102e, #e84620)',
                 borderRadius: 2,
                 transition: 'width .4s ease',
@@ -837,14 +853,14 @@ export function DotsCalc() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.3rem' }}>
               <span style={{ color: 'var(--text-3)', fontSize: '.6rem' }}>0</span>
-              <span style={{ color: 'var(--text-3)', fontSize: '.6rem' }}>500+</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.6rem' }}>{activeSet.barLabel}</span>
             </div>
           </div>
 
-          {/* Benchmarks */}
+          {/* Benchmarks — tiers for the active scoring system */}
           <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.6rem' }}>Score Ranges</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '.4rem' }}>
-            {DOTS_BENCHMARKS.map(b => (
+            {activeSet.tiers.map(b => (
               <div
                 key={b.label}
                 style={{
