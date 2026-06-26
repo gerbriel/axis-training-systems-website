@@ -417,11 +417,12 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   }, [buildFilterSuffix])
 
   // Client-side filters applied after fetching (weightClass, ageClass, country, division
-  // are not in the server-side path)
-  const applyClientFilters = useCallback((r: RankRow[]) => {
+  // are not in the server-side path). skipWt=true used for name searches so you can find
+  // any lifter by name regardless of what weight class they competed in.
+  const applyClientFilters = useCallback((r: RankRow[], skipWt = false) => {
     return r.filter(row => {
       if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
-      if (weightClass) {
+      if (!skipWt && weightClass) {
         const selWt = weightClass.replace(/\.0$/, '')
         // Column 18 stores federation-specific class names (OPL returns '90', '125', etc.
         // for WPC/old-IPF lifters). Always infer from actual body weight so that a
@@ -471,14 +472,17 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
       const searchName = name.trim() || globalSearch.trim()
 
       if (searchName) {
-        // Name search: filtered API context + parallel row fetches + session cache
-        let allRows = await nameSearch(searchName, suffix, signal)
+        // Name search: use suffix WITHOUT year so the lifter is found across all years
+        // (year is meaningful for browsing rankings but not for finding a specific person)
+        const nameSuffix = suffix.replace(/\/\d{4}(\/|$)/, '$1').replace(/\/$/, '')
+        let allRows = await nameSearch(searchName, nameSuffix, signal)
         // Meet name filter: enrich rows with real meet names from CSV (path → "Cayco Classic 3")
         if (meetName.trim()) {
           allRows = await enrichMeetNames(allRows, signal)
           if (signal.aborted) return
         }
-        newRows.push(...applyClientFilters(allRows))
+        // Skip weight class filter for name searches — show all results for that person
+        newRows.push(...applyClientFilters(allRows, true))
         if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
         setHasMore(false)
 
@@ -871,7 +875,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
               ))}
             </div>
             <button onClick={handleSearch} disabled={loading} style={{
-              background: loading ? 'var(--surface)' : '#c8102e', color: loading ? 'var(--steel)' : 'var(--text)',
+              background: loading ? 'var(--surface)' : '#272C84', color: loading ? 'var(--steel)' : '#ffffff',
               border: 'none', borderRadius: '.3rem', padding: '.6rem 2rem',
               fontWeight: 900, fontSize: '.65rem', letterSpacing: '.15em',
               textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
