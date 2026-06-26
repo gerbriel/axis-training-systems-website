@@ -454,22 +454,52 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
         setHasMore(false)
 
       } else {
-        // Browse mode: page through ranked list in chunks of 100
-        while (newRows.length < LOAD_SIZE && serverOffsetRef.current < serverTotalRef.current) {
+        // Browse mode
+        const hasClientFilter = !!(weightClass || ageClass || country || division)
+
+        if (hasClientFilter) {
+          // Client-side filters (weightClass, ageClass, etc.) keep only a fraction of each
+          // server page, so a sequential loop needs many round-trips to collect enough rows.
+          // Instead, fetch 3 pages concurrently — fast, single network burst.
+          const PARALLEL = 3
+          const start0 = serverOffsetRef.current
+          const pages = await Promise.all(
+            Array.from({ length: PARALLEL }, (_, i) => {
+              const start = start0 + i * 100
+              const q = new URLSearchParams({ ...BASE_PARAMS, start: String(start), end: String(start + 99) })
+              return oplFetch(opl(path + '?' + q), signal)
+                .then((d: any) => {
+                  if (i === 0) {
+                    const total = d?.total_length ?? serverTotalRef.current
+                    serverTotalRef.current = total
+                    if (isInit) setTotalHint(total)
+                  }
+                  return applyClientFilters(parseRows(d)) as RankRow[]
+                })
+                .catch((): RankRow[] => [])
+            })
+          )
           if (signal.aborted) return
-          const q = new URLSearchParams({
-            ...BASE_PARAMS,
-            start: String(serverOffsetRef.current),
-            end:   String(serverOffsetRef.current + 99),
-          })
-          const data = await oplFetch(opl(path + '?' + q), signal)
-          const total = data?.total_length ?? serverTotalRef.current
-          serverTotalRef.current = total
-          if (isInit && serverOffsetRef.current === 0) setTotalHint(total)
-          const hasClientFilter = !!(weightClass || ageClass || country || division)
-          newRows.push(...(hasClientFilter ? applyClientFilters(parseRows(data)) : parseRows(data)))
-          serverOffsetRef.current += 100
+          for (const page of pages) newRows.push(...page)
+          serverOffsetRef.current = start0 + PARALLEL * 100
+        } else {
+          // No client-side filter: every server row is displayed, sequential is fine
+          while (newRows.length < LOAD_SIZE && serverOffsetRef.current < serverTotalRef.current) {
+            if (signal.aborted) return
+            const q = new URLSearchParams({
+              ...BASE_PARAMS,
+              start: String(serverOffsetRef.current),
+              end:   String(serverOffsetRef.current + 99),
+            })
+            const data = await oplFetch(opl(path + '?' + q), signal)
+            const total = data?.total_length ?? serverTotalRef.current
+            serverTotalRef.current = total
+            if (isInit && serverOffsetRef.current === 0) setTotalHint(total)
+            newRows.push(...parseRows(data))
+            serverOffsetRef.current += 100
+          }
         }
+
         if (isInit) setRows(newRows); else setRows(prev => [...prev, ...newRows])
         setHasMore(serverOffsetRef.current < serverTotalRef.current)
       }
