@@ -343,7 +343,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   const [federation,  setFederation]  = useState(compare?.fed      ?? urlP.get('fed')   ?? '')
   const [sex,         setSex]         = useState(compare?.sex      ?? urlP.get('sex')   ?? '')
   const [equipment,   setEquipment]   = useState(compare?.equip    ?? urlP.get('equip') ?? '')
-  const [weightClass, setWeightClass] = useState(urlP.get('wt') ?? '')
+  const [weightClass, setWeightClass] = useState(compare?.wt ?? urlP.get('wt') ?? '')
   const [ageClass,    setAgeClass]    = useState(compare?.ageClass  ?? urlP.get('age')  ?? '')
   const [year,        setYear]        = useState(compare?.year     ?? urlP.get('year')  ?? '')
   const [country,     setCountry]     = useState('')
@@ -458,10 +458,12 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
         const hasClientFilter = !!(weightClass || ageClass || country || division)
 
         if (hasClientFilter) {
-          // Client-side filters (weightClass, ageClass, etc.) keep only a fraction of each
-          // server page, so a sequential loop needs many round-trips to collect enough rows.
-          // Instead, fetch 3 pages concurrently — fast, single network burst.
-          const PARALLEL = 3
+          // Client-side filters keep only a fraction of each server page, so a sequential
+          // loop would need many round-trips to fill LOAD_SIZE. Instead, fetch a small burst
+          // of pages concurrently. In compare mode (compare prop set) 1 page is enough — the
+          // ▶ YOU row already shows rank position. In standalone filter mode, fetch 3 pages
+          // for more visible context without risk of excessive concurrent requests.
+          const PARALLEL = compare ? 1 : 3
           const start0 = serverOffsetRef.current
           const pages = await Promise.all(
             Array.from({ length: PARALLEL }, (_, i) => {
@@ -719,8 +721,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           <div style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.35)', borderRadius: '.4rem', padding: '.875rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <span style={{ color: '#272C84', fontSize: '.58rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>▶ Comparison Mode</span>
             <span style={{ color: 'var(--text-2)', fontSize: '.82rem' }}>
-              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted below.
-              {compare?.wt && <span style={{ color: 'var(--text-3)' }}> Use the Weight Class filter to narrow to {compare.wt}kg.</span>}
+              Your Dots score of <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong> is highlighted below. Adjust any filter to compare against different variables.
             </span>
           </div>
         )}
