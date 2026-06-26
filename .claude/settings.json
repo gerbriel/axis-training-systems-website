@@ -10,7 +10,8 @@
       "Bash(xargs sed -i '' \"s/#bfa162/#272C84/g; s/#f5b935/#272C84/g; s/#9a7c3a/#1a1f6b/g; s/rgba\\(245,185,53,/rgba\\(39,44,132,/g\")",
       "Bash(xargs sed -i '' \"s/borderColor = '#c8102e'/borderColor = '#272C84'/g; s/\\\\.style\\\\.color = '#c8102e'/.style.color = '#272C84'/g; s/'#c8102e' : 'transparent'/'#272C84' : 'transparent'/g; s/? '#c8102e' : 'transparent'/? '#272C84' : 'transparent'/g\")",
       "Bash(xargs sed -i '' \"s/background: '#272C84', color: 'var\\(--text\\)'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', color: '#000000'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', color: '#000'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', border: 'none', color: 'var\\(--text\\)'/background: '#272C84', border: 'none', color: '#ffffff'/g; s/background: '#272C84', border: 'none', color: '#000'/background: '#272C84', border: 'none', color: '#ffffff'/g\")",
-      "Bash(grep -v \"^$\\\\|✓\\\\|chunks\\\\|minification\\\\|rollup\\\\|limit\\\\|adjust\\\\|Using\\\\|Use build\")"
+      "Bash(grep -v \"^$\\\\|✓\\\\|chunks\\\\|minification\\\\|rollup\\\\|limit\\\\|adjust\\\\|Using\\\\|Use build\")",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
