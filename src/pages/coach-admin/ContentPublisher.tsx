@@ -56,7 +56,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 const STATUS_COLORS: Record<string, string> = {
-  pending:  '#f5b935',
+  pending:  '#272C84',
   approved: '#22c55e',
   rejected: '#c8102e',
 }
@@ -205,7 +205,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
             key={t}
             onClick={() => setContentType(t)}
             style={{
-              background: contentType === t ? '#c8102e' : 'transparent',
+              background: contentType === t ? '#272C84' : 'transparent',
               border: `1px solid ${contentType === t ? '#c8102e' : 'var(--border)'}`,
               color: contentType === t ? 'var(--text)' : 'var(--text-4)',
               borderRadius: '.2rem',
@@ -274,7 +274,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                           <button onClick={() => moveSection(sec._id, -1)} disabled={idx === 0} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontFamily: 'inherit' }}>↑</button>
                           <button onClick={() => moveSection(sec._id,  1)} disabled={idx === blogSections.length - 1} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: idx === blogSections.length - 1 ? 'default' : 'pointer', opacity: idx === blogSections.length - 1 ? 0.3 : 1, fontFamily: 'inherit' }}>↓</button>
                           <button onClick={() => removeSection(sec._id)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', padding: '.2rem .5rem', borderRadius: '.15rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.color = '#272C84' }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}
                           >✕</button>
                         </div>
@@ -340,7 +340,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                 onClick={submitBlog}
                 disabled={!blogTitle.trim() || !blogSummary.trim() || submitting}
                 style={{
-                  background: '#bfa162',
+                  background: '#272C84',
                   border: 'none',
                   color: 'var(--text)',
                   fontWeight: 900,
@@ -408,7 +408,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               onClick={submitMeet}
               disabled={!meetName.trim() || !meetDate.trim() || submitting}
               style={{
-                background: '#bfa162',
+                background: '#272C84',
                 border: 'none',
                 color: 'var(--text)',
                 fontWeight: 900,
@@ -474,7 +474,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                   <button
                     onClick={() => handleDelete(item.id)}
                     style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.color = '#272C84' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}
                   >
                     Withdraw

@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new:      '#c8102e',
-  reviewed: '#f5b935',
+  reviewed: '#272C84',
   accepted: '#22c55e',
   declined: 'var(--text-4)',
 }
@@ -145,8 +145,8 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
           <button
             onClick={save} disabled={saving}
             style={{ background: saving ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer' }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#9a7c3a' }}
-            onMouseLeave={e => { if (!saving) e.currentTarget.style.background = '#bfa162' }}
+            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#1a1f6b' }}
+            onMouseLeave={e => { if (!saving) e.currentTarget.style.background = '#272C84' }}
           >
             {saving ? 'Saving…' : 'Save Changes'}
           </button>

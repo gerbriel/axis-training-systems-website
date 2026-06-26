@@ -3,7 +3,7 @@ import { fetchAllContent, reviewContent, removeContent, submitContent, updateCon
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
 
-const STATUS_COLORS: Record<ContentStatus, string> = { pending: '#f5b935', approved: '#22c55e', rejected: '#c8102e' }
+const STATUS_COLORS: Record<ContentStatus, string> = { pending: '#272C84', approved: '#22c55e', rejected: '#c8102e' }
 const lbl: React.CSSProperties = { color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }
 const inp: React.CSSProperties = { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontSize: '.875rem', fontWeight: 500, padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
 

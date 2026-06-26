@@ -32,7 +32,7 @@ function Bar({ height, label, value }: { height: number; label: string; value: n
       <div style={{ display: 'flex', alignItems: 'flex-end', height: 80, width: '100%', justifyContent: 'center' }}>
         <div
           title={`${value} views`}
-          style={{ width: '80%', height: `${Math.max(height * 100, 2)}%`, background: '#f5b935', borderRadius: '.1rem .1rem 0 0', opacity: .7, transition: 'height .3s', minHeight: 2 }}
+          style={{ width: '80%', height: `${Math.max(height * 100, 2)}%`, background: '#272C84', borderRadius: '.1rem .1rem 0 0', opacity: .7, transition: 'height .3s', minHeight: 2 }}
         />
       </div>
       <span style={{ color: 'var(--text-4)', fontSize: '.5rem', textAlign: 'center', lineHeight: 1 }}>{label}</span>
@@ -153,7 +153,7 @@ export default function AnalyticsPanel({ isDemo = false }: { isDemo?: boolean })
               <span style={{ color: 'var(--text-2)', fontSize: '.8rem', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{page}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
                 <div style={{ width: 60, height: 4, background: 'var(--surface-2)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: `${(count / (topPages[0][1] as number)) * 100}%`, height: '100%', background: '#f5b935', borderRadius: 2 }} />
+                  <div style={{ width: `${(count / (topPages[0][1] as number)) * 100}%`, height: '100%', background: '#272C84', borderRadius: 2 }} />
                 </div>
                 <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.75rem', minWidth: 24, textAlign: 'right' }}>{count as number}</span>
               </div>

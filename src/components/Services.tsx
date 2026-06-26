@@ -34,7 +34,7 @@ const SERVICES = [
 ]
 
 const Dot = () => (
-  <span style={{ width: '.375rem', height: '.375rem', borderRadius: '50%', background: '#bfa162', flexShrink: 0, display: 'inline-block' }} />
+  <span style={{ width: '.375rem', height: '.375rem', borderRadius: '50%', background: '#272C84', flexShrink: 0, display: 'inline-block' }} />
 )
 
 const Arrow = () => (
@@ -84,7 +84,7 @@ export default function Services() {
                 rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className="inline-flex items-center gap-2 text-xs font-black px-6 py-3 rounded tracking-widest uppercase transition-colors"
                 style={{ border: '1px solid var(--border)', width: 'fit-content', color: 'var(--text)' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#272C84')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
               >
                 {s.cta} <Arrow />

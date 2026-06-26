@@ -52,8 +52,8 @@ function StepIndicator({ step }: { step: Step }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.35rem' }}>
             <div style={{
               width: 28, height: 28, borderRadius: '50%', border: '2px solid',
-              borderColor: i <= idx ? '#f5b935' : 'var(--border-mid)',
-              background: i === idx ? '#f5b935' : 'transparent',
+              borderColor: i <= idx ? '#272C84' : 'var(--border-mid)',
+              background: i === idx ? '#272C84' : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '.65rem', fontWeight: 900,
               color: i === idx ? '#000' : i < idx ? 'var(--text)' : 'var(--text-4)',
@@ -63,7 +63,7 @@ function StepIndicator({ step }: { step: Step }) {
             <span style={{ fontSize: '.55rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: i <= idx ? 'var(--text)' : 'var(--text-4)', whiteSpace: 'nowrap' }}>{label}</span>
           </div>
           {i < steps.length - 1 && (
-            <div style={{ flex: 1, height: 1, background: i < idx ? '#f5b935' : 'var(--border-mid)', margin: '0 .5rem', marginBottom: '1.2rem' }} />
+            <div style={{ flex: 1, height: 1, background: i < idx ? '#272C84' : 'var(--border-mid)', margin: '0 .5rem', marginBottom: '1.2rem' }} />
           )}
         </div>
       ))}
@@ -233,7 +233,7 @@ function SlotPicker({ coach, onSelect, onBack }: {
                           disabled={isPast || !hasSlots}
                           onClick={() => setSelectedDate(ds)}
                           style={{
-                            background: isSelected ? '#f5b935' : hasSlots ? 'var(--surface)' : 'transparent',
+                            background: isSelected ? '#272C84' : hasSlots ? 'var(--surface)' : 'transparent',
                             border: isToday ? '1px solid #333' : '1px solid transparent',
                             borderRadius: '.2rem',
                             color: isSelected ? '#000' : isPast ? 'var(--border-mid)' : hasSlots ? 'var(--text)' : 'var(--text-dim)',
@@ -251,7 +251,7 @@ function SlotPicker({ coach, onSelect, onBack }: {
                         >
                           {day.getDate()}
                           {hasSlots && !isSelected && (
-                            <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#f5b935', display: 'block' }} />
+                            <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#272C84', display: 'block' }} />
                           )}
                         </button>
                       )
@@ -282,7 +282,7 @@ function SlotPicker({ coach, onSelect, onBack }: {
                         cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                         transition: 'all .1s',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f5b935'; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = '#f5b935' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#272C84'; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = '#272C84' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border)' }}
                     >
                       {fmtTime(slot.start)}
@@ -411,14 +411,14 @@ function BookingForm({ coach, slot, onBack, onDone }: {
           type="submit"
           disabled={submitting || !form.firstName || !form.lastName || !form.email}
           style={{
-            background: submitting || !form.firstName || !form.lastName || !form.email ? 'var(--border)' : '#f5b935',
+            background: submitting || !form.firstName || !form.lastName || !form.email ? 'var(--border)' : '#272C84',
             border: 'none', color: submitting ? 'var(--text-3)' : '#000', fontWeight: 900,
             fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase',
             padding: '.9rem 2.5rem', borderRadius: '.25rem', cursor: 'pointer',
             alignSelf: 'flex-start', fontFamily: 'inherit', transition: 'background .15s',
           }}
           onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#ffd782' }}
-          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#f5b935' }}
+          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#272C84' }}
         >
           {submitting ? 'Booking…' : 'Confirm Booking →'}
         </button>
@@ -430,7 +430,7 @@ function BookingForm({ coach, slot, onBack, onDone }: {
 function BookingConfirmation({ coach, slot }: { coach: Coach; slot: TimeSlot }) {
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', textAlign: 'center', paddingTop: '2rem' }}>
-      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(245,185,53,.12)', border: '2px solid #f5b935', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: '1.5rem' }}>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(39,44,132,.12)', border: '2px solid #272C84', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: '1.5rem' }}>
         ✓
       </div>
       <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.5rem' }}>You're Booked</p>
@@ -457,7 +457,7 @@ function BookingConfirmation({ coach, slot }: { coach: Coach; slot: TimeSlot }) 
         <a href={href('/')} style={{ background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase', padding: '.7rem 1.5rem', borderRadius: '.25rem', textDecoration: 'none', display: 'inline-block' }}>
           ← Home
         </a>
-        <a href={href(`/coaches/${coach.slug}`)} style={{ background: '#f5b935', border: '1px solid #f5b935', color: '#000', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase', padding: '.7rem 1.5rem', borderRadius: '.25rem', textDecoration: 'none', display: 'inline-block' }}>
+        <a href={href(`/coaches/${coach.slug}`)} style={{ background: '#272C84', border: '1px solid #272C84', color: '#ffffff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase', padding: '.7rem 1.5rem', borderRadius: '.25rem', textDecoration: 'none', display: 'inline-block' }}>
           View {coach.firstName}'s Profile →
         </a>
       </div>

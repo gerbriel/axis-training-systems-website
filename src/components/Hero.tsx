@@ -22,7 +22,7 @@ export default function Hero() {
       {/* Red glow */}
       <div
         className="absolute pointer-events-none"
-        style={{ top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 450, background: '#bfa162', opacity: 0.04, filter: 'blur(140px)', borderRadius: '50%' }}
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 450, background: '#272C84', opacity: 0.04, filter: 'blur(140px)', borderRadius: '50%' }}
       />
 
       <div className="relative max-w-7xl mx-auto px-6" style={{ paddingTop: '9rem', paddingBottom: '6rem' }}>
@@ -52,9 +52,9 @@ export default function Hero() {
           <a
             href={bookHref()}
             className="group inline-flex items-center gap-2 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
-            style={{ background: '#bfa162' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
+            style={{ background: '#272C84' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#1a1f6b')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#272C84')}
           >
             Book a Call
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>

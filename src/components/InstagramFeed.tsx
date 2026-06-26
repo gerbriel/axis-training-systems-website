@@ -42,7 +42,7 @@ function SetupCard() {
       <a
         href="https://behold.so" target="_blank" rel="noopener noreferrer"
         style={{ display: 'inline-block', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-2)', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = 'var(--text)' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.color = 'var(--text)' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}
       >
         Set Up at behold.so →
@@ -87,7 +87,7 @@ export default function InstagramFeed() {
               padding: '.875rem 2.25rem', borderRadius: '.25rem', textDecoration: 'none',
               transition: 'background .15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#bfa162' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#272C84' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" style={{ width: 18, height: 18, flexShrink: 0 }}>

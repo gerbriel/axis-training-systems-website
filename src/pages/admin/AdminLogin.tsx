@@ -88,8 +88,8 @@ export default function AdminLogin({ onDemo }: Props) {
           <button
             type="submit" disabled={loading || isBlocked}
             style={{ background: loading ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9a7c3a' }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#bfa162' }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#1a1f6b' }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#272C84' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>

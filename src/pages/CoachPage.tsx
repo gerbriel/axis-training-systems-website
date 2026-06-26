@@ -40,9 +40,9 @@ export default function CoachPage({ slug }: Props) {
           </a>
           <a
             href={applyHref(coach.slug)}
-            style={{ background: '#bfa162', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-            onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+            style={{ background: '#272C84', color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+            onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
           >
             Apply
           </a>
@@ -76,16 +76,16 @@ export default function CoachPage({ slug }: Props) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem' }}>
                 <a
                   href={applyHref(coach.slug)}
-                  style={{ background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+                  style={{ background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
                 >
                   Apply to Work With {coach.firstName}
                 </a>
                 <a
                   href={bookCoachHref(slug)}
                   style={{ background: 'transparent', border: '1px solid #3a3f47', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--steel)'}
                 >
                   Book a Consultation
@@ -122,7 +122,7 @@ export default function CoachPage({ slug }: Props) {
           <div>
             {/* Philosophy pull-quote */}
             <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>Coaching Philosophy</p>
-            <blockquote style={{ borderLeft: '3px solid #f5b935', paddingLeft: '1.5rem', marginBottom: '2.5rem' }}>
+            <blockquote style={{ borderLeft: '3px solid #272C84', paddingLeft: '1.5rem', marginBottom: '2.5rem' }}>
               <p style={{ color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.6, fontStyle: 'italic' }}>"{coach.coachingPhilosophy}"</p>
             </blockquote>
             {/* Specialties */}
@@ -130,7 +130,7 @@ export default function CoachPage({ slug }: Props) {
             <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
               {coach.specialties.map((s, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '.75rem', color: 'var(--text-2)', fontSize: '.875rem' }}>
-                  <span style={{ width: 4, height: 4, background: '#bfa162', borderRadius: '50%', flexShrink: 0 }} />
+                  <span style={{ width: 4, height: 4, background: '#272C84', borderRadius: '50%', flexShrink: 0 }} />
                   {s}
                 </li>
               ))}
@@ -157,7 +157,7 @@ export default function CoachPage({ slug }: Props) {
                 <a
                   href={applyHref(coach.slug)}
                   style={{ marginTop: 'auto', display: 'inline-block', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-3)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.6rem 1.25rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s, color .15s', alignSelf: 'flex-start' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = 'var(--text)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.color = 'var(--text)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' }}
                 >
                   Apply for this service →
@@ -234,16 +234,16 @@ export default function CoachPage({ slug }: Props) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', justifyContent: 'center' }}>
             <a
               href={applyHref(coach.slug)}
-              style={{ display: 'inline-block', background: '#bfa162', color: '#000000', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-              onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+              style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+              onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
             >
               Start Your Application →
             </a>
             <a
               href={bookCoachHref(slug)}
               style={{ display: 'inline-block', background: 'transparent', border: '1px solid rgba(255,255,255,.35)', color: '#ffffff', fontWeight: 900, fontSize: '.8rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '1.125rem 2.5rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'border-color .15s' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,.35)'}
             >
               Book a Consultation

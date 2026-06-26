@@ -94,7 +94,7 @@ function SourceBadge({ source }: { source: LeadSource }) {
 
 // ── Status badge ───────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<string, string> = { new: '#c8102e', reviewed: '#f5b935', accepted: '#22c55e', declined: 'var(--text-4)' }
+const STATUS_COLORS: Record<string, string> = { new: '#c8102e', reviewed: '#272C84', accepted: '#22c55e', declined: 'var(--text-4)' }
 
 function StatusBadge({ status }: { status: string }) {
   const c = STATUS_COLORS[status] ?? 'var(--text-4)'
@@ -170,7 +170,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
             )}
             {lead.bookings.map(b => (
               <div key={b.id} style={{ display: 'flex', gap: '.875rem', alignItems: 'flex-start' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f5b935', flexShrink: 0, marginTop: '.3rem' }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#272C84', flexShrink: 0, marginTop: '.3rem' }} />
                 <div>
                   <p style={{ color: 'var(--text-2)', fontSize: '.8rem', fontWeight: 600 }}>Booked a call · {b.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
                   <p style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>{fmtDate(b.booked_at)} at {fmtTime(b.booked_at)} · <span style={{ color: STATUS_COLORS[b.status] ?? 'var(--text-3)' }}>{b.status}</span></p>
@@ -259,7 +259,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
           {lead.application ? (
             <>
               <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes visible to coaches…" />
-              <button onClick={save} disabled={saving || isDemo} style={{ marginTop: '.5rem', background: saving ? 'var(--border)' : '#bfa162', border: 'none', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: isDemo ? 0.5 : 1 }}>
+              <button onClick={save} disabled={saving || isDemo} style={{ marginTop: '.5rem', background: saving ? 'var(--border)' : '#272C84', border: 'none', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: isDemo ? 0.5 : 1 }}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </>
@@ -271,7 +271,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
         {/* Save status button */}
         {lead.application && (
           <div style={{ display: 'flex', gap: '.5rem' }}>
-            <button onClick={save} disabled={saving} style={{ background: saving ? 'var(--border)' : '#f5b935', border: 'none', color: '#000', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.65rem 1.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', flex: 1 }}>
+            <button onClick={save} disabled={saving} style={{ background: saving ? 'var(--border)' : '#272C84', border: 'none', color: '#000', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.65rem 1.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', flex: 1 }}>
               {saving ? 'Saving…' : 'Save Changes →'}
             </button>
           </div>

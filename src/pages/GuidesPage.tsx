@@ -260,7 +260,7 @@ function AttemptCalcGuide() {
                     { num: 2, w: a2, pct: Math.round(p.second * 100), label: '2nd Attempt' },
                     { num: 3, w: a3, pct: Math.round(p.third  * 100), label: '3rd Attempt' },
                   ].map(att => (
-                    <div key={att.num} style={{ background: 'var(--surface-2)', border: `1px solid ${att.num === 3 ? 'rgba(245,185,53,.3)' : 'var(--surface)'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
+                    <div key={att.num} style={{ background: 'var(--surface-2)', border: `1px solid ${att.num === 3 ? 'rgba(39,44,132,.3)' : 'var(--surface)'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
                       <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
                       <p style={{ color: att.num === 3 ? '#c8102e' : 'var(--text)', fontWeight: 900, fontSize: '1.2rem' }}>
                         {att.w} <span style={{ fontSize: '.65rem', fontWeight: 600, color: 'var(--text-2)' }}>{unit}</span>
@@ -273,7 +273,7 @@ function AttemptCalcGuide() {
             )
           })}
           {projectedTotal > 0 && (
-            <div style={{ background: 'rgba(245,185,53,.06)', border: '1px solid rgba(245,185,53,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ background: 'rgba(39,44,132,.06)', border: '1px solid rgba(39,44,132,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Projected Meet Total (2nd attempts)</span>
               <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.5rem' }}>{projectedTotal} <span style={{ fontSize: '.7rem' }}>{unit}</span></span>
             </div>
@@ -388,9 +388,9 @@ function TrainingQuiz() {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <a
             href={href('/#coaches')}
-            style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-            onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+            style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+            onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
           >
             Work With a Coach →
           </a>
@@ -417,7 +417,7 @@ function TrainingQuiz() {
           <span style={{ color: 'var(--text-3)', fontSize: '.65rem' }}>{Math.round((current / QUIZ_QUESTIONS.length) * 100)}%</span>
         </div>
         <div style={{ height: 3, background: 'var(--surface)', borderRadius: 2 }}>
-          <div style={{ height: '100%', width: `${(current / QUIZ_QUESTIONS.length) * 100}%`, background: '#bfa162', transition: 'width .3s' }} />
+          <div style={{ height: '100%', width: `${(current / QUIZ_QUESTIONS.length) * 100}%`, background: '#272C84', transition: 'width .3s' }} />
         </div>
       </div>
 
@@ -429,7 +429,7 @@ function TrainingQuiz() {
             key={i}
             onClick={() => answer(i)}
             style={{ textAlign: 'left', background: 'transparent', border: '1px solid var(--border)', borderRadius: '.25rem', color: 'var(--text-3)', fontSize: '.875rem', lineHeight: 1.6, padding: '.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(245,185,53,.05)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(39,44,132,.05)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'transparent' }}
           >
             {opt}
@@ -478,7 +478,7 @@ function RPEGuide() {
         ))}
       </div>
 
-      <div style={{ background: 'var(--bg)', border: '1px solid rgba(245,185,53,.2)', borderLeft: '3px solid #f5b935', borderRadius: '.2rem', padding: '1.25rem 1.5rem' }}>
+      <div style={{ background: 'var(--bg)', border: '1px solid rgba(39,44,132,.2)', borderLeft: '3px solid #272C84', borderRadius: '.2rem', padding: '1.25rem 1.5rem' }}>
         <p style={{ color: 'var(--text-3)', fontSize: '.875rem', lineHeight: 1.75 }}>
           <strong style={{ color: 'var(--chalk)' }}>Beginner tip:</strong> If you're new to RPE, film your sets. Watch the bar speed — a fast bar is low RPE, a grinding, slow bar is RPE 9+. Over time, the calibration becomes instinctual. Most coaches recommend training primarily at RPE 7–8 for volume work, and 8.5–9 for peak/heavy work.
         </p>
@@ -533,7 +533,7 @@ function BigThreeGuide() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`, color: tab === t ? 'var(--text)' : 'var(--text-dim)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.25rem', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', transition: 'color .15s' }}
+            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === t ? '#272C84' : 'transparent'}`, color: tab === t ? 'var(--text)' : 'var(--text-dim)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.25rem', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', transition: 'color .15s' }}
             onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-3)' }}
             onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-2)' }}
           >
@@ -560,7 +560,7 @@ function BigThreeGuide() {
       </div>
 
       {/* Common mistakes */}
-      <div style={{ background: 'rgba(245,185,53,.05)', border: '1px solid rgba(245,185,53,.15)', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
+      <div style={{ background: 'rgba(39,44,132,.05)', border: '1px solid rgba(39,44,132,.15)', borderRadius: '.25rem', padding: '1.25rem 1.5rem' }}>
         <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.875rem' }}>Common Mistakes</p>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
           {data.mistakes.map((m, i) => (
@@ -654,9 +654,9 @@ function AuditWorksheet() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-            onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+            onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
           >Work With a Coach →</a>
           <button onClick={() => { setScores({}); setDone(false) }}
             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -676,7 +676,7 @@ function AuditWorksheet() {
 
       {/* Progress */}
       <div style={{ height: 3, background: 'var(--surface)', borderRadius: 2, marginBottom: '1.5rem', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${(answered / AUDIT_CATEGORIES.length) * 100}%`, background: '#bfa162', transition: 'width .3s' }} />
+        <div style={{ height: '100%', width: `${(answered / AUDIT_CATEGORIES.length) * 100}%`, background: '#272C84', transition: 'width .3s' }} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -689,7 +689,7 @@ function AuditWorksheet() {
                 <button
                   key={i}
                   onClick={() => setScores(s => ({ ...s, [cat.name]: i }))}
-                  style={{ textAlign: 'left', background: scores[cat.name] === i ? 'rgba(245,185,53,.08)' : 'transparent', border: `1px solid ${scores[cat.name] === i ? 'rgba(245,185,53,.4)' : 'var(--border)'}`, borderRadius: '.2rem', color: scores[cat.name] === i ? 'var(--text)' : 'var(--text-3)', fontSize: '.85rem', lineHeight: 1.6, padding: '.75rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
+                  style={{ textAlign: 'left', background: scores[cat.name] === i ? 'rgba(39,44,132,.08)' : 'transparent', border: `1px solid ${scores[cat.name] === i ? 'rgba(39,44,132,.4)' : 'var(--border)'}`, borderRadius: '.2rem', color: scores[cat.name] === i ? 'var(--text)' : 'var(--text-3)', fontSize: '.85rem', lineHeight: 1.6, padding: '.75rem 1rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
                   onMouseEnter={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' } }}
                   onMouseLeave={e => { if (scores[cat.name] !== i) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' } }}
                 >
@@ -707,9 +707,9 @@ function AuditWorksheet() {
       {answered === AUDIT_CATEGORIES.length && (
         <button
           onClick={() => setDone(true)}
-          style={{ marginTop: '1.5rem', background: '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-          onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+          style={{ marginTop: '1.5rem', background: '#272C84', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+          onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
         >
           See My Score →
         </button>
@@ -777,9 +777,9 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
       <button
         type="submit"
         disabled={loading || !firstName.trim() || !email.trim()}
-        style={{ width: '100%', background: '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !firstName.trim() || !email.trim() ? 0.5 : 1, transition: 'opacity .15s' }}
-        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9a7c3a' }}
-        onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+        style={{ width: '100%', background: '#272C84', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !firstName.trim() || !email.trim() ? 0.5 : 1, transition: 'opacity .15s' }}
+        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#1a1f6b' }}
+        onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
       >
         {loading ? 'Unlocking…' : 'Get Free Access →'}
       </button>
@@ -792,34 +792,7 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
 // GUIDE CARDS CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-function RankingsCard() {
-  return (
-    <div style={{ padding: '1.5rem 0' }}>
-      <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, marginBottom: '1.25rem' }}>
-        Browse open powerlifting results from thousands of meets worldwide. Search by lifter name, filter by federation, weight class, and gender, and sort by Wilks, Dots, or total. No account required.
-      </p>
-      <a
-        href={href('/rankings')}
-        style={{ display: 'inline-block', background: '#c8102e', color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.2rem', textDecoration: 'none' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#a50d26' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#c8102e' }}
-      >
-        Browse Rankings →
-      </a>
-    </div>
-  )
-}
-
 const GUIDES = [
-  {
-    id: 'rankings',
-    source: 'rankings',
-    label: 'Powerlifting Rankings',
-    description: 'Search open powerlifting results worldwide. Filter by federation, weight class, and gender. Sort by Wilks, Dots, or total.',
-    tag: 'Free Tool',
-    free: true,
-    component: <RankingsCard />,
-  },
   {
     id: 'checklist',
     source: 'meet_checklist',
@@ -889,8 +862,8 @@ export default function GuidesPage() {
     setAccess(a)
   }, [])
 
-  function toggleGuide(id: string, source: string, free?: boolean) {
-    if (!access && !free) {
+  function toggleGuide(id: string, source: string) {
+    if (!access) {
       setGateSource(source)
       document.getElementById('guides-gate')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
@@ -958,7 +931,7 @@ export default function GuidesPage() {
                 <a
                   href={href(`/tools/${tool.id}`)}
                   style={{ display: 'inline-block', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', padding: '.5rem 1rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
                   Use Tool →
@@ -978,23 +951,22 @@ export default function GuidesPage() {
               return (
                 <div key={guide.id} style={{ background: 'var(--bg)' }}>
                   <button
-                    onClick={() => toggleGuide(guide.id, guide.source, guide.free)}
+                    onClick={() => toggleGuide(guide.id, guide.source)}
                     style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', transition: 'background .15s' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
-                        <span style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
-                        {!access && !guide.free && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
-                        {guide.free && <span style={{ color: '#22c55e', fontSize: '.6rem', fontWeight: 700 }}>✓ No signup needed</span>}
+                        <span style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
+                        {!access && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
                       </div>
                       <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
                       <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
                     </div>
-                    <span style={{ color: isOpen ? '#c8102e' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
+                    <span style={{ color: isOpen ? '#272C84' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
                   </button>
-                  {isOpen && (access || guide.free) && (
+                  {isOpen && access && (
                     <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid var(--surface-2)' }}>
                       <div style={{ paddingTop: '1.5rem' }}>{guide.component}</div>
                     </div>
@@ -1018,9 +990,9 @@ export default function GuidesPage() {
             <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
               The guides give you the framework. A coach applies it to your training, your schedule, and your meet timeline.
             </p>
-            <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-              onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+            <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+              onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
             >
               Meet the Team →
             </a>

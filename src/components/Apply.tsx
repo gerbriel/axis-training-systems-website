@@ -441,7 +441,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
           <>
             {/* Progress bar */}
             <div style={{ background: 'var(--surface)', borderRadius: 9999, height: 2, marginBottom: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: '#bfa162', width: `${pct}%`, borderRadius: 9999, transition: 'width .4s ease' }} />
+              <div style={{ height: '100%', background: '#272C84', width: `${pct}%`, borderRadius: 9999, transition: 'width .4s ease' }} />
             </div>
             <p style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>{STEP_TITLES[step - 1]}</p>
 
@@ -509,9 +509,9 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="button" onClick={next}
                     className="text-white text-xs font-black px-8 py-3 rounded tracking-widest uppercase transition-colors"
-                    style={{ background: '#bfa162' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
+                    style={{ background: '#272C84' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#1a1f6b')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#272C84')}
                   >
                     Next Step
                   </button>
@@ -519,7 +519,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   <button
                     type="submit" disabled={submitting}
                     className="inline-flex items-center gap-3 text-white text-xs font-black px-8 py-4 rounded tracking-widest uppercase transition-colors"
-                    style={{ background: submitting ? '#7a6530' : '#bfa162', color: 'var(--bg)' }}
+                    style={{ background: submitting ? '#7a6530' : '#272C84', color: 'var(--bg)' }}
                   >
                     {submitting ? 'Sending…' : 'Submit Application'}
                     {!submitting && (
