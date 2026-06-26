@@ -372,8 +372,8 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   const serverTotalRef  = useRef(Infinity)
   const isLoadingRef    = useRef(false)
   const searchGenRef    = useRef(0)   // incremented each search; finally only clears if still current gen
-  const handleSearchRef = useRef<() => void>(() => {})
-  const didMountRef     = useRef(true)  // always fire effects — no skip needed
+  const handleSearchRef  = useRef<() => void>(() => {})
+  const searchDebounce   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Filter suffix for the OPL API path (e.g. '/usapl/raw/men/2026')
   // Used in both the rankings browse path and the name search context path
@@ -489,17 +489,22 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
   }, [name, globalSearch, meetName, weightClass, ageClass, country, division, buildPath, buildFilterSuffix, applyClientFilters])
 
   const handleSearch = useCallback(() => {
-    if (abortRef.current) abortRef.current.abort()
-    abortRef.current = new AbortController()
-    serverOffsetRef.current = 0
-    serverTotalRef.current  = Infinity
-    isLoadingRef.current    = false
-    setRows([])
-    setHasMore(false)
-    setTotalHint(0)
-    setExpanded(null)
-    setHistRows([])
-    loadChunk(true)
+    // Debounce at 80ms so rapid successive calls (e.g. multiple effects firing on
+    // mount) coalesce into a single fetch instead of hammering the OPL API.
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(() => {
+      if (abortRef.current) abortRef.current.abort()
+      abortRef.current = new AbortController()
+      serverOffsetRef.current = 0
+      serverTotalRef.current  = Infinity
+      isLoadingRef.current    = false
+      setRows([])
+      setHasMore(false)
+      setTotalHint(0)
+      setExpanded(null)
+      setHistRows([])
+      loadChunk(true)
+    }, 80)
   }, [loadChunk])
 
   // Keep ref current every render so effects can call latest version
