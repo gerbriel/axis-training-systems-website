@@ -125,7 +125,7 @@ export default function Coaches() {
                       style={{
                         display: 'block', textAlign: 'center',
                         background: '#272C84', border: 'none',
-                        color: '#000000', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                        color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}

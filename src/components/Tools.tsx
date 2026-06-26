@@ -535,6 +535,50 @@ const DOTS_BENCHMARKS = [
   { label: 'World-class',   range: '450+' },
 ]
 
+function detectWeightClass(bwKg: number, sex: 'm' | 'f'): string {
+  if (sex === 'm') {
+    if (bwKg <= 59)  return '59'
+    if (bwKg <= 66)  return '66'
+    if (bwKg <= 74)  return '74'
+    if (bwKg <= 83)  return '83'
+    if (bwKg <= 93)  return '93'
+    if (bwKg <= 105) return '105'
+    if (bwKg <= 120) return '120'
+    return '120+'
+  } else {
+    if (bwKg <= 47)  return '47'
+    if (bwKg <= 52)  return '52'
+    if (bwKg <= 57)  return '57'
+    if (bwKg <= 63)  return '63'
+    if (bwKg <= 69)  return '69'
+    if (bwKg <= 76)  return '76'
+    if (bwKg <= 84)  return '84'
+    return '84+'
+  }
+}
+
+const COMP_FEDS = [
+  { value: '', label: 'All Federations' },
+  { value: 'USAPL', label: 'USAPL' }, { value: 'USPA', label: 'USPA' },
+  { value: 'IPF', label: 'IPF' }, { value: 'WRPF', label: 'WRPF' },
+  { value: 'RPS', label: 'RPS' }, { value: 'SPF', label: 'SPF' },
+  { value: 'APA', label: 'APA' }, { value: 'GPC', label: 'GPC' },
+]
+const COMP_EQUIP = [
+  { value: '', label: 'All Equipment' },
+  { value: 'raw', label: 'Raw' }, { value: 'wraps', label: 'Wraps' },
+  { value: 'single-ply', label: 'Single-ply' }, { value: 'multi-ply', label: 'Multi-ply' },
+]
+const COMP_AGE = [
+  { value: '', label: 'All Ages' },
+  { value: '13-15', label: 'Sub-Junior (13–15)' }, { value: '16-17', label: 'Teen (16–17)' },
+  { value: '18-19', label: 'Junior (18–19)' }, { value: '20-23', label: 'Junior (20–23)' },
+  { value: '24-34', label: 'Open (24–34)' },
+  { value: '35-39', label: 'Masters 1 (35–39)' }, { value: '40-44', label: 'Masters 1 (40–44)' },
+  { value: '45-49', label: 'Masters 2 (45–49)' }, { value: '50-54', label: 'Masters 2 (50–54)' },
+  { value: '55-59', label: 'Masters 3 (55–59)' }, { value: '60-999', label: 'Masters 4 (60+)' },
+]
+
 export function DotsCalc() {
   const [sex,   setSex]   = useState<'m' | 'f'>('m')
   const [unit,  setUnit]  = useState<'lbs' | 'kg'>('lbs')
@@ -542,6 +586,11 @@ export function DotsCalc() {
   const [squat, setSquat] = useState('')
   const [bench, setBench] = useState('')
   const [dead,  setDead]  = useState('')
+  // Compare-in-rankings filter state
+  const [compFed,      setCompFed]      = useState('')
+  const [compEquip,    setCompEquip]    = useState('')
+  const [compAgeClass, setCompAgeClass] = useState('')
+  const [compYear,     setCompYear]     = useState('')
 
   function switchUnit(next: 'lbs' | 'kg') {
     const factor = next === 'kg' ? 0.453592 : 2.20462
@@ -623,6 +672,60 @@ export function DotsCalc() {
           </div>
         ))}
       </div>
+
+      {dots !== null && bwKg !== null && bwKg > 0 && (() => {
+        const wt = detectWeightClass(bwKg, sex)
+        const p = new URLSearchParams()
+        p.set('myDots',  dots.toFixed(2))
+        p.set('myTotal', String(Math.round(totalKg)))
+        p.set('myBw',    bwKg.toFixed(1))
+        if (squatKg) p.set('mySquat', String(Math.round(squatKg)))
+        if (benchKg) p.set('myBench', String(Math.round(benchKg)))
+        if (deadKg)  p.set('myDead',  String(Math.round(deadKg)))
+        p.set('sex', sex === 'm' ? 'M' : 'F')
+        p.set('wt', wt)
+        if (compFed)      p.set('fed',   compFed)
+        if (compEquip)    p.set('equip', compEquip)
+        if (compAgeClass) p.set('age',   compAgeClass)
+        if (compYear)     p.set('year',  compYear)
+        const url = href(`/tools/rankings?${p.toString()}`)
+        return (
+          <div style={{ marginTop: '1.5rem', background: 'rgba(39,44,132,.05)', border: '1px solid rgba(39,44,132,.2)', borderRadius: '.35rem', padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Compare in Rankings</p>
+            <p style={{ color: 'var(--text-2)', fontSize: '.82rem', lineHeight: 1.65, marginBottom: '1.1rem' }}>
+              See where your <strong style={{ color: 'var(--text)' }}>{dots.toFixed(2)} Dots</strong> ranks against real competition results. Weight class and sex pre-set from your inputs — refine as needed.
+            </p>
+            <div style={{ display: 'grid', gap: '.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', marginBottom: '1.1rem' }}>
+              {[
+                { label: 'Federation',  val: compFed,      set: setCompFed,      opts: COMP_FEDS },
+                { label: 'Equipment',   val: compEquip,    set: setCompEquip,    opts: COMP_EQUIP },
+                { label: 'Age Class',   val: compAgeClass, set: setCompAgeClass, opts: COMP_AGE },
+                { label: 'Year',        val: compYear,     set: setCompYear,     opts: [{ value:'', label:'All Years' }, ...Array.from({length:10}, (_,i) => { const y = String(2026-i); return {value:y, label:y} })] },
+              ].map(({ label, val, set, opts }) => (
+                <div key={label}>
+                  <label style={labelStyle}>{label}</label>
+                  <select style={selectStyle} value={val} onChange={e => set(e.target.value)}>
+                    {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <a
+                href={url}
+                style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', border: 'none', fontWeight: 900, fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.75rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
+              >
+                Find My Rank →
+              </a>
+              <span style={{ color: 'var(--text-3)', fontSize: '.72rem' }}>
+                Auto-filtered: {sex === 'm' ? 'Men' : 'Women'} · {wt} kg class
+              </span>
+            </div>
+          </div>
+        )
+      })()}
 
       {dots !== null && (
         <div style={resultBox}>
