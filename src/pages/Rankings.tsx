@@ -129,6 +129,31 @@ async function oplFetchText(url: string, signal?: AbortSignal): Promise<string> 
   return ''
 }
 
+// OPL browse endpoint returns null for weightClassKg (col 18) in all-federation
+// queries. Infer weight class from actual body weight (col 17) + sex instead.
+function inferWeightClass(bwKg: string, sex: string): string {
+  const bw = parseFloat(bwKg)
+  if (!bw) return ''
+  if (sex === 'M' || sex.toLowerCase() === 'male') {
+    if (bw <= 59)  return '59'
+    if (bw <= 66)  return '66'
+    if (bw <= 74)  return '74'
+    if (bw <= 83)  return '83'
+    if (bw <= 93)  return '93'
+    if (bw <= 105) return '105'
+    if (bw <= 120) return '120'
+    return '120+'
+  }
+  if (bw <= 47) return '47'
+  if (bw <= 52) return '52'
+  if (bw <= 57) return '57'
+  if (bw <= 63) return '63'
+  if (bw <= 69) return '69'
+  if (bw <= 76) return '76'
+  if (bw <= 84) return '84'
+  return '84+'
+}
+
 const toNum = (v: string | undefined) => parseFloat(v || '0') || 0
 const fmt = (v: string | undefined, unit: 'lbs' | 'kg') => {
   const n = toNum(v); if (!n) return '—'
@@ -397,9 +422,12 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
     return r.filter(row => {
       if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
       if (weightClass) {
-        const rowWt = row.weightClassKg.replace(/\.0$/, '')
         const selWt = weightClass.replace(/\.0$/, '')
-        if (rowWt !== selWt) return false
+        // Prefer column 18 if populated; otherwise derive from body weight + sex
+        const rowWt = row.weightClassKg
+          ? row.weightClassKg.replace(/\.0$/, '')
+          : inferWeightClass(row.bodyweightKg, row.sex)
+        if (!rowWt || rowWt !== selWt) return false
       }
       if (ageClass) {
         const age = parseFloat(row.age)
