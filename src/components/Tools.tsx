@@ -615,6 +615,7 @@ export function DotsCalc() {
   const [compEquip,    setCompEquip]    = useState('')
   const [compAgeClass, setCompAgeClass] = useState('')
   const [compYear,     setCompYear]     = useState('')
+  const [scoreType,    setScoreType]    = useState<'dots' | 'wilks' | 'gl'>('dots')
   // Inline rankings state
   const [showRankings, setShowRankings] = useState(false)
   const [rankingsKey,  setRankingsKey]  = useState(0)
@@ -635,6 +636,7 @@ export function DotsCalc() {
       if (d.compEquip)    setCompEquip(d.compEquip)
       if (d.compAgeClass) setCompAgeClass(d.compAgeClass)
       if (d.compYear)     setCompYear(d.compYear)
+      if (d.scoreType === 'dots' || d.scoreType === 'wilks' || d.scoreType === 'gl') setScoreType(d.scoreType)
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -643,7 +645,7 @@ export function DotsCalc() {
   useEffect(() => {
     try {
       localStorage.setItem('axis-dots-state', JSON.stringify(
-        { sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear }
+        { sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear, scoreType }
       ))
     } catch {}
   }, [sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear])
@@ -678,6 +680,8 @@ export function DotsCalc() {
   const wilks = hasTotal ? calcWilks(bwKg!, totalKg, sex) : null
   const gl    = hasTotal ? calcGL(bwKg!, totalKg, sex)    : null
 
+  const selectedScore = scoreType === 'wilks' ? wilks : scoreType === 'gl' ? gl : dots
+
   const tier = dots === null ? null
     : dots < 200 ? 'Beginner'
     : dots < 300 ? 'Intermediate'
@@ -692,13 +696,14 @@ export function DotsCalc() {
     : 'var(--text-3)'
 
   function handleFindMyRank() {
-    if (!dots || !bwKg || bwKg <= 0) return
+    if (!selectedScore || !bwKg || bwKg <= 0) return
     const data: CompareScore = {
-      myDots: dots, myTotal: totalKg, myBw: bwKg,
+      myDots: selectedScore, myTotal: totalKg, myBw: bwKg,
       mySquat: squatKg ?? 0, myBench: benchKg ?? 0, myDead: deadKg ?? 0,
       sex: sex === 'm' ? 'M' : 'F',
       wt: detectWeightClass(bwKg, sex),
       fed: compFed, equip: compEquip, ageClass: compAgeClass, year: compYear,
+      scoreType,
     }
     setRankingsData(data)
     setRankingsKey(k => k + 1)
@@ -747,11 +752,31 @@ export function DotsCalc() {
 
       {dots !== null && (
         <div style={resultBox}>
+          {/* Scoring model toggle */}
+          <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.3rem', overflow: 'hidden', marginBottom: '1.25rem', alignSelf: 'flex-start' }}>
+            {([
+              { key: 'dots',  label: 'DOTS'   },
+              { key: 'wilks', label: 'WILKS'  },
+              { key: 'gl',    label: 'IPF GL' },
+            ] as const).map(({ key, label }) => (
+              <button key={key} onClick={() => setScoreType(key)} style={{
+                flex: 1, padding: '.5rem 1rem', border: 'none', cursor: 'pointer',
+                background: scoreType === key ? '#272C84' : 'transparent',
+                color: scoreType === key ? '#ffffff' : 'var(--text-3)',
+                fontWeight: 700, fontSize: '.62rem', letterSpacing: '.12em',
+                textTransform: 'uppercase', fontFamily: 'inherit',
+                transition: 'background .15s, color .15s',
+              }}>{label}</button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>Dots Score</p>
+              <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.4rem' }}>
+                {scoreType === 'dots' ? 'Dots Score' : scoreType === 'wilks' ? 'Wilks Score' : 'IPF GL Score'}
+              </p>
               <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-.02em', lineHeight: 1 }}>
-                {dots.toFixed(2)}
+                {(selectedScore ?? 0).toFixed(2)}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -781,15 +806,18 @@ export function DotsCalc() {
             </div>
           </div>
 
-          {/* Secondary scores: Wilks + IPF GL */}
+          {/* Other scoring systems — whichever two aren't selected */}
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', paddingTop: '.75rem', paddingBottom: '.875rem', marginBottom: '.875rem', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-            {[
-              { label: 'Wilks', value: wilks, note: 'Classic' },
-              { label: 'IPF GL', value: gl, note: 'Goodlift · current IPF standard' },
-            ].map(({ label, value, note }) => (
+            {([
+              { key: 'dots'  as const, label: 'Dots',   note: 'USAPL / IPF standard',           value: dots  },
+              { key: 'wilks' as const, label: 'Wilks',  note: 'Classic',                         value: wilks },
+              { key: 'gl'    as const, label: 'IPF GL', note: 'Goodlift · current IPF standard', value: gl   },
+            ].filter(s => s.key !== scoreType)).map(({ label, value, note }) => (
               <div key={label}>
-                <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>{label} <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>· {note}</span></p>
-                <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.15rem', letterSpacing: '-.01em', lineHeight: 1 }}>
+                <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>
+                  {label} <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>· {note}</span>
+                </p>
+                <p style={{ color: 'var(--text-2)', fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-.01em', lineHeight: 1 }}>
                   {value !== null ? value.toFixed(2) : '—'}
                 </p>
               </div>
@@ -869,6 +897,7 @@ export function DotsCalc() {
             </button>
             <span style={{ color: 'var(--text-3)', fontSize: '.72rem' }}>
               Auto-filtered: {sex === 'm' ? 'Men' : 'Women'} · {detectWeightClass(bwKg, sex)} kg class
+              {' · '}ranked by {scoreType === 'wilks' ? 'Wilks' : scoreType === 'gl' ? 'IPF GL' : 'Dots'}
             </span>
           </div>
         </div>
@@ -878,7 +907,7 @@ export function DotsCalc() {
         <div style={{ marginTop: '2rem' }}>
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginBottom: '.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem' }}>
             <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>
-              Rankings — {rankingsData.myDots.toFixed(2)} Dots · {rankingsData.sex === 'M' ? 'Men' : 'Women'} {rankingsData.wt}kg
+              Rankings — {rankingsData.myDots.toFixed(2)} {rankingsData.scoreType === 'wilks' ? 'Wilks' : rankingsData.scoreType === 'gl' ? 'IPF GL' : 'Dots'} · {rankingsData.sex === 'M' ? 'Men' : 'Women'} {rankingsData.wt}kg
             </p>
             <button
               onClick={() => setShowRankings(false)}

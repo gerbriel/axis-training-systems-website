@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useEffect, Fragment } from 'react'
 import { href } from '../utils/nav'
 
+export type ScoreType = 'dots' | 'wilks' | 'gl'
 export interface CompareScore {
   myDots: number; myTotal: number; myBw: number
   mySquat: number; myBench: number; myDead: number
   sex: string; wt: string; fed: string; equip: string
   ageClass: string; year: string
+  scoreType?: ScoreType
 }
 export interface RankingsProps { embedded?: boolean; compare?: CompareScore }
 
@@ -420,6 +422,16 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
     return '/api/rankings' + buildFilterSuffix()
   }, [buildFilterSuffix])
 
+  // Build URLSearchParams with sort key based on the compare scoreType.
+  // Dots is the API default (no explicit param needed).
+  const scoreType   = compare?.scoreType ?? 'dots'
+  const scoreSortKV: Record<string, string> = scoreType === 'wilks' ? { by_wilks: '1' }
+    : scoreType === 'gl'                                             ? { by_ipfpoints: '1' }
+    : {}
+  const sortQP = (extra: Record<string, string>) =>
+    new URLSearchParams({ ...BASE_PARAMS, ...scoreSortKV, ...extra })
+  const scoreLabel = scoreType === 'wilks' ? 'Wilks' : scoreType === 'gl' ? 'IPF GL' : 'Dots'
+
   // Client-side filters applied after fetching (weightClass, ageClass, country, division
   // are not in the server-side path). skipWt=true used for name searches so you can find
   // any lifter by name regardless of what weight class they competed in.
@@ -523,7 +535,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
                 const gPages = await Promise.all(
                   Array.from({ length: G_BATCH }, (_, gi) => {
                     const start = gOffset + gi * 100
-                    const q = new URLSearchParams({ ...BASE_PARAMS, start: String(start), end: String(start + 99) })
+                    const q = sortQP({ start: String(start), end: String(start + 99) })
                     return oplFetch(opl(gPath + '?' + q), signal)
                       .then((d: any) => {
                         if (gi === 0 && gb === 0) {
@@ -608,8 +620,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
           // No filters: sequential browse until LOAD_SIZE rows
           while (newRows.length < LOAD_SIZE && serverOffsetRef.current < serverTotalRef.current) {
             if (signal.aborted) return
-            const q = new URLSearchParams({
-              ...BASE_PARAMS,
+            const q = sortQP({
               start: String(serverOffsetRef.current),
               end:   String(serverOffsetRef.current + 99),
             })
@@ -893,7 +904,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
                     { value: `#${cmpRank.toLocaleString()}`, label: cmpFedLabel, color: '#272C84', sub: totalHint > 0 ? `of ${totalHint.toLocaleString()} lifters` : undefined },
                     { value: cmpNatRank > 0 ? `#${cmpNatRank.toLocaleString()}` : (loading ? '…' : '—'), label: cmpTopCountry ? cmpTopCountry + ' Rank' : 'Nation Rank', color: '#272C84', sub: cmpTopCountry || undefined },
                     ...(hasGlobal ? [{ value: cmpGlobalRank !== null ? `#${cmpGlobalRank.toLocaleString()}` : '…', label: 'Global Rank', color: '#272C84', sub: globalTotal > 0 ? `of ${globalTotal.toLocaleString()} · all feds` : 'all federations' }] : []),
-                    { value: myDots.toFixed(2), label: 'Dots Score', color: 'var(--text)' },
+                    { value: myDots.toFixed(2), label: scoreLabel + ' Score', color: 'var(--text)' },
                     { value: `Top ${cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%`, label: 'Percentile', color: '#c8102e', sub: totalHint > 0 ? `${cmpFedLabel.replace(' Rank', '')}` : undefined },
                   ]
                   return (
@@ -997,7 +1008,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
               {cmpGlobalRank !== null && <><span style={{ color: 'var(--text-4)' }}>·</span><span>Global (all feds) <strong style={{ color: '#272C84' }}>#{cmpGlobalRank.toLocaleString()}</strong>{globalTotal > 0 && <span style={{ color: 'var(--text-4)', fontWeight: 400 }}> / {globalTotal.toLocaleString()}</span>}</span></>}
               {federation && globalRankLoading && cmpGlobalRank === null && <><span style={{ color: 'var(--text-4)' }}>·</span><span style={{ color: 'var(--text-4)' }}>Global…</span></>}
               <span style={{ color: 'var(--text-4)' }}>·</span>
-              <span>Dots <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong></span>
+              <span>{scoreLabel} <strong style={{ color: '#272C84' }}>{myDots.toFixed(2)}</strong></span>
               <span style={{ color: 'var(--text-4)' }}>·</span>
               <span>Top <strong style={{ color: '#c8102e' }}>{cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%</strong></span>
               {totalHint > 0 && <span style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>out of {totalHint.toLocaleString()}</span>}
@@ -1392,7 +1403,7 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
             {cmpGlobalRank !== null && <><span style={{ color: 'var(--text-4)' }}>·</span><span>All Feds <strong style={{ color: 'var(--text-2)' }}>#{cmpGlobalRank.toLocaleString()}</strong>{globalTotal > 0 && <span style={{ color: 'var(--text-4)', fontWeight: 400 }}> / {globalTotal.toLocaleString()}</span>}</span></>}
             {federation && globalRankLoading && cmpGlobalRank === null && <><span style={{ color: 'var(--text-4)' }}>·</span><span style={{ color: 'var(--text-4)', fontSize: '.7rem' }}>All Feds…</span></>}
             <span style={{ color: 'var(--text-4)' }}>·</span>
-            <span>Dots <strong style={{ color: 'var(--text-2)' }}>{myDots.toFixed(2)}</strong></span>
+            <span>{scoreLabel} <strong style={{ color: 'var(--text-2)' }}>{myDots.toFixed(2)}</strong></span>
             <span style={{ color: 'var(--text-4)' }}>·</span>
             <span>Top <strong style={{ color: '#c8102e' }}>{cmpPctTop < 1 ? cmpPctTop.toFixed(2) : cmpPctTop.toFixed(1)}%</strong></span>
           </div>
