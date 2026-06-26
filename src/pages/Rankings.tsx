@@ -423,10 +423,11 @@ export default function Rankings({ embedded, compare }: RankingsProps = {}) {
       if (name.trim() && !row.name.toLowerCase().includes(name.trim().toLowerCase())) return false
       if (weightClass) {
         const selWt = weightClass.replace(/\.0$/, '')
-        // Prefer column 18 if populated; otherwise derive from body weight + sex
-        const rowWt = row.weightClassKg
-          ? row.weightClassKg.replace(/\.0$/, '')
-          : inferWeightClass(row.bodyweightKg, row.sex)
+        // Column 18 stores federation-specific class names (OPL returns '90', '125', etc.
+        // for WPC/old-IPF lifters). Always infer from actual body weight so that a
+        // 87.2 kg lifter who competed at '90kg' (old IPF) is correctly grouped with
+        // modern '93kg' class when the user filters by 93.
+        const rowWt = inferWeightClass(row.bodyweightKg, row.sex)
         if (!rowWt || rowWt !== selWt) return false
       }
       if (ageClass) {
