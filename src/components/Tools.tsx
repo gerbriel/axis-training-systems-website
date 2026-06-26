@@ -527,6 +527,30 @@ function calcDots(bwKg: number, totalKg: number, sex: 'm' | 'f') {
   return (500 / denom) * totalKg
 }
 
+// Wilks (original): the classic cross-bodyweight formula, still widely cited.
+// Uses a 5th-degree polynomial; score = 500 × Total / poly(bw_kg)
+const WILKS_M = { a: -216.0475144, b: 16.2606339, c: -0.002388645, d: -0.00113732, e: 7.01863e-6, f: -1.291e-8 }
+const WILKS_F = { a: 594.31747775582, b: -27.23842536447, c: 0.82112226871, d: -0.00930733913, e: 4.731582e-5, f: -9.054e-8 }
+
+function calcWilks(bwKg: number, totalKg: number, sex: 'm' | 'f') {
+  const c = sex === 'm' ? WILKS_M : WILKS_F
+  const w = bwKg
+  const denom = c.a + c.b*w + c.c*w**2 + c.d*w**3 + c.e*w**4 + c.f*w**5
+  if (denom <= 0) return null
+  return 500 * totalKg / denom
+}
+
+// IPF GL (Goodlift Points): the IPF's current official formula since 2019.
+// Uses an exponential model; score = Total × 100 / (A − B × e^(−C × bw_kg))
+function calcGL(bwKg: number, totalKg: number, sex: 'm' | 'f') {
+  const [A, B, C] = sex === 'm'
+    ? [1199.72839, 1025.18162, 0.00921]
+    : [610.32796,  1045.59282, 0.03048]
+  const denom = A - B * Math.exp(-C * bwKg)
+  if (denom <= 0) return null
+  return totalKg * 100 / denom
+}
+
 const DOTS_BENCHMARKS = [
   { label: 'Beginner',      range: '< 200' },
   { label: 'Intermediate',  range: '200 – 300' },
@@ -650,7 +674,9 @@ export function DotsCalc() {
 
   const totalKg = (squatKg ?? 0) + (benchKg ?? 0) + (deadKg ?? 0)
   const hasTotal = totalKg > 0 && bwKg !== null && bwKg > 0
-  const dots = hasTotal ? calcDots(bwKg!, totalKg, sex) : null
+  const dots  = hasTotal ? calcDots(bwKg!, totalKg, sex)  : null
+  const wilks = hasTotal ? calcWilks(bwKg!, totalKg, sex) : null
+  const gl    = hasTotal ? calcGL(bwKg!, totalKg, sex)    : null
 
   const tier = dots === null ? null
     : dots < 200 ? 'Beginner'
@@ -753,6 +779,21 @@ export function DotsCalc() {
                 }
               </p>
             </div>
+          </div>
+
+          {/* Secondary scores: Wilks + IPF GL */}
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', paddingTop: '.75rem', paddingBottom: '.875rem', marginBottom: '.875rem', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+            {[
+              { label: 'Wilks', value: wilks, note: 'Classic' },
+              { label: 'IPF GL', value: gl, note: 'Goodlift · current IPF standard' },
+            ].map(({ label, value, note }) => (
+              <div key={label}>
+                <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.2rem' }}>{label} <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>· {note}</span></p>
+                <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.15rem', letterSpacing: '-.01em', lineHeight: 1 }}>
+                  {value !== null ? value.toFixed(2) : '—'}
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* Visual bar */}
