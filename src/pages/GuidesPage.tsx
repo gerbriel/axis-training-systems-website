@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { href } from '../utils/nav'
 import { subscribeNewsletter, getNewsletterAccess } from '../lib/newsletterApi'
 import type { NewsletterAccess } from '../types/newsletter'
+import { TOOL_LIST } from './ToolPage'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -874,6 +875,7 @@ const GUIDES = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GuidesPage() {
+  const [view,      setView]      = useState<'guides' | 'tools'>('guides')
   const [access,    setAccess]    = useState<NewsletterAccess | null>(null)
   const [expanded,  setExpanded]  = useState<string | null>(null)
   const [gateSource, setGateSource] = useState('guides_page')
@@ -904,90 +906,127 @@ export default function GuidesPage() {
           <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 24, filter: 'var(--logo-filter)' }} />
         </a>
         <span style={{ color: 'var(--text-3)' }}>›</span>
-        <span style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Free Guides</span>
+        <span style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Free Stuff</span>
       </nav>
 
       {/* Hero */}
-      <section style={{ padding: '6rem 2rem 4rem', borderBottom: '1px solid var(--surface)' }}>
+      <section style={{ padding: '6rem 2rem 3rem', borderBottom: '1px solid var(--surface)' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Resources</p>
           <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(2.5rem, 7vw, 5rem)', textTransform: 'uppercase', letterSpacing: '-.03em', lineHeight: .9 }}>
-            Powerlifting<br />Guides & Tools
+            Free Stuff
           </h1>
           <p style={{ color: 'var(--text-2)', fontSize: '.9rem', marginTop: '1.25rem', maxWidth: 520, lineHeight: 1.75 }}>
-            Six free resources for powerlifters at every level — interactive tools, reference guides, quizzes, and worksheets. Sign up once to unlock all of them.
+            Free guides, calculators, and tools for powerlifters at every level. Sign up once to unlock everything.
           </p>
           {access && (
             <p style={{ color: '#22c55e', fontSize: '.75rem', fontWeight: 700, marginTop: '1rem' }}>
               ✓ Access active — welcome back{access.firstName ? `, ${access.firstName}` : ''}.
             </p>
           )}
+
+          {/* View switcher */}
+          <div style={{ display: 'flex', gap: '.4rem', marginTop: '2rem' }}>
+            {(['guides', 'tools'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                style={{
+                  background: view === v ? 'var(--text)' : 'transparent',
+                  border: `1px solid ${view === v ? 'var(--text)' : 'var(--border)'}`,
+                  color: view === v ? 'var(--bg)' : 'var(--text-2)',
+                  fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase',
+                  padding: '.5rem 1.25rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all .15s',
+                }}
+              >
+                {v === 'guides' ? 'Free Guides' : 'Free Tools'}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Guide cards */}
-      <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--surface)' }}>
-          {GUIDES.map(guide => {
-            const isOpen = expanded === guide.id
-            return (
-              <div key={guide.id} style={{ background: 'var(--bg)' }}>
-                {/* Card header */}
-                <button
-                  onClick={() => toggleGuide(guide.id, guide.source, guide.free)}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      {/* Tools grid */}
+      {view === 'tools' && (
+        <section style={{ padding: '4rem 2rem 6rem', maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1px', background: 'var(--surface)' }}>
+            {TOOL_LIST.map(tool => (
+              <div key={tool.id} style={{ background: 'var(--bg)', padding: '2rem' }}>
+                <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.95rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>{tool.label}</p>
+                <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.5rem' }}>{tool.desc}</p>
+                <a
+                  href={href(`/tools/${tool.id}`)}
+                  style={{ display: 'inline-block', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase', padding: '.5rem 1rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'border-color .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
-                      <span style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
-                      {!access && !guide.free && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
-                      {guide.free && <span style={{ color: '#22c55e', fontSize: '.6rem', fontWeight: 700 }}>✓ No signup needed</span>}
-                    </div>
-                    <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
-                    <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
-                  </div>
-                  <span style={{ color: isOpen ? '#c8102e' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
-                </button>
-
-                {/* Expanded content */}
-                {isOpen && (access || guide.free) && (
-                  <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid var(--surface-2)' }}>
-                    <div style={{ paddingTop: '1.5rem' }}>
-                      {guide.component}
-                    </div>
-                  </div>
-                )}
+                  Use Tool →
+                </a>
               </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Gate form — shown when not signed up */}
-      {!access && (
-        <section id="guides-gate" style={{ padding: '3rem 2rem 6rem' }}>
-          <NewsletterGate source={gateSource} onAccess={handleAccess} />
+            ))}
+          </div>
         </section>
       )}
 
-      {/* CTA strip */}
-      {access && (
-        <section style={{ padding: '4rem 2rem', borderTop: '1px solid var(--surface)', background: 'var(--bg)', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Ready to Level Up?</p>
-          <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.875rem' }}>Work With a Real Coach</h2>
-          <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
-            The guides give you the framework. A coach applies it to your training, your schedule, and your meet timeline.
-          </p>
-          <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-            onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
-          >
-            Meet the Team →
-          </a>
+      {/* Guide cards + gate + CTA — only in guides view */}
+      {view === 'guides' && (<>
+        <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--surface)' }}>
+            {GUIDES.map(guide => {
+              const isOpen = expanded === guide.id
+              return (
+                <div key={guide.id} style={{ background: 'var(--bg)' }}>
+                  <button
+                    onClick={() => toggleGuide(guide.id, guide.source, guide.free)}
+                    style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', transition: 'background .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
+                        <span style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
+                        {!access && !guide.free && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
+                        {guide.free && <span style={{ color: '#22c55e', fontSize: '.6rem', fontWeight: 700 }}>✓ No signup needed</span>}
+                      </div>
+                      <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
+                      <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
+                    </div>
+                    <span style={{ color: isOpen ? '#c8102e' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
+                  </button>
+                  {isOpen && (access || guide.free) && (
+                    <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid var(--surface-2)' }}>
+                      <div style={{ paddingTop: '1.5rem' }}>{guide.component}</div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </section>
-      )}
+
+        {!access && (
+          <section id="guides-gate" style={{ padding: '3rem 2rem 6rem' }}>
+            <NewsletterGate source={gateSource} onAccess={handleAccess} />
+          </section>
+        )}
+
+        {access && (
+          <section style={{ padding: '4rem 2rem', borderTop: '1px solid var(--surface)', background: 'var(--bg)', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Ready to Level Up?</p>
+            <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', textTransform: 'uppercase', letterSpacing: '-.02em', marginBottom: '.875rem' }}>Work With a Real Coach</h2>
+            <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 1.75rem' }}>
+              The guides give you the framework. A coach applies it to your training, your schedule, and your meet timeline.
+            </p>
+            <a href={href('/#coaches')} style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
+              onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+            >
+              Meet the Team →
+            </a>
+          </section>
+        )}
+      </>)}
 
       {/* Footer strip */}
       <div style={{ background: 'var(--bg)', borderTop: '1px solid var(--surface)', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>

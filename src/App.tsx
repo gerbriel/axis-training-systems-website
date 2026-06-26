@@ -19,6 +19,7 @@ import BlogPostPage from './pages/BlogPostPage'
 import GuidesPage from './pages/GuidesPage'
 import Rankings from './pages/Rankings'
 import BookPage from './pages/BookPage'
+import ToolPage from './pages/ToolPage'
 import { trackPageview } from './lib/analytics'
 import { href } from './utils/nav'
 
@@ -128,6 +129,8 @@ function getRoute() {
   if (blogPostMatch) return { type: 'blog-post', slug: blogPostMatch[1] }
   if (path === '/blog') return { type: 'blog' }
   if (path === '/guides') return { type: 'guides' }
+  const toolMatch = path.match(/^\/tools\/([^/]+)/)
+  if (toolMatch) return { type: 'tool', slug: toolMatch[1] }
   if (path === '/rankings') return { type: 'rankings' }
   if (path === '/book') return { type: 'book' }
   return { type: 'home' }
@@ -145,6 +148,7 @@ function AppContent() {
   if (route.type === 'blog') return <BlogIndex />
   if (route.type === 'blog-post') return <BlogPostPage slug={route.slug!} />
   if (route.type === 'guides') return <GuidesPage />
+  if (route.type === 'tool') return <ToolPage slug={route.slug!} />
   if (route.type === 'rankings') return <Rankings />
   if (route.type === 'book') return <BookPage />
 

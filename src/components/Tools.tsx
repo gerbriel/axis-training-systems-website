@@ -59,7 +59,7 @@ const selectStyle: React.CSSProperties = {
 // ─────────────────────────────────────────────────────────────────────────────
 // RPE CALCULATOR
 // ─────────────────────────────────────────────────────────────────────────────
-function RPECalc() {
+export function RPECalc() {
   const [mode, setMode]       = useState<'estimate' | 'prescribe'>('estimate')
   const [weight, setWeight]   = useState('')
   const [reps, setReps]       = useState('3')
@@ -232,7 +232,7 @@ function RPECalc() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ATTEMPT PLANNER
 // ─────────────────────────────────────────────────────────────────────────────
-function AttemptPlanner() {
+export function AttemptPlanner() {
   const [unit, setUnit] = useState<'lbs' | 'kg'>('lbs')
   const [squat, setSquat]   = useState('')
   const [bench, setBench]   = useState('')
@@ -372,7 +372,7 @@ function AttemptPlanner() {
 // ─────────────────────────────────────────────────────────────────────────────
 // WEIGHT CONVERTER
 // ─────────────────────────────────────────────────────────────────────────────
-function WeightConverter() {
+export function WeightConverter() {
   const [lbsVal, setLbsVal] = useState('')
   const [kgVal,  setKgVal]  = useState('')
 
@@ -535,7 +535,7 @@ const DOTS_BENCHMARKS = [
   { label: 'World-class',   range: '450+' },
 ]
 
-function DotsCalc() {
+export function DotsCalc() {
   const [sex,   setSex]   = useState<'m' | 'f'>('m')
   const [unit,  setUnit]  = useState<'lbs' | 'kg'>('lbs')
   const [bw,    setBw]    = useState('')
