@@ -25,7 +25,7 @@ export default function Philosophy() {
               We focus on evidence-based premium coaching, utilizing lifter data to create individualized training protocols and provide mentorship in building a resilient mindset. Our goal is to help lifters reach their full potential on the platform and build the next generation of the powerlifting community.
             </p>
             {/* Real quote */}
-            <blockquote style={{ borderLeft: '3px solid #f5b935', paddingLeft: '1.25rem' }}>
+            <blockquote style={{ borderLeft: '3px solid #272C84', paddingLeft: '1.25rem' }}>
               <p style={{ color: 'var(--text-3)', fontSize: '.875rem', lineHeight: 1.8, fontStyle: 'italic', marginBottom: '.5rem' }}>
                 "Our vision at Axis is one where everyone is treated equally no matter what level athlete they are. We believe coaching is more than just crunching numbers and critiquing form. We establish strong coach-athlete bonds that give the athlete a sense of intrinsic motivation."
               </p>

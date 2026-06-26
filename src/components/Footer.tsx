@@ -31,7 +31,7 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
     <a
       href={href} target="_blank" rel="noopener" aria-label={label}
       style={{ color: 'var(--text-3)', transition: 'color .2s' }}
-      onMouseEnter={e => (e.currentTarget.style.color = '#c8102e')}
+      onMouseEnter={e => (e.currentTarget.style.color = '#272C84')}
       onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
     >
       {children}

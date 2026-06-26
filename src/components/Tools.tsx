@@ -44,8 +44,8 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 const resultBox: React.CSSProperties = {
-  background: 'rgba(245,185,53,.06)',
-  border: '1px solid rgba(245,185,53,.2)',
+  background: 'rgba(39,44,132,.06)',
+  border: '1px solid rgba(39,44,132,.2)',
   borderRadius: '.25rem',
   padding: '1.5rem',
   marginTop: '1.5rem',
@@ -125,9 +125,9 @@ export function RPECalc() {
             key={m}
             onClick={() => setMode(m)}
             style={{
-              background: mode === m ? '#c8102e' : 'transparent',
-              border: `1px solid ${mode === m ? '#c8102e' : 'var(--border)'}`,
-              color: mode === m ? 'var(--text)' : 'var(--text-4)',
+              background: mode === m ? '#272C84' : 'transparent',
+              border: `1px solid ${mode === m ? '#272C84' : 'var(--border)'}`,
+              color: mode === m ? '#ffffff' : 'var(--text-4)',
               borderRadius: '.2rem',
               padding: '.5rem 1.25rem',
               fontSize: '.65rem',
@@ -337,7 +337,7 @@ export function AttemptPlanner() {
                     { num: 2, weight: a2, pct: Math.round(pcts.second * 100), label: '2nd Attempt' },
                     { num: 3, weight: a3, pct: Math.round(pcts.third * 100),  label: '3rd Attempt' },
                   ].map(att => (
-                    <div key={att.num} style={{ background: 'var(--surface-2)', border: `1px solid ${att.num === 3 ? 'rgba(245,185,53,.3)' : 'var(--surface)'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
+                    <div key={att.num} style={{ background: 'var(--surface-2)', border: `1px solid ${att.num === 3 ? 'rgba(39,44,132,.3)' : 'var(--surface)'}`, borderRadius: '.2rem', padding: '1rem .875rem', textAlign: 'center' }}>
                       <p style={{ color: 'var(--text-3)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.3rem' }}>{att.label}</p>
                       <p style={{ color: att.num === 3 ? '#c8102e' : 'var(--text)', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-.01em' }}>
                         {att.weight} <span style={{ fontSize: '.65rem', fontWeight: 600, color: 'var(--text-2)' }}>{unit}</span>
@@ -352,7 +352,7 @@ export function AttemptPlanner() {
 
           {/* Projected total */}
           {projectedTotal > 0 && (
-            <div style={{ background: 'rgba(245,185,53,.06)', border: '1px solid rgba(245,185,53,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ background: 'rgba(39,44,132,.06)', border: '1px solid rgba(39,44,132,.2)', borderRadius: '.25rem', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <p style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.2rem' }}>Training Max Total</p>
                 <p style={{ color: 'var(--text-3)', fontSize: '.85rem', fontWeight: 600 }}>{totalEstimate} {unit}</p>
@@ -436,7 +436,7 @@ export function WeightConverter() {
             onClick={swapValues}
             title="Swap values"
             style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', width: '2.25rem', height: '2.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .15s, background .15s', fontFamily: 'inherit' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.background = 'rgba(245,185,53,.08)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272C84'; e.currentTarget.style.background = 'rgba(39,44,132,.08)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent' }}
           >
             ⇄
@@ -476,7 +476,7 @@ export function WeightConverter() {
                 transition: 'border-color .15s',
                 fontFamily: 'inherit',
               }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
               <span style={{ color: 'var(--text-2)', fontSize: '.7rem' }}>{label}</span>
@@ -581,7 +581,7 @@ export function DotsCalc() {
   const tierColor = (t: string | null) =>
     t === 'World-class' ? '#c8102e'
     : t === 'Elite'     ? '#e84620'
-    : t === 'Advanced'  ? '#f5b935'
+    : t === 'Advanced'  ? '#272C84'
     : 'var(--text-3)'
 
   return (
@@ -684,8 +684,8 @@ export function DotsCalc() {
               <div
                 key={b.label}
                 style={{
-                  background: tier === b.label ? 'rgba(245,185,53,.12)' : 'var(--surface-2)',
-                  border: `1px solid ${tier === b.label ? 'rgba(245,185,53,.4)' : 'var(--border)'}`,
+                  background: tier === b.label ? 'rgba(39,44,132,.12)' : 'var(--surface-2)',
+                  border: `1px solid ${tier === b.label ? 'rgba(39,44,132,.4)' : 'var(--border)'}`,
                   borderRadius: '.2rem',
                   padding: '.5rem .75rem',
                   display: 'flex',
@@ -773,7 +773,7 @@ export default function Tools() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: `2px solid ${active === tab.id ? '#c8102e' : 'transparent'}`,
+                borderBottom: `2px solid ${active === tab.id ? '#272C84' : 'transparent'}`,
                 color: active === tab.id ? 'var(--text)' : 'var(--text-dim)',
                 fontSize: '.7rem',
                 fontWeight: 900,
@@ -826,9 +826,9 @@ export default function Tools() {
                   </div>
                   {gateError && <p style={{ color: 'var(--text)', fontSize: '.8rem' }}>{gateError}</p>}
                   <button type="submit" disabled={gateLoading || !gateFirst.trim() || !gateEmail.trim()}
-                    style={{ background: '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
-                    onMouseEnter={e => { if (!gateLoading) e.currentTarget.style.background = '#9a7c3a' }}
-                    onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+                    style={{ background: '#272C84', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
+                    onMouseEnter={e => { if (!gateLoading) e.currentTarget.style.background = '#1a1f6b' }}
+                    onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
                   >{gateLoading ? 'Unlocking…' : 'Unlock Attempt Planner →'}</button>
                   <p style={{ color: 'var(--text-3)', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks all <a href={href('/guides')} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>6 free guides</a>. No spam.</p>
                 </form>

@@ -73,8 +73,8 @@ export default function Testimonials() {
               <div style={{
                 display: 'inline-flex',
                 alignSelf: 'flex-start',
-                background: 'rgba(245,185,53,.08)',
-                border: '1px solid rgba(245,185,53,.18)',
+                background: 'rgba(39,44,132,.08)',
+                border: '1px solid rgba(39,44,132,.18)',
                 borderRadius: '.2rem',
                 padding: '.3rem .75rem',
               }}>
@@ -104,7 +104,7 @@ export default function Testimonials() {
                 <a
                   href={applyHref(t.coachSlug)}
                   style={{ marginLeft: 'auto', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#c8102e'}
+                  onMouseEnter={e => e.currentTarget.style.color = '#272C84'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}
                 >
                   Apply →

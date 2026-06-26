@@ -738,7 +738,7 @@ export default function Rankings({ embedded }: RankingsProps = {}) {
               {(['lbs', 'kg'] as const).map(u => (
                 <button key={u} onClick={() => setUnit(u)} style={{
                   padding: '.55rem 1.1rem', border: 'none', cursor: 'pointer',
-                  background: unit === u ? '#c8102e' : 'transparent',
+                  background: unit === u ? '#272C84' : 'transparent',
                   color: unit === u ? 'var(--text)' : 'var(--text-dim)',
                   fontWeight: 700, fontSize: '.62rem', letterSpacing: '.1em',
                   textTransform: 'uppercase', fontFamily: 'inherit',

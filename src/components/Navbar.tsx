@@ -62,7 +62,7 @@ export default function Navbar() {
             href={bookHref()}
             className="text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
             style={{ border: '1px solid var(--border)', color: 'var(--text)' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8102e')}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#272C84')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
           >
             Book a Call
@@ -70,9 +70,9 @@ export default function Navbar() {
           <a
             href="#coaches"
             className="text-white text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
-            style={{ background: '#bfa162' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
+            style={{ background: '#272C84' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#1a1f6b')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#272C84')}
           >
             Work With Us
           </a>
@@ -117,7 +117,7 @@ export default function Navbar() {
             href="#coaches"
             onClick={() => setMenuOpen(false)}
             className="text-white text-xs font-black px-5 py-3 rounded text-center tracking-widest uppercase"
-            style={{ background: '#bfa162' }}
+            style={{ background: '#272C84' }}
           >
             Work With Us
           </a>

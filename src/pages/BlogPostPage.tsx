@@ -82,7 +82,7 @@ function renderSection(s: BlogSection, i: number) {
       )
     case 'callout':
       return (
-        <blockquote key={i} style={{ background: 'rgba(245,185,53,.06)', border: '1px solid rgba(245,185,53,.2)', borderLeft: '3px solid #f5b935', borderRadius: '.2rem', padding: '1.5rem', margin: '2rem 0', color: 'var(--chalk)', fontSize: '1rem', lineHeight: 1.8, fontWeight: 600 }}>
+        <blockquote key={i} style={{ background: 'rgba(39,44,132,.06)', border: '1px solid rgba(39,44,132,.2)', borderLeft: '3px solid #272C84', borderRadius: '.2rem', padding: '1.5rem', margin: '2rem 0', color: 'var(--chalk)', fontSize: '1rem', lineHeight: 1.8, fontWeight: 600 }}>
           {s.text}
         </blockquote>
       )
@@ -159,7 +159,7 @@ export default function BlogPostPage({ slug }: Props) {
         <div style={{ position: 'relative', maxWidth: 760, margin: '0 auto' }}>
           <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
             {post.tags.map(t => (
-              <span key={t} style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.25)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
+              <span key={t} style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.25)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
             ))}
           </div>
           <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.75rem, 5vw, 3rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '1rem' }}>
@@ -190,9 +190,9 @@ export default function BlogPostPage({ slug }: Props) {
           </p>
           <a
             href={href('/#coaches')}
-            style={{ display: 'inline-block', background: '#bfa162', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#9a7c3a'}
-            onMouseLeave={e => e.currentTarget.style.background = '#bfa162'}
+            style={{ display: 'inline-block', background: '#272C84', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', textDecoration: 'none', transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#1a1f6b'}
+            onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
           >
             Choose Your Coach →
           </a>

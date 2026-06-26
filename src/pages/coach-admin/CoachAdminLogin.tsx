@@ -117,8 +117,8 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
           <button
             type="submit" disabled={loading || isBlocked}
             style={{ background: loading || isBlocked ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading || isBlocked ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#9a7c3a' }}
-            onMouseLeave={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#bfa162' }}
+            onMouseEnter={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#1a1f6b' }}
+            onMouseLeave={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#272C84' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>

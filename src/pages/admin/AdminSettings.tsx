@@ -174,8 +174,8 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <button
           onClick={saveRoutes} disabled={savingRoutes}
           style={{ marginTop: '1.25rem', background: savingRoutes ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#9a7c3a' }}
-          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#bfa162' }}
+          onMouseEnter={e => { if (!savingRoutes) e.currentTarget.style.background = '#1a1f6b' }}
+          onMouseLeave={e => { if (!savingRoutes) e.currentTarget.style.background = '#272C84' }}
         >
           {savingRoutes ? 'Saving…' : 'Save Routing'}
         </button>
@@ -220,8 +220,8 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <button
           onClick={saveConfig} disabled={savingConfig}
           style={{ marginTop: '1.25rem', background: savingConfig ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.875rem 2rem', borderRadius: '.25rem', cursor: 'pointer' }}
-          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#9a7c3a' }}
-          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#bfa162' }}
+          onMouseEnter={e => { if (!savingConfig) e.currentTarget.style.background = '#1a1f6b' }}
+          onMouseLeave={e => { if (!savingConfig) e.currentTarget.style.background = '#272C84' }}
         >
           {savingConfig ? 'Saving…' : 'Save Config'}
         </button>

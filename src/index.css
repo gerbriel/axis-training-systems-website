@@ -11,10 +11,10 @@
   --border-mid:  #2a2a2a;
 
   /* Brand accents — gold leads (unchanged in both modes) */
-  --gold:        #f5b935;
+  --gold:        #272C84;
   --gold-soft:   #ffd782;
-  --bronze:      #bfa162;
-  --bronze-dk:   #9a7c3a;
+  --bronze:      #272C84;
+  --bronze-dk:   #1a1f6b;
 
   /* Secondary — deep purple/indigo for gradient overlays */
   --purple-dk:   #0f096b;
@@ -124,7 +124,7 @@ textarea.field { resize: vertical; }
   white-space: nowrap;
 }
 .pill-label:hover { border-color: var(--steel); color: #fff; }
-.pill-checked { border-color: var(--gold) !important; color: #fff !important; background: rgba(245,185,53,.08) !important; }
+.pill-checked { border-color: var(--gold) !important; color: #fff !important; background: rgba(39,44,132,.08) !important; }
 
 /* Scale button */
 .scale-btn {
@@ -143,7 +143,7 @@ textarea.field { resize: vertical; }
   justify-content: center;
 }
 .scale-btn:hover,
-.scale-btn.selected { border-color: var(--gold); color: #fff; background: rgba(245,185,53,.08); }
+.scale-btn.selected { border-color: var(--gold); color: #fff; background: rgba(39,44,132,.08); }
 
 /* Field label */
 .field-label {

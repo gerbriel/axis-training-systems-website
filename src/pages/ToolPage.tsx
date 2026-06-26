@@ -95,9 +95,9 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
         <button
           type="submit"
           disabled={loading || !first.trim() || !email.trim()}
-          style={{ background: '#bfa162', border: 'none', color: '#000', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !first.trim() || !email.trim() ? 0.5 : 1 }}
-          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9a7c3a' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#bfa162' }}
+          style={{ background: '#272C84', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !first.trim() || !email.trim() ? 0.5 : 1 }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#1a1f6b' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
         >
           {loading ? 'Unlocking…' : 'Unlock Attempt Planner →'}
         </button>
@@ -150,7 +150,7 @@ export default function ToolPage({ slug }: { slug: string }) {
                   fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase',
                   textDecoration: 'none',
                   color: active ? 'var(--text)' : 'var(--text-3)',
-                  borderBottom: `2px solid ${active ? '#c8102e' : 'transparent'}`,
+                  borderBottom: `2px solid ${active ? '#272C84' : 'transparent'}`,
                   marginBottom: '-1px',
                   whiteSpace: 'nowrap',
                   transition: 'color .15s',

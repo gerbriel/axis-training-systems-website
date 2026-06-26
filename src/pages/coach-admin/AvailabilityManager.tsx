@@ -177,7 +177,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
                   {daySched.length === 0 ? (
                     <span style={{ color: 'var(--text-dim)', fontSize: '.75rem' }}>No availability</span>
                   ) : daySched.map(s => (
-                    <span key={s.id} style={{ background: 'rgba(245,185,53,.1)', border: '1px solid rgba(245,185,53,.25)', borderRadius: '.2rem', padding: '.25rem .65rem', display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
+                    <span key={s.id} style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.25)', borderRadius: '.2rem', padding: '.25rem .65rem', display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
                       <span style={{ color: 'var(--text)', fontSize: '.72rem', fontWeight: 700 }}>
                         {fmtTimePretty(s.start_time)} – {fmtTimePretty(s.end_time)}
                         <span style={{ color: 'var(--text-3)', fontWeight: 400 }}> · {s.slot_duration_minutes}min slots</span>
@@ -217,7 +217,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
               {SLOT_DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}
             </select>
           </div>
-          <button onClick={addSchedule} disabled={adding || addEnd <= addStart} style={{ background: adding || addEnd <= addStart ? 'var(--border)' : '#bfa162', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={addSchedule} disabled={adding || addEnd <= addStart} style={{ background: adding || addEnd <= addStart ? 'var(--border)' : '#272C84', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
             {adding ? 'Adding…' : '+ Add Hours'}
           </button>
         </div>
@@ -259,7 +259,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
             <div style={{ display: 'flex', gap: '.5rem' }}>
               {[['Full Day', true], ['Time Range', false]].map(([label, val]) => (
                 <button key={String(val)} onClick={() => setBlockFullDay(val as boolean)}
-                  style={{ background: blockFullDay === val ? 'var(--surface-2)' : 'transparent', border: `1px solid ${blockFullDay === val ? '#f5b935' : 'var(--border-mid)'}`, color: blockFullDay === val ? 'var(--text)' : 'var(--text-4)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: blockFullDay === val ? 'var(--surface-2)' : 'transparent', border: `1px solid ${blockFullDay === val ? '#272C84' : 'var(--border-mid)'}`, color: blockFullDay === val ? 'var(--text)' : 'var(--text-4)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
                   {label as string}
                 </button>
               ))}
@@ -303,7 +303,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
             {upcoming.map(b => {
               const dt = new Date(b.booked_at)
-              const statusColor: Record<string, string> = { pending: '#f5b935', confirmed: '#22c55e', cancelled: 'var(--text-4)' }
+              const statusColor: Record<string, string> = { pending: '#272C84', confirmed: '#22c55e', cancelled: 'var(--text-4)' }
               return (
                 <div key={b.id} style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 140 }}>

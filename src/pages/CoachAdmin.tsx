@@ -89,7 +89,7 @@ export default function CoachAdmin({ slug }: Props) {
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: tab === t ? 'var(--text)' : 'var(--text-dim)',
                 fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
-                borderBottom: `2px solid ${tab === t ? '#c8102e' : 'transparent'}`,
+                borderBottom: `2px solid ${tab === t ? '#272C84' : 'transparent'}`,
                 paddingBottom: '1px', transition: 'color .15s', fontFamily: 'inherit',
               }}
               onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-3)' }}
@@ -110,7 +110,7 @@ export default function CoachAdmin({ slug }: Props) {
           <button
             onClick={signOut}
             style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#c8102e'}
+            onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
           >
             {isDemo ? 'Exit Demo' : 'Sign Out'}

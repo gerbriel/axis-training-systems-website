@@ -32,13 +32,13 @@ const STATIC_MEETS = [
 type Meet = typeof STATIC_MEETS[number]
 
 const badgeColor: Record<string, string> = {
-  National: 'rgba(245,185,53,.12)',
-  World: 'rgba(245,185,53,.1)',
+  National: 'rgba(39,44,132,.12)',
+  World: 'rgba(39,44,132,.1)',
   Regional: 'rgba(100,180,255,.08)',
 }
 const badgeBorder: Record<string, string> = {
-  National: 'rgba(245,185,53,.3)',
-  World: 'rgba(245,185,53,.35)',
+  National: 'rgba(39,44,132,.3)',
+  World: 'rgba(39,44,132,.35)',
   Regional: 'rgba(100,180,255,.25)',
 }
 const badgeText: Record<string, string> = {

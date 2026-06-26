@@ -7,7 +7,7 @@ import LeadDetail from '../admin/LeadDetail'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new:      '#c8102e',
-  reviewed: '#f5b935',
+  reviewed: '#272C84',
   accepted: '#22c55e',
   declined: 'var(--text-4)',
 }

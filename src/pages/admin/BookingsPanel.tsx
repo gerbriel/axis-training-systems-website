@@ -6,7 +6,7 @@ import { fmtTime, fmtDate } from '../../lib/availability'
 type Status = Booking['status']
 
 const STATUS_COLORS: Record<Status, string> = {
-  pending:   '#f5b935',
+  pending:   '#272C84',
   confirmed: '#22c55e',
   cancelled: 'var(--text-4)',
 }
@@ -115,9 +115,9 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
       {/* Stats */}
       <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '2rem' }}>
         {[
-          ['Upcoming', upcoming, '#f5b935'],
+          ['Upcoming', upcoming, '#272C84'],
           ['Confirmed', counts.confirmed, '#22c55e'],
-          ['Pending', counts.pending, '#f5b935'],
+          ['Pending', counts.pending, '#272C84'],
           ['Total', counts.all, 'var(--text-3)'],
         ].map(([label, val, color]) => (
           <div key={String(label)}>
@@ -244,7 +244,7 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
                 <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
                 <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
                 <button onClick={saveNotes} disabled={saving}
-                  style={{ marginTop: '.5rem', background: '#bfa162', border: 'none', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                  style={{ marginTop: '.5rem', background: '#272C84', border: 'none', color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Saving…' : 'Save Notes'}
                 </button>
               </div>

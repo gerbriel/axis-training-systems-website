@@ -167,9 +167,9 @@ export default function PrivacyPolicy({ onClose }: Props) {
         <button
           onClick={onClose}
           className="w-full text-white text-xs font-black py-4 rounded tracking-widest uppercase mt-2"
-          style={{ background: '#bfa162', border: 'none', cursor: 'pointer' }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#9a7c3a')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#bfa162')}
+          style={{ background: '#272C84', border: 'none', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#1a1f6b')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#272C84')}
         >
           Close
         </button>

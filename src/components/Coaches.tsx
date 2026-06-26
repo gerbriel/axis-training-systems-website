@@ -111,12 +111,12 @@ export default function Coaches() {
                       style={{
                         display: 'block', textAlign: 'center',
                         background: 'transparent',
-                        border: '1px solid rgba(245,185,53,.3)',
+                        border: '1px solid rgba(39,44,132,.3)',
                         color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,185,53,.1)'; e.currentTarget.style.borderColor = '#f5b935' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(245,185,53,.3)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(39,44,132,.1)'; e.currentTarget.style.borderColor = '#272C84' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(39,44,132,.3)' }}
                     >
                       Book a Call
                     </a>
@@ -124,12 +124,12 @@ export default function Coaches() {
                       href={applyHref(c.slug)}
                       style={{
                         display: 'block', textAlign: 'center',
-                        background: '#bfa162', border: 'none',
+                        background: '#272C84', border: 'none',
                         color: '#000000', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
                         padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#9a7c3a' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#bfa162' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
                     >
                       Choose This Coach
                     </a>

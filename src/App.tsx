@@ -71,16 +71,16 @@ function ThemeToggle() {
         width: '2.2rem', height: '2.2rem',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--surface)',
-        border: '1px solid rgba(245,185,53,.35)',
+        border: '1px solid rgba(39,44,132,.35)',
         borderRadius: '.4rem',
-        color: 'rgba(245,185,53,.9)',
+        color: 'rgba(39,44,132,.9)',
         cursor: 'pointer',
         boxShadow: '0 4px 20px rgba(0,0,0,.4)',
         transition: 'background .15s, border-color .15s',
         fontFamily: 'inherit',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,185,53,.7)'; e.currentTarget.style.background = 'var(--bg)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(245,185,53,.35)'; e.currentTarget.style.background = 'var(--surface)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(39,44,132,.7)'; e.currentTarget.style.background = 'var(--bg)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(39,44,132,.35)'; e.currentTarget.style.background = 'var(--surface)' }}
     >
       {isDark ? <SunIcon /> : <MoonIcon />}
     </button>
@@ -99,14 +99,14 @@ function DemoWidget() {
         position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
         display: 'flex', alignItems: 'center', gap: '.5rem',
         background: hovered ? '#1a1a1a' : '#0a0a0a',
-        border: '1px solid rgba(245,185,53,.35)',
+        border: '1px solid rgba(39,44,132,.35)',
         borderRadius: '.4rem', padding: '.55rem 1rem',
         textDecoration: 'none', transition: 'background .15s, border-color .15s',
         boxShadow: '0 4px 20px rgba(0,0,0,.6)',
-        ...(hovered ? { borderColor: 'rgba(245,185,53,.65)' } : {}),
+        ...(hovered ? { borderColor: 'rgba(39,44,132,.65)' } : {}),
       }}
     >
-      <span style={{ fontSize: '.7rem', color: 'rgba(245,185,53,.8)', fontWeight: 900, letterSpacing: '.08em' }}>▶</span>
+      <span style={{ fontSize: '.7rem', color: 'rgba(39,44,132,.8)', fontWeight: 900, letterSpacing: '.08em' }}>▶</span>
       <span style={{ color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>View Demo</span>
     </a>
   )

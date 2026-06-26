@@ -72,7 +72,7 @@ export default function BlogIndex() {
             >
               <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
                 {post.tags.map(t => (
-                  <span key={t} style={{ background: 'rgba(245,185,53,.08)', border: '1px solid rgba(245,185,53,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
+                  <span key={t} style={{ background: 'rgba(39,44,132,.08)', border: '1px solid rgba(39,44,132,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .6rem', borderRadius: '.15rem' }}>{t}</span>
                 ))}
               </div>
               <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.05, marginBottom: '.75rem' }}>

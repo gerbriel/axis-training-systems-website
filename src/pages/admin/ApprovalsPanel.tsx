@@ -4,7 +4,7 @@ import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
 
 const STATUS_COLORS: Record<ContentStatus, string> = {
-  pending:  '#f5b935',
+  pending:  '#272C84',
   approved: '#22c55e',
   rejected: '#c8102e',
 }
