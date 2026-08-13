@@ -3,7 +3,9 @@ import { supabase, supabaseConfigured } from '../../lib/supabase'
 import { fetchNewsletterLeads } from '../../lib/newsletterApi'
 import type { Lead, Booking } from '../../types/database'
 import type { NewsletterLead } from '../../types/newsletter'
-import { DEMO_LEADS, DEMO_NEWSLETTER_LEADS } from '../../data/demoData'
+import { DEMO_LEADS, DEMO_NEWSLETTER_LEADS, DEMO_BOOKINGS } from '../../data/demoData'
+import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
+import DemoBanner from '../../components/dashboard/DemoBanner'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,13 +22,6 @@ interface UnifiedLead {
   firstSeen: string
   lastSeen: string
 }
-
-// ── Demo bookings stub ─────────────────────────────────────────────────────
-
-const DEMO_BOOKINGS_STUB: Booking[] = [
-  { id: 'db1', coach_slug: 'ronnie-vallejo', booked_at: new Date(Date.now() - 2 * 86400000).toISOString(), duration_minutes: 30, first_name: 'Marcus', last_name: 'Rivera', email: 'marcus.r@gmail.com', phone: null, service_interest: '1:1 Coaching', goals: null, status: 'pending', coach_notes: null, created_at: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { id: 'db2', coach_slug: 'seth-burman', booked_at: new Date(Date.now() - 5 * 86400000).toISOString(), duration_minutes: 30, first_name: 'Sophie', last_name: 'Kim', email: 'sophie.kim@gmail.com', phone: null, service_interest: 'Game Day Coaching', goals: null, status: 'confirmed', coach_notes: null, created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
-]
 
 // ── Merge logic ────────────────────────────────────────────────────────────
 
@@ -95,6 +90,9 @@ function SourceBadge({ source }: { source: LeadSource }) {
 // ── Status badge ───────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = { new: '#c8102e', reviewed: '#272C84', accepted: '#22c55e', declined: 'var(--text-4)' }
+// Bookings have their own status vocabulary — coloring them with the lead map
+// sends every booking status to the gray fallback.
+const BOOKING_STATUS_COLORS: Record<string, string> = { pending: '#eab308', confirmed: '#22c55e', completed: '#272C84', cancelled: '#c8102e' }
 
 function StatusBadge({ status }: { status: string }) {
   const c = STATUS_COLORS[status] ?? 'var(--text-4)'
@@ -105,55 +103,101 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+const titleizeSlug = (slug: string) => slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
 // ── Lead detail panel ──────────────────────────────────────────────────────
 
-function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
   lead: UnifiedLead
   onClose: () => void
   onUpdateLead: (updated: Lead) => void
   isDemo: boolean
+  isMobile: boolean
 }) {
   const [notes, setNotes] = useState(lead.application?.admin_notes ?? '')
   const [status, setStatus] = useState<Lead['status']>(lead.application?.status ?? 'new')
-  const [saving, setSaving] = useState(false)
-  const [savedAt, setSavedAt] = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     setNotes(lead.application?.admin_notes ?? '')
     setStatus(lead.application?.status ?? 'new')
-    setSavedAt(null)
+    setSaveState('idle')
+    setSaveError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.email])
 
+  // Choose-then-save: status chips and notes are drafts until saved.
+  const dirty = !!lead.application && (
+    notes !== (lead.application.admin_notes ?? '') ||
+    status !== lead.application.status
+  )
+
+  const markEdited = () => {
+    setSaveState(s => (s === 'saved' || s === 'error') ? 'idle' : s)
+    setSaveError(null)
+  }
+
   const save = async () => {
-    if (!lead.application) return
-    setSaving(true)
-    if (!isDemo && supabaseConfigured) {
-      await supabase.from('leads').update({ admin_notes: notes, status }).eq('id', lead.application.id)
+    if (!lead.application || saveState === 'saving') return
+    setSaveState('saving')
+    setSaveError(null)
+    try {
+      if (!isDemo && supabaseConfigured) {
+        const { error } = await supabase.from('leads').update({ admin_notes: notes, status }).eq('id', lead.application.id)
+        if (error) throw new Error(error.message)
+      } else {
+        await new Promise(r => setTimeout(r, 400)) // simulate latency in demo
+      }
+      onUpdateLead({ ...lead.application, admin_notes: notes, status })
+      setSaveState('saved')
+    } catch (err) {
+      setSaveState('error')
+      setSaveError(err instanceof Error && err.message ? err.message : 'Check your connection and try again.')
     }
-    onUpdateLead({ ...lead.application, admin_notes: notes, status })
-    setSaving(false)
-    setSavedAt(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
   }
 
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   const fmtTime = (s: string) => new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
   return (
-    <div style={{ borderLeft: '1px solid var(--surface-2)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={isMobile
+      // Full-screen overlay on phones — the 420px side column collapsed the list to 0
+      // and pushed the close button off-screen. Sits above panel content and the coach
+      // bottom bar (z 50) but below the admin nav sheet (z 60/61).
+      ? { position: 'fixed', inset: 0, zIndex: 55, background: 'var(--bg)', overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column' }
+      : { borderLeft: '1px solid var(--surface-2)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }
+    }>
       {/* Header */}
-      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--surface-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
-        <div>
-          <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', lineHeight: 1.2 }}>{lead.firstName} {lead.lastName}</p>
-          <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.2rem' }}>{lead.email}</p>
-          <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap', marginTop: '.5rem' }}>
-            {lead.sources.map(s => <SourceBadge key={s} source={s} />)}
-            {lead.application && <StatusBadge status={lead.application.status} />}
+      <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem', borderBottom: '1px solid var(--surface-2)', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
+        {isMobile && (
+          <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem', background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', borderRadius: '.25rem', padding: '.5rem .9rem', minHeight: '2.5rem', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '.85rem' }}>
+            ← Back
+          </button>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', lineHeight: 1.2 }}>{lead.firstName} {lead.lastName}</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.2rem', wordBreak: 'break-word' }}>{lead.email}</p>
+            <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap', marginTop: '.5rem' }}>
+              {lead.sources.map(s => <SourceBadge key={s} source={s} />)}
+              {lead.application && <StatusBadge status={lead.application.status} />}
+              {dirty && (
+                <span style={{ background: '#eab30818', border: '1px solid #eab30855', color: '#eab308', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.15rem .5rem', borderRadius: '.2rem', whiteSpace: 'nowrap' }}>
+                  Unsaved changes
+                </span>
+              )}
+            </div>
           </div>
+          {!isMobile && (
+            <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '1.1rem', padding: '.25rem', lineHeight: 1, minWidth: '2.5rem', minHeight: '2.5rem' }}>×</button>
+          )}
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '1.1rem', padding: '.25rem', lineHeight: 1 }}>×</button>
       </div>
 
-      <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      <div style={{ padding: isMobile ? '1rem 1rem calc(1.5rem + env(safe-area-inset-bottom))' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
 
         {/* Journey timeline */}
         <div>
@@ -172,8 +216,8 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
               <div key={b.id} style={{ display: 'flex', gap: '.875rem', alignItems: 'flex-start' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#272C84', flexShrink: 0, marginTop: '.3rem' }} />
                 <div>
-                  <p style={{ color: 'var(--text-2)', fontSize: '.8rem', fontWeight: 600 }}>Booked a call · {b.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
-                  <p style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>{fmtDate(b.booked_at)} at {fmtTime(b.booked_at)} · <span style={{ color: STATUS_COLORS[b.status] ?? 'var(--text-3)' }}>{b.status}</span></p>
+                  <p style={{ color: 'var(--text-2)', fontSize: '.8rem', fontWeight: 600 }}>Booked a call · {titleizeSlug(b.coach_slug)}</p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>{fmtDate(b.booked_at)} at {fmtTime(b.booked_at)} · <span style={{ color: BOOKING_STATUS_COLORS[b.status] ?? 'var(--text-3)' }}>{b.status}</span></p>
                   {b.goals && <p style={{ color: 'var(--text-4)', fontSize: '.7rem', marginTop: '.15rem', fontStyle: 'italic' }}>"{b.goals}"</p>}
                 </div>
               </div>
@@ -242,7 +286,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
             <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Application Status</p>
             <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
               {(['new', 'reviewed', 'accepted', 'declined'] as Lead['status'][]).map(s => (
-                <button key={s} onClick={() => setStatus(s)} style={{ background: status === s ? (STATUS_COLORS[s] + '22') : 'transparent', border: `1px solid ${status === s ? STATUS_COLORS[s] : 'var(--border-mid)'}`, color: status === s ? STATUS_COLORS[s] : 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button key={s} onClick={() => { setStatus(s); markEdited() }} style={{ background: status === s ? (STATUS_COLORS[s] + '22') : 'transparent', border: `1px solid ${status === s ? STATUS_COLORS[s] : 'var(--border-mid)'}`, color: status === s ? STATUS_COLORS[s] : 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.6rem .9rem' : '.3rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}>
                   {s}
                 </button>
               ))}
@@ -252,28 +296,28 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo }: {
 
         {/* Notes */}
         <div>
-          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>
-            Coach Notes
-            {savedAt && <span style={{ color: '#22c55e', fontWeight: 400, marginLeft: '.5rem' }}>Saved {savedAt}</span>}
-          </p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
           {lead.application ? (
-            <>
-              <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes visible to coaches…" />
-              <button onClick={save} disabled={saving || isDemo} style={{ marginTop: '.5rem', background: saving ? 'var(--border)' : '#272C84', border: 'none', color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: isDemo ? 0.5 : 1 }}>
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </>
+            <textarea className="field" rows={4} value={notes} onChange={e => { setNotes(e.target.value); markEdited() }} placeholder="Internal notes visible to coaches…" />
           ) : (
             <p style={{ color: 'var(--text-4)', fontSize: '.8rem' }}>Notes available once the lead submits an application.</p>
           )}
         </div>
 
-        {/* Save status button */}
+        {/* Save — the single save action for status + notes */}
         {lead.application && (
-          <div style={{ display: 'flex', gap: '.5rem' }}>
-            <button onClick={save} disabled={saving} style={{ background: saving ? 'var(--border)' : '#272C84', border: 'none', color: '#000', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.65rem 1.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', flex: 1 }}>
-              {saving ? 'Saving…' : 'Save Changes →'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+            {dirty && saveState !== 'error' && (
+              <p style={{ color: '#eab308', fontSize: '.7rem' }}>Status and notes are not applied until you save.</p>
+            )}
+            <button onClick={save} disabled={saveState === 'saving'} style={{ background: saveState === 'saving' ? 'var(--border)' : '#272C84', border: 'none', color: '#ffffff', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.8rem 1.5rem', minHeight: '2.75rem', borderRadius: '.25rem', cursor: saveState === 'saving' ? 'default' : 'pointer', fontFamily: 'inherit', width: '100%' }}>
+              {saveState === 'saving' ? 'Saving…' : saveState === 'saved' && !dirty ? 'Saved ✓' : 'Save Changes →'}
             </button>
+            {saveState === 'error' && (
+              <p role="alert" style={{ color: '#c8102e', fontSize: '.72rem', lineHeight: 1.5 }}>
+                Couldn't save — your edits are still here. {saveError}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -291,6 +335,7 @@ const SOURCE_FILTERS: { label: string; value: LeadSource | 'all' }[] = [
 ]
 
 export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
+  const isMobile = useMediaQuery(MOBILE_QUERY)
   const [unified,  setUnified]  = useState<UnifiedLead[]>([])
   const [loading,  setLoading]  = useState(true)
   const [selected, setSelected] = useState<UnifiedLead | null>(null)
@@ -311,7 +356,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
           id: n.id, firstName: n.firstName, lastName: n.lastName,
           email: n.email, source: n.source, createdAt: n.createdAt,
         }))
-        bookings = DEMO_BOOKINGS_STUB
+        bookings = DEMO_BOOKINGS
       } else {
         const [aRes, bRes] = await Promise.all([
           supabase.from('leads').select('*').order('created_at', { ascending: false }),
@@ -342,7 +387,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
   // Deduplication detection: same email appearing in newsletter + application
   const duplicates = unified.filter(u => u.sources.length > 1)
 
-  // Filter
+  // Filter — search NARROWS the source/status filters, it never resets them
   const filtered = unified.filter(u => {
     if (srcFilter !== 'all' && !u.sources.includes(srcFilter)) return false
     if (statusFilter !== 'all' && u.application?.status !== statusFilter) return false
@@ -354,26 +399,38 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
   })
 
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const coachOf = (u: UnifiedLead) =>
+    u.application?.coach_pref
+    ?? (u.bookings[0] ? titleizeSlug(u.bookings[0].coach_slug) : null)
+
+  const padX = isMobile ? '1rem' : '1.5rem'
+  const pillStyle = (active: boolean, activeColor: string | null) => ({
+    background: active ? (activeColor ? activeColor + '22' : 'var(--surface-2)') : 'transparent',
+    border: `1px solid ${active ? (activeColor ?? 'var(--text-dim)') : 'var(--border)'}`,
+    color: active ? (activeColor ?? 'var(--text)') : 'var(--text-4)',
+    fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const,
+    padding: isMobile ? '.55rem .8rem' : '.3rem .7rem', borderRadius: '.2rem',
+    cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' as const,
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {isDemo && (
-        <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.5rem 1.5rem', display: 'flex', gap: '.75rem', alignItems: 'center', flexShrink: 0 }}>
-          <span style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo Mode</span>
-          <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Showing combined sample data from all lead sources.</span>
+        <div style={{ padding: `1rem ${padX} 0`, flexShrink: 0 }}>
+          <DemoBanner note="Contacts combine sample applications, newsletter signups, and booked calls." />
         </div>
       )}
 
       {/* Merge alert */}
       {duplicates.length > 0 && (
-        <div style={{ background: 'rgba(13,91,174,.1)', borderBottom: '1px solid rgba(13,91,174,.25)', padding: '.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
-          <span style={{ color: '#009dd6', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>Multi-Source</span>
+        <div style={{ background: 'rgba(13,91,174,.1)', borderBottom: '1px solid rgba(13,91,174,.25)', padding: `.6rem ${padX}`, display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
+          <span style={{ color: '#009dd6', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Multi-Source</span>
           <span style={{ color: 'var(--text-2)', fontSize: '.75rem' }}>{duplicates.length} contact{duplicates.length > 1 ? 's' : ''} appear in multiple sources — their profiles are automatically unified below.</span>
         </div>
       )}
 
       {/* Stats bar */}
-      <div style={{ padding: '.875rem 1.5rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '2rem', flexShrink: 0 }}>
+      <div style={{ padding: `.875rem ${padX}`, borderBottom: '1px solid var(--surface)', display: 'flex', flexWrap: 'wrap', gap: isMobile ? '1rem 1.5rem' : '2rem', flexShrink: 0 }}>
         {[
           ['Total Contacts', unified.length],
           ['Applied', unified.filter(u => u.sources.includes('application')).length],
@@ -388,28 +445,28 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
       </div>
 
       {/* Toolbar */}
-      <div style={{ padding: '.875rem 1.5rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '.75rem', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
-        <input className="field" placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 240, flex: '0 0 auto' }} />
+      <div style={{ padding: `.875rem ${padX}`, borderBottom: '1px solid var(--surface)', display: 'flex', gap: '.75rem', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
+        <input className="field" placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: isMobile ? 'none' : 240, flex: isMobile ? '1 1 100%' : '0 0 auto' }} />
 
         {/* Source filter */}
-        <div style={{ display: 'flex', gap: '.35rem' }}>
+        <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap' }}>
           {SOURCE_FILTERS.map(f => (
-            <button key={f.value} onClick={() => setSrcFilter(f.value)} style={{ background: srcFilter === f.value ? 'var(--surface-2)' : 'transparent', border: `1px solid ${srcFilter === f.value ? 'var(--text-dim)' : 'var(--border)'}`, color: srcFilter === f.value ? 'var(--text)' : 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .7rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            <button key={f.value} onClick={() => setSrcFilter(f.value)} style={pillStyle(srcFilter === f.value, null)}>
               {f.label}
             </button>
           ))}
         </div>
 
         {/* Status filter (only meaningful for applications) */}
-        <div style={{ display: 'flex', gap: '.35rem' }}>
+        <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap' }}>
           {(['all', 'new', 'reviewed', 'accepted', 'declined'] as const).map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)} style={{ background: statusFilter === s ? (s === 'all' ? 'var(--surface-2)' : (STATUS_COLORS[s] ?? 'var(--text-3)') + '22') : 'transparent', border: `1px solid ${statusFilter === s ? (s === 'all' ? 'var(--text-dim)' : (STATUS_COLORS[s] ?? 'var(--text-dim)')) : 'var(--border)'}`, color: statusFilter === s ? (s === 'all' ? 'var(--text)' : STATUS_COLORS[s]) : 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .7rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            <button key={s} onClick={() => setStatusFilter(s)} style={pillStyle(statusFilter === s, s === 'all' ? null : (STATUS_COLORS[s] ?? 'var(--text-dim)'))}>
               {s}
             </button>
           ))}
         </div>
 
-        <button onClick={load} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={load} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
           ↺ Refresh
         </button>
       </div>
@@ -419,8 +476,31 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>Loading contacts…</div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>No contacts match.</div>
+      ) : isMobile ? (
+        /* Phone: stacked cards — the 5-column nowrap table forced sideways scrolling */
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+          {filtered.map(u => (
+            <button key={u.email} onClick={() => setSelected(u)} style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', textAlign: 'left', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '.25rem', padding: '.9rem 1rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '.3rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.85rem' }}>
+                    {u.firstName} {u.lastName}
+                    {u.sources.length > 1 && <span style={{ marginLeft: '.4rem', color: '#009dd6', fontSize: '.6rem', fontWeight: 900 }}>✦</span>}
+                  </span>
+                  {u.application && <StatusBadge status={u.application.status} />}
+                </div>
+                <span style={{ color: 'var(--text-2)', fontSize: '.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</span>
+                <span style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>
+                  {fmtDate(u.lastSeen)}{coachOf(u) ? ` · ${coachOf(u)}` : ''}
+                </span>
+              </div>
+              <span aria-hidden style={{ color: 'var(--text-4)', fontSize: '1.15rem', flexShrink: 0 }}>›</span>
+            </button>
+          ))}
+          <p style={{ color: 'var(--text-3)', fontSize: '.7rem', padding: '.25rem 0' }}>Showing {filtered.length} of {unified.length} contacts</p>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? 'minmax(0,1fr) 420px' : '1fr', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? 'minmax(0,1fr) min(420px, 45vw)' : '1fr', flex: 1, minHeight: 0 }}>
           {/* List */}
           <div style={{ overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
@@ -429,14 +509,13 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
                   {['Name', 'Email', 'Sources', 'Status', 'Last Activity'].map(h => (
                     <th key={h} style={{ padding: '.875rem 1.25rem', textAlign: 'left', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
+                  <th aria-hidden style={{ padding: '.875rem 1rem 0.875rem .25rem', width: '2rem' }} />
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(u => (
                   <tr key={u.email} onClick={() => setSelected(selected?.email === u.email ? null : u)}
-                    style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.email === u.email ? 'var(--surface)' : 'transparent', transition: 'background .1s' }}
-                    onMouseEnter={e => { if (selected?.email !== u.email) e.currentTarget.style.background = 'var(--surface)' }}
-                    onMouseLeave={e => { if (selected?.email !== u.email) e.currentTarget.style.background = 'transparent' }}
+                    style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.email === u.email ? 'var(--surface)' : 'transparent' }}
                   >
                     <td style={{ padding: '1rem 1.25rem', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {u.firstName} {u.lastName}
@@ -454,6 +533,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
                     <td style={{ padding: '1rem 1.25rem', color: 'var(--text-3)', whiteSpace: 'nowrap', fontSize: '.75rem' }}>
                       {fmtDate(u.lastSeen)}
                     </td>
+                    <td aria-hidden style={{ padding: '1rem 1rem 1rem .25rem', color: 'var(--text-4)', fontSize: '1rem', textAlign: 'right' }}>›</td>
                   </tr>
                 ))}
               </tbody>
@@ -461,16 +541,28 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
             <p style={{ padding: '.75rem 1.25rem', color: 'var(--text-3)', fontSize: '.7rem' }}>Showing {filtered.length} of {unified.length} contacts</p>
           </div>
 
-          {/* Detail */}
+          {/* Detail — desktop side column */}
           {selected && (
             <LeadDetail
               lead={selected}
               onClose={() => setSelected(null)}
               onUpdateLead={handleUpdateLead}
               isDemo={isDemo}
+              isMobile={false}
             />
           )}
         </div>
+      )}
+
+      {/* Detail — phone full-screen overlay */}
+      {isMobile && selected && (
+        <LeadDetail
+          lead={selected}
+          onClose={() => setSelected(null)}
+          onUpdateLead={handleUpdateLead}
+          isDemo={isDemo}
+          isMobile
+        />
       )}
     </div>
   )

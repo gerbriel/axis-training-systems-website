@@ -1,22 +1,27 @@
-import { COACHES } from '../data/coaches'
-import type { Coach } from '../data/coaches'
+import { useState, useEffect } from 'react'
 import { applyHref } from '../utils/nav'
+import { supabaseConfigured } from '../lib/supabase'
+import { fetchMainPageTestimonials } from '../lib/testimonialsApi'
+import { SEED_TESTIMONIALS } from '../data/testimonials'
+import type { Testimonial } from '../data/testimonials'
 
-// Pick 3 featured testimonials (one per featured coach)
-const featured = [
-  { coachSlug: 'ronnie-vallejo', idx: 0 },
-  { coachSlug: 'lucas-sison',    idx: 1 },
-  { coachSlug: 'ronnie-vallejo', idx: 1 },
-]
+// Which testimonials appear here is no longer hardcoded — coaches request the main
+// page from their portal and the head coach approves. Newest approved first.
+// Seeded from the static data so the first paint is never empty while the fetch runs.
+const initialItems = SEED_TESTIMONIALS
+  .filter(t => t.mainStatus === 'approved')
+  .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
 export default function Testimonials() {
-  const items = featured.flatMap(({ coachSlug, idx }) => {
-    const coach = COACHES.find((c: Coach) => c.slug === coachSlug)
-    if (!coach) return []
-    const t = coach.testimonials[idx]
-    if (!t) return []
-    return [{ ...t, coachName: coach.name, coachSlug }]
-  })
+  const [items, setItems] = useState<Testimonial[]>(initialItems)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMainPageTestimonials(!supabaseConfigured)
+      .then(rows => { if (!cancelled) setItems(rows) })
+      .catch(() => { /* keep the static seed */ })
+    return () => { cancelled = true }
+  }, [])
 
   if (items.length === 0) return null
 
@@ -51,9 +56,9 @@ export default function Testimonials() {
 
         {/* Testimonial cards */}
         <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-          {items.map((t, i) => (
+          {items.map(t => (
             <div
-              key={i}
+              key={t.id}
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--surface)',

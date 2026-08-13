@@ -46,6 +46,27 @@ export function sanitizeShort(input: string): string {
 }
 
 /**
+ * Display-safe sanitize — strips the same dangerous tag/protocol/handler patterns
+ * as sanitize(), trims and length-caps, but does NOT HTML-entity-escape.
+ *
+ * Use this for values that are rendered as React TEXT nodes (not innerHTML):
+ * React already escapes text on render, so escaping here too double-encodes and
+ * shows literal entities (e.g. "it's" → "it&#x27;s", "8/9" → "8&#x2F;9").
+ */
+export function sanitizeText(input: string, maxLength = 3000): string {
+  if (typeof input !== 'string') return ''
+  return input
+    .replace(/<[^>]*>/g, '')          // strip HTML tags
+    .replace(/javascript\s*:/gi, '')   // strip JS protocol
+    .replace(/data\s*:/gi, '')         // strip data: URIs
+    .replace(/vbscript\s*:/gi, '')     // strip vbscript:
+    .replace(/on\w+\s*=/gi, '')        // strip inline event handlers
+    .replace(/<!--[\s\S]*?-->/g, '')   // strip HTML comments
+    .trim()
+    .slice(0, maxLength)
+}
+
+/**
  * Strict short sanitize — for fields that should only contain
  * alphanumerics, spaces, hyphens, apostrophes, and periods (max 100 chars).
  * Use for names, locations, federation names.

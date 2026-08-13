@@ -7,12 +7,6 @@ const STEPS = [
 
 const LOGISTICS = [
   {
-    label: 'Pricing',
-    value: '$165–$180',
-    sub: 'Per month, depending on coach. Billed through Zen Planner.',
-    icon: null,
-  },
-  {
     label: 'Communication',
     value: 'WhatsApp',
     sub: 'All coaching communication happens in a private WhatsApp thread. Direct access to your coach, no middleman.',
@@ -86,7 +80,7 @@ export default function HowItWorks() {
         </div>
 
         {/* Logistics cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {LOGISTICS.map(l => (
             <div key={l.label} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '1.75rem' }}>
               <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', marginBottom: '.75rem' }}>{l.label}</p>

@@ -11,7 +11,25 @@
       "Bash(xargs sed -i '' \"s/borderColor = '#c8102e'/borderColor = '#272C84'/g; s/\\\\.style\\\\.color = '#c8102e'/.style.color = '#272C84'/g; s/'#c8102e' : 'transparent'/'#272C84' : 'transparent'/g; s/? '#c8102e' : 'transparent'/? '#272C84' : 'transparent'/g\")",
       "Bash(xargs sed -i '' \"s/background: '#272C84', color: 'var\\(--text\\)'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', color: '#000000'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', color: '#000'/background: '#272C84', color: '#ffffff'/g; s/background: '#272C84', border: 'none', color: 'var\\(--text\\)'/background: '#272C84', border: 'none', color: '#ffffff'/g; s/background: '#272C84', border: 'none', color: '#000'/background: '#272C84', border: 'none', color: '#ffffff'/g\")",
       "Bash(grep -v \"^$\\\\|✓\\\\|chunks\\\\|minification\\\\|rollup\\\\|limit\\\\|adjust\\\\|Using\\\\|Use build\")",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(curl -s \"https://www.openpowerlifting.org/api/rankings/men?lang=en&units=kg&by_dots=1&start=0&end=2\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); rows=d.get\\('rows',[]\\); print\\('total_length:', d.get\\('total_length'\\)\\); print\\('num rows:', len\\(rows\\)\\); [print\\('row', i, ':', r\\) for i,r in enumerate\\(rows[:2]\\)]\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/gen-seed.mjs\")",
+      "Bash(git stash *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5199/axis-training-systems-website/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5199/axis-training-systems-website/admin/ronnie-vallejo\")",
+      "Bash(node -e \"console.log\\('playwright:', require.resolve\\('playwright'\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5199/axis-training-systems-website/)",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/e2e-public.mjs\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/e2e-admin-approve.mjs\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/e2e-coach-crud.mjs\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/probe-403.mjs\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-gabrielrios-Desktop-WebDevProjects-Axis---Website/b0e0cc4f-5e49-4d5c-b5c3-696b98ec0495/scratchpad/baseline.mjs\")",
+      "Bash(node -e ' *)",
+      "Bash(git -C \"/Users/gabrielrios/Desktop/WebDevProjects/Axis - Website\" log --oneline -1 -- src/pages/coach-admin/ContentPublisher.tsx src/utils/sanitize.ts)",
+      "Bash(echo \"-- exit $? \\(no matches = no unescape guard\\)\")",
+      "Bash(which psql *)",
+      "Read(//opt/homebrew/opt/**)"
     ]
   }
 }
