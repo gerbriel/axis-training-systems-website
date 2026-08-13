@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Coach } from '../../data/coaches'
 import { href } from '../../utils/nav'
-import { sanitizeEmail, isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
+import ForgotPasswordForm from '../../components/dashboard/ForgotPasswordForm'
+import { coachLoginScope } from '../../lib/auth'
+import { isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -14,8 +16,7 @@ interface Props {
 }
 
 export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSignOut }: Props) {
-  const rlScope = `coach_login_${coach.slug}`
-  const [email, setEmail] = useState(coach.email)
+  const rlScope = coachLoginScope(coach.slug)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(sessionMismatch
@@ -23,6 +24,7 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
     : ''
   )
   const [lockRemaining, setLockRemaining] = useState(0)
+  const [forgot, setForgot] = useState(false)
 
   useEffect(() => {
     const tick = () => {
@@ -41,14 +43,11 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
     if (isBlocked) return
     setLoading(true)
     setError('')
-    const cleanEmail = sanitizeEmail(email)
-    if (cleanEmail.toLowerCase() !== coach.email.toLowerCase()) {
-      recordFailedAttempt(rlScope)
-      setError(`This portal is for ${coach.name} only (${coach.email}).`)
-      setLoading(false)
-      return
-    }
-    const { error: err } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+    // The address is fixed to this coach — the field is read-only below. It used
+    // to be editable, and a typo in it burned a lockout attempt against a check
+    // that never reached Supabase, so three fat-fingered emails could lock a
+    // coach out of their own portal for 15 minutes.
+    const { error: err } = await supabase.auth.signInWithPassword({ email: coach.email, password })
     if (err) {
       const result = recordFailedAttempt(rlScope)
       if (result.blocked) {
@@ -85,13 +84,16 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
           </div>
         )}
 
+        {forgot ? (
+          <ForgotPasswordForm defaultEmail={coach.email} lockEmail onBack={() => setForgot(false)} />
+        ) : (
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label className="field-label">Email</label>
             <input
-              type="email" className="field" placeholder={coach.email}
-              value={email} onChange={e => setEmail(e.target.value)} required
-              autoComplete="email"
+              type="email" className="field" value={coach.email} readOnly
+              autoComplete="username"
+              style={{ color: 'var(--text-3)', cursor: 'not-allowed' }}
             />
           </div>
           <div>
@@ -116,13 +118,21 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
 
           <button
             type="submit" disabled={loading || isBlocked}
-            style={{ background: loading || isBlocked ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading || isBlocked ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#1a1f6b' }}
-            onMouseLeave={e => { if (!loading && !isBlocked) e.currentTarget.style.background = '#272C84' }}
+            style={{ background: loading || isBlocked ? '#5c0e14' : '#c8102e', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading || isBlocked ? 'not-allowed' : 'pointer', marginTop: '.5rem', fontFamily: 'inherit' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>
+
+          {/* The only way out of a forgotten password — without it, five wrong
+              guesses meant a 15-minute lockout and a text to the owner. */}
+          <button
+            type="button" onClick={() => setForgot(true)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '.75rem', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', padding: '.5rem' }}
+          >
+            Forgot password?
+          </button>
         </form>
+        )}
 
         {/* Demo button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>

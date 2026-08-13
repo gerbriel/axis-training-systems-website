@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
 import type { Pageview } from '../../types/database'
+import DemoBanner from '../../components/dashboard/DemoBanner'
 
 interface DayStat { date: string; views: number; sessions: Set<string> }
 
@@ -110,12 +111,7 @@ export default function AnalyticsPanel({ isDemo = false }: { isDemo?: boolean })
 
   return (
     <div style={{ padding: '2rem' }}>
-      {isDemo && (
-        <div style={{ background: '#2d2500', border: '1px solid #5c4800', borderRadius: '.25rem', padding: '.5rem 1rem', marginBottom: '1.5rem', display: 'inline-flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo</span>
-          <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Showing generated sample data.</span>
-        </div>
-      )}
+      {isDemo && <DemoBanner />}
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1px', background: 'var(--surface-2)', marginBottom: '2rem' }}>

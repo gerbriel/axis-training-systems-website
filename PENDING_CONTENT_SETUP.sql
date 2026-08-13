@@ -1,4 +1,18 @@
 -- ============================================================
+-- ⚠️  SUPERSEDED — DO NOT RUN THIS FILE.
+--
+--     Replaced by supabase/migrations/004_pending_content.sql
+--
+-- The policies below grant every authenticated user `using (true)` on UPDATE
+-- and DELETE. That means any signed-in coach can approve their OWN blog post
+-- (bypassing head-coach review entirely) and can edit or delete ANY other
+-- coach's submissions. Running this file against the live database will
+-- re-open that hole, even if 004 has already been applied.
+--
+-- Kept only as a record of the original schema. Safe to delete.
+-- ============================================================
+
+-- ============================================================
 -- Axis Training Systems — pending_content table
 -- Run once in your Supabase SQL editor (Dashboard → SQL Editor)
 -- ============================================================
