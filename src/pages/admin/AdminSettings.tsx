@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { DEMO_ROUTING, DEMO_CONFIG } from '../../data/demoData'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import { safeUrl, sanitizeEmail, isValidEmail } from '../../utils/sanitize'
+import { fetchSiteFlag, setSiteFlag } from '../../lib/siteSettings'
 
 function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -40,11 +41,14 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
   const [savingConfig, setSavingConfig] = useState(false)
   const [routesMsg, setRoutesMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [configMsg, setConfigMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [demoEnabled, setDemoEnabled] = useState(isDemo)
+  const [demoSaving, setDemoSaving] = useState(false)
+  const [demoMsg, setDemoMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   useEffect(() => {
     if (isDemo) return
     const load = async () => {
-      const [{ data: routeData }, { data: configData }, { data: keyRow }] = await Promise.all([
+      const [{ data: routeData }, { data: configData }, { data: keyRow }, demoFlag] = await Promise.all([
         supabase.from('coach_routing').select('*').order('coach_name'),
         // Everything EXCEPT the API key. A `select('*')` here put the secret on
         // the wire and into this tab's memory every time an admin opened the
@@ -52,6 +56,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         supabase.from('admin_config').select('key,value').neq('key', 'resend_api_key'),
         // Existence only — the `key` column, never the `value`.
         supabase.from('admin_config').select('key').eq('key', 'resend_api_key').maybeSingle(),
+        fetchSiteFlag('demo_enabled'),
       ])
       if (routeData) setRoutes(routeData as unknown as CoachRouting[])
       if (configData) {
@@ -59,10 +64,26 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         setMasterEmail(cfg.find(c => c.key === 'master_notify_email')?.value ?? '')
       }
       setHasResendKey(!!keyRow)
+      setDemoEnabled(demoFlag)
       setLoading(false)
     }
     load()
   }, [isDemo])
+
+  const toggleDemo = async (next: boolean) => {
+    setDemoEnabled(next) // optimistic
+    setDemoMsg(null)
+    if (isDemo) { setDemoMsg({ text: 'Demo mode — not saved.', ok: true }); return }
+    setDemoSaving(true)
+    const res = await setSiteFlag('demo_enabled', next)
+    setDemoSaving(false)
+    if (!res.ok) {
+      setDemoEnabled(!next) // roll back
+      setDemoMsg({ text: res.message ?? 'Could not save.', ok: false })
+    } else {
+      setDemoMsg({ text: next ? 'Demo button is now visible to everyone.' : 'Demo button is hidden from the public (you still see it).', ok: true })
+    }
+  }
 
   const updateRoute = (id: string, field: keyof CoachRouting, value: string | boolean) => {
     setRoutes(rs => rs.map(r => r.id === id ? { ...r, [field]: value } : r))
@@ -154,6 +175,45 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
   return (
     <div style={{ padding: '2rem', maxWidth: 720 }}>
       {isDemo && <DemoBanner />}
+
+      {/* ── Demo visibility ── */}
+      <section style={{ marginBottom: '3rem' }}>
+        <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.5rem' }}>
+          Public Demo
+        </h2>
+        <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+          The “View Demo” button on the home page. When off, visitors don't see it —
+          but you always do, so you can still open the demo any time.
+        </p>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '.9rem', cursor: demoSaving ? 'default' : 'pointer' }}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={demoEnabled}
+            aria-label="Show the demo button to everyone"
+            disabled={demoSaving}
+            onClick={() => toggleDemo(!demoEnabled)}
+            style={{
+              flexShrink: 0, width: 46, height: 26, borderRadius: 999, padding: 0, position: 'relative',
+              background: demoEnabled ? '#272C84' : 'var(--surface-2)',
+              border: `1px solid ${demoEnabled ? '#272C84' : 'var(--border-mid)'}`,
+              cursor: demoSaving ? 'default' : 'pointer', transition: 'background .15s',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: demoEnabled ? 22 : 2,
+              width: 20, height: 20, borderRadius: '50%',
+              background: demoEnabled ? '#fff' : 'var(--text-4)', transition: 'left .15s',
+            }} />
+          </button>
+          <span style={{ color: 'var(--text)', fontSize: '.9rem', fontWeight: 700 }}>
+            {demoEnabled ? 'Visible to everyone' : 'Hidden from the public'}
+          </span>
+        </label>
+
+        {demoMsg && <div style={{ marginTop: '.75rem' }}><StatusMsg msg={demoMsg.text} ok={demoMsg.ok} /></div>}
+      </section>
 
       {/* ── Email Routing ── */}
       <section style={{ marginBottom: '3rem' }}>

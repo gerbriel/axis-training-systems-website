@@ -27,16 +27,25 @@ import InvitePage from './pages/auth/InvitePage'
 import PendingPage from './pages/auth/PendingPage'
 import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 import ToolPage from './pages/ToolPage'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { fetchSiteFlag } from './lib/siteSettings'
 import { trackPageview } from './lib/analytics'
 import { href } from './utils/nav'
 
-// Apply saved theme before first paint to prevent flash
+// Apply the theme before first paint to prevent a flash.
+//
+// LIGHT is the default now. The `.light` class carries the light palette (dark
+// lives on bare :root), so light = add the class. Dark is opt-in and remembered
+// per browser: only an explicit 'dark' choice skips the class. A storage that
+// throws (private mode) still lands on the light default rather than falling
+// through to dark.
 try {
-  if (localStorage.getItem('axis-theme') === 'light') {
+  if (localStorage.getItem('axis-theme') !== 'dark') {
     document.documentElement.classList.add('light')
   }
-} catch {}
+} catch {
+  document.documentElement.classList.add('light')
+}
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const SunIcon = () => (
@@ -98,6 +107,21 @@ function ThemeToggle() {
 // ── Demo widget ────────────────────────────────────────────────────────────
 function DemoWidget() {
   const [hovered, setHovered] = useState(false)
+  const { isAdmin } = useAuth()
+
+  // Off for the public by default; an admin turns it on in Settings. The admin
+  // themselves always sees it, so hiding it from visitors never hides it from
+  // the person who controls the switch. Starts hidden and appears only once the
+  // flag resolves true — no flash of a demo button on a live marketing page.
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    let live = true
+    fetchSiteFlag('demo_enabled').then(v => { if (live) setEnabled(v) })
+    return () => { live = false }
+  }, [])
+
+  if (!enabled && !isAdmin) return null
+
   return (
     <a
       href={href('/admin?demo=1')}
