@@ -9,7 +9,7 @@
  * Access is tracked in localStorage under `axis_newsletter_access`.
  * Any signup (from any page / source) unlocks all gated lead magnets.
  *
- * Supabase migration: CREATE_NEWSLETTER_LEADS.sql
+ * Supabase migration: supabase/migrations/015_newsletter_leads.sql
  */
 
 import { supabase, supabaseConfigured } from './supabase'

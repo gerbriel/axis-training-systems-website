@@ -1,7 +1,8 @@
 -- ============================================================
 -- Migration 004: pending_content + per-coach RLS
 -- ============================================================
--- Supersedes the loose PENDING_CONTENT_SETUP.sql in the repo root.
+-- Supersedes PENDING_CONTENT_SETUP.sql, a loose script that lived in the repo
+-- root until it was deleted as part of 014/015.
 --
 -- That file created the table with `using (true)` on update/delete for every
 -- authenticated user, which meant any coach could approve their own post or
