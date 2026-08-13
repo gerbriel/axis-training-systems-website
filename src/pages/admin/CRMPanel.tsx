@@ -2,12 +2,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
 import { fetchNewsletterLeads } from '../../lib/newsletterApi'
 import type { Lead, Booking } from '../../types/database'
+import { BOOKING_STAFF_COLUMNS } from '../../types/database'
 import type { NewsletterLead } from '../../types/newsletter'
 import { DEMO_LEADS, DEMO_NEWSLETTER_LEADS, DEMO_BOOKINGS } from '../../data/demoData'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { sanitizeText } from '../../utils/sanitize'
 
 // ── Types ──────────────────────────────────────────────────────────────────
+
+/** Long enough for a real note, short enough that nobody can post a novel. */
+const NOTES_MAX = 4000
 
 type LeadSource = 'application' | 'newsletter' | 'booking'
 
@@ -146,7 +151,9 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
     setSaveError(null)
     try {
       if (!isDemo && supabaseConfigured) {
-        const { error } = await supabase.from('leads').update({ admin_notes: notes, status }).eq('id', lead.application.id)
+        // Bounded and stripped here, because the textarea's maxLength is a DOM
+        // attribute and this is the last point the client controls.
+        const { error } = await supabase.from('leads').update({ admin_notes: sanitizeText(notes, NOTES_MAX), status }).eq('id', lead.application.id)
         if (error) throw new Error(error.message)
       } else {
         await new Promise(r => setTimeout(r, 400)) // simulate latency in demo
@@ -298,7 +305,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
         <div>
           <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
           {lead.application ? (
-            <textarea className="field" rows={4} value={notes} onChange={e => { setNotes(e.target.value); markEdited() }} placeholder="Internal notes visible to coaches…" />
+            <textarea className="field" rows={4} maxLength={NOTES_MAX} value={notes} onChange={e => { setNotes(e.target.value); markEdited() }} placeholder="Internal notes visible to coaches…" />
           ) : (
             <p style={{ color: 'var(--text-4)', fontSize: '.8rem' }}>Notes available once the lead submits an application.</p>
           )}
@@ -360,7 +367,11 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
       } else {
         const [aRes, bRes] = await Promise.all([
           supabase.from('leads').select('*').order('created_at', { ascending: false }),
-          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+          // Not select('*'): the CRM shows a booking, it does not administer one,
+          // so it has no business pulling manage_token (a bearer credential) or
+          // coach_notes (the coach's private assessment) into the browser. Same
+          // column list every other staff booking read uses.
+          supabase.from('bookings').select(BOOKING_STAFF_COLUMNS).order('created_at', { ascending: false }),
         ])
         applications = (aRes.data ?? []) as Lead[]
         bookings     = (bRes.data ?? []) as Booking[]
@@ -446,7 +457,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
 
       {/* Toolbar */}
       <div style={{ padding: `.875rem ${padX}`, borderBottom: '1px solid var(--surface)', display: 'flex', gap: '.75rem', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
-        <input className="field" placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: isMobile ? 'none' : 240, flex: isMobile ? '1 1 100%' : '0 0 auto' }} />
+        <input className="field" maxLength={120} placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: isMobile ? 'none' : 240, flex: isMobile ? '1 1 100%' : '0 0 auto' }} />
 
         {/* Source filter */}
         <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap' }}>

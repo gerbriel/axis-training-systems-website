@@ -3,6 +3,7 @@ import type { CoachRouting } from '../../types/database'
 import { supabase } from '../../lib/supabase'
 import { DEMO_ROUTING, DEMO_CONFIG } from '../../data/demoData'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { safeUrl, sanitizeEmail, isValidEmail } from '../../utils/sanitize'
 
 function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -20,7 +21,20 @@ function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
 export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) {
   const [routes, setRoutes] = useState<CoachRouting[]>(isDemo ? DEMO_ROUTING : [])
   const [masterEmail, setMasterEmail] = useState(isDemo ? (DEMO_CONFIG.find(c => c.key === 'master_notify_email')?.value ?? '') : '')
-  const [resendKey, setResendKey] = useState(isDemo ? (DEMO_CONFIG.find(c => c.key === 'resend_api_key')?.value ?? '') : '')
+  /**
+   * WRITE-ONLY. The field starts empty and is never filled from the database,
+   * because the value it would be filled with is a live third-party API secret:
+   * fetching it copies the key out of Postgres into browser memory, into React
+   * state, and onto a DOM node whose `value` any XSS on this page — or anyone
+   * with the console open — can read. `type="password"` only hides it from the
+   * person sitting in front of it.
+   *
+   * All the screen actually needs to know is WHETHER a key is stored, which is
+   * one boolean and no secret. Leaving the box blank leaves the stored key
+   * alone; typing in it replaces it.
+   */
+  const [resendKey, setResendKey] = useState('')
+  const [hasResendKey, setHasResendKey] = useState(isDemo)
   const [loading, setLoading] = useState(!isDemo)
   const [savingRoutes, setSavingRoutes] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
@@ -30,16 +44,21 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
   useEffect(() => {
     if (isDemo) return
     const load = async () => {
-      const [{ data: routeData }, { data: configData }] = await Promise.all([
+      const [{ data: routeData }, { data: configData }, { data: keyRow }] = await Promise.all([
         supabase.from('coach_routing').select('*').order('coach_name'),
-        supabase.from('admin_config').select('*'),
+        // Everything EXCEPT the API key. A `select('*')` here put the secret on
+        // the wire and into this tab's memory every time an admin opened the
+        // settings screen, whether or not they meant to touch it.
+        supabase.from('admin_config').select('key,value').neq('key', 'resend_api_key'),
+        // Existence only — the `key` column, never the `value`.
+        supabase.from('admin_config').select('key').eq('key', 'resend_api_key').maybeSingle(),
       ])
       if (routeData) setRoutes(routeData as unknown as CoachRouting[])
       if (configData) {
         const cfg = configData as unknown as { key: string; value: string }[]
         setMasterEmail(cfg.find(c => c.key === 'master_notify_email')?.value ?? '')
-        setResendKey(cfg.find(c => c.key === 'resend_api_key')?.value ?? '')
       }
+      setHasResendKey(!!keyRow)
       setLoading(false)
     }
     load()
@@ -58,10 +77,27 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
       setSavingRoutes(false)
       return
     }
+    // Checked before the write, not after: this column is documented to become
+    // an `href` on a public coach profile, and a `javascript:` URI stored there
+    // is stored XSS waiting for the day the field is wired up. safeUrl allows
+    // http/https/mailto and refuses everything else.
+    const badUrl = routes.find(r => r.calendly_url && !safeUrl(r.calendly_url))
+    if (badUrl) {
+      setRoutesMsg({ text: `${badUrl.coach_name}: that booking link is not a valid http(s) URL.`, ok: false })
+      setSavingRoutes(false)
+      return
+    }
+    const badEmail = routes.find(r => r.notify && r.email && !isValidEmail(sanitizeEmail(r.email)))
+    if (badEmail) {
+      setRoutesMsg({ text: `${badEmail.coach_name}: that does not look like an email address.`, ok: false })
+      setSavingRoutes(false)
+      return
+    }
+
     const updates = routes.map(r =>
       supabase.from('coach_routing')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ email: r.email, notify: r.notify, calendly_url: r.calendly_url ?? null, updated_at: new Date().toISOString() } as any)
+        .update({ email: sanitizeEmail(r.email), notify: r.notify, calendly_url: safeUrl(r.calendly_url) ?? null, updated_at: new Date().toISOString() } as any)
         .eq('id', r.id)
     )
     const results = await Promise.all(updates)
@@ -82,13 +118,28 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
       setSavingConfig(false)
       return
     }
-    const [r1, r2] = await Promise.all([
+    const cleanEmail = sanitizeEmail(masterEmail)
+    if (cleanEmail && !isValidEmail(cleanEmail)) {
+      setConfigMsg({ text: 'That does not look like an email address.', ok: false })
+      setSavingConfig(false)
+      return
+    }
+
+    const writes = [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase.from('admin_config').upsert({ key: 'master_notify_email', value: masterEmail } as any),
+      supabase.from('admin_config').upsert({ key: 'master_notify_email', value: cleanEmail } as any),
+    ]
+    // An empty box means "leave the stored key alone", not "erase it" — the
+    // field is write-only, so blank is its resting state and saving the rest of
+    // this form must not wipe email delivery as a side effect.
+    if (resendKey.trim()) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase.from('admin_config').upsert({ key: 'resend_api_key', value: resendKey } as any),
-    ])
-    const hasError = r1.error || r2.error
+      writes.push(supabase.from('admin_config').upsert({ key: 'resend_api_key', value: resendKey.trim() } as any))
+    }
+
+    const results = await Promise.all(writes)
+    const hasError = results.some(r => r.error)
+    if (!hasError && resendKey.trim()) { setHasResendKey(true); setResendKey('') }
     setConfigMsg(hasError
       ? { text: 'Failed to save. Check your connection.', ok: false }
       : { text: 'Configuration saved.', ok: true }
@@ -147,7 +198,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
               {/* Email input */}
               <input
-                type="email" className="field" placeholder="coach@example.com"
+                type="email" className="field" placeholder="coach@example.com" maxLength={254}
                 value={r.email} onChange={e => updateRoute(r.id, 'email', e.target.value)}
                 disabled={!r.notify}
                 style={{ flex: 1, minWidth: 180, opacity: r.notify ? 1 : 0.4 }}
@@ -155,7 +206,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
               {/* Calendly URL */}
               <input
-                type="url" className="field" placeholder="https://calendly.com/their-link (optional)"
+                type="url" className="field" placeholder="https://calendly.com/their-link (optional)" maxLength={500}
                 value={r.calendly_url ?? ''}
                 onChange={e => updateRoute(r.id, 'calendly_url', e.target.value)}
                 style={{ flex: 2, minWidth: 220 }}
@@ -192,7 +243,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
           <div>
             <label className="field-label">Master Notification Email</label>
             <input
-              type="email" className="field" placeholder="admin@axistrainingsystems.com"
+              type="email" className="field" placeholder="admin@axistrainingsystems.com" maxLength={254}
               value={masterEmail} onChange={e => setMasterEmail(e.target.value)}
             />
             <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.4rem' }}>All leads will be CC'd to this address.</p>
@@ -200,12 +251,16 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
           <div>
             <label className="field-label">Resend API Key</label>
             <input
-              type="password" className="field" placeholder="re_••••••••••••••••"
+              type="password" className="field" maxLength={200}
+              placeholder={hasResendKey ? 'A key is stored — type here to replace it' : 're_••••••••••••••••'}
               value={resendKey} onChange={e => setResendKey(e.target.value)}
               autoComplete="new-password"
             />
             <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.4rem' }}>
-              Get your API key at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>resend.com</a>. Required for email delivery.
+              {hasResendKey
+                ? 'A key is stored. It is never sent back to this page — leave this blank to keep it, or type a new one to replace it.'
+                : 'No key stored yet.'}
+              {' '}Get your API key at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>resend.com</a>. Required for email delivery.
             </p>
           </div>
         </div>
@@ -225,7 +280,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
       <div style={{ borderTop: '1px solid var(--border)', marginTop: '3rem', paddingTop: '2rem' }}>
         <h3 style={{ color: 'var(--text-3)', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '1rem' }}>Email Setup Instructions</h3>
         <ol style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 2, paddingLeft: '1.25rem' }}>
-          <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener" style={{ color: 'var(--text-2)' }}>resend.com</a> and verify your sending domain.</li>
+          <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-2)' }}>resend.com</a> and verify your sending domain.</li>
           <li>Copy your API key and paste it above.</li>
           <li>Deploy the Supabase Edge Function from <code style={{ color: 'var(--text-2)', background: 'var(--surface)', padding: '.1rem .4rem', borderRadius: '.2rem' }}>supabase/functions/send-lead-email/</code>.</li>
           <li>Set the <code style={{ color: 'var(--text-2)', background: 'var(--surface)', padding: '.1rem .4rem', borderRadius: '.2rem' }}>RESEND_API_KEY</code> secret in your Supabase project dashboard.</li>

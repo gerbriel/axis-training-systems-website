@@ -5,10 +5,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# Deny by default, then grant per job below.
+#
+# The workflow previously granted `contents: read` + `pages: write` +
+# `id-token: write` to every job, which included the BUILD job — the one place
+# third-party code executes, via `npm ci` lifecycle scripts. A malicious
+# postinstall in any transitive dependency inherited the full set.
+#
+# The OIDC token is the one that mattered: `actions/deploy-pages` exchanges it
+# for deployment authority, and nothing in the build job uses it. It is now
+# granted only to `deploy`, which runs no project code. `pages: write` stays on
+# build because `actions/configure-pages` calls the Pages API from there.
+permissions: {}
 
 # Allow only one concurrent deployment
 concurrency:
@@ -18,11 +26,25 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      # Every `uses:` in this workflow is a first-party actions/* action, so
+      # they are left on version tags rather than pinned to commit SHAs: the
+      # actions org is the same trust boundary as the runner itself, and tag
+      # pinning keeps the security patches flowing. Anything from a third-party
+      # org added here MUST be pinned to a full commit SHA instead — a movable
+      # tag on someone else's repo is arbitrary code execution with our secrets
+      # in scope.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # The default leaves GITHUB_TOKEN in .git/config for the rest of the
+          # job, where any build script can read it. Nothing here pushes.
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -38,6 +60,18 @@ jobs:
       # demo mode, so coach blog posts go to an in-memory store and never reach
       # the database. The anon key is designed to ship in a client bundle; RLS
       # (see supabase/migrations/004) is what actually guards the data.
+      #
+      # These are the ONLY two secrets this workflow touches, and both are
+      # public-by-design: they end up verbatim in dist/assets/*.js. Nothing that
+      # must stay secret — the Resend API key, the Supabase service-role key,
+      # the Google OAuth client secret — may ever be added as a VITE_ variable.
+      # Vite inlines every VITE_-prefixed value into the bundle at build time,
+      # so "set it as a repo secret" does not make it private here; those belong
+      # in Supabase Edge Function secrets, where they already are.
+      #
+      # Passed as step-scoped env rather than interpolated into the `run:`
+      # string, so the values are never rendered into a command line that shows
+      # up in the workflow log.
       - name: Build
         run: npm run build
         env:
@@ -58,6 +92,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # The only job that needs to mint a deployment. It runs no project code.
+    permissions:
+      pages: write
+      id-token: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     environment:

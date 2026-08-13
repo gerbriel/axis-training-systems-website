@@ -2,6 +2,10 @@ import type { Lead, LeadStatus } from '../../types/database'
 import { supabase } from '../../lib/supabase'
 import { useState } from 'react'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
+import { sanitizeText } from '../../utils/sanitize'
+
+/** Long enough for a real note, short enough that nobody can post a novel. */
+const NOTES_MAX = 4000
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new:      '#c8102e',
@@ -65,7 +69,9 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
       const { data, error } = await supabase
         .from('leads')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ status, admin_notes: notes } as any)
+        // Bounded and stripped here: the textarea's maxLength is a DOM
+        // attribute, and this is the last point the client controls.
+        .update({ status, admin_notes: sanitizeText(notes, NOTES_MAX) } as any)
         .eq('id', lead.id)
         .select()
         .single()
@@ -171,7 +177,7 @@ export default function LeadDetail({ lead, onClose, onUpdate, isDemo = false }: 
 
           <div>
             <label className="field-label">Admin Notes</label>
-            <textarea className="field" rows={3} placeholder="Internal notes…" value={notes} onChange={e => { setNotes(e.target.value); markEdited() }} />
+            <textarea className="field" rows={3} maxLength={NOTES_MAX} placeholder="Internal notes…" value={notes} onChange={e => { setNotes(e.target.value); markEdited() }} />
           </div>
 
           {dirty && saveState !== 'error' && (

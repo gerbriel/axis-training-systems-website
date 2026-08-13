@@ -1,0 +1,36 @@
+-- ============================================================
+-- Axis Training Systems — 014: calendly_url on coach_routing
+-- ============================================================
+--
+-- Ports ADD_CALENDLY_URL.sql, which sat loose in the repo root and was never a
+-- migration. As written it could not have run at all. Its second statement was
+--
+--     create policy if not exists "anon_read_coach_routing" ...
+--
+-- and Postgres has no IF NOT EXISTS on CREATE POLICY — not in any version. The
+-- Supabase SQL editor runs a script as one transaction, so the syntax error
+-- took the ALTER TABLE down with it and nothing was applied. The column may
+-- therefore be absent from the live database even though the file was "run",
+-- while AdminSettings has been writing coach_routing.calendly_url since June
+-- and CoachPage reads it to decide whether to show "Book a Consultation".
+--
+-- `add column if not exists` settles it in either direction: it adds the column
+-- on a database that never got it, and is a no-op on one that did.
+--
+-- The policy half is deliberately NOT carried over. It was redundant the day it
+-- was written — 001 already grants anon SELECT on coach_routing, for the edge
+-- function that routes application emails to the right coach, and nothing since
+-- has dropped it. A second `using (true)` policy for the same role on the same
+-- table adds no access and one more thing to reason about.
+--
+-- Worth knowing, since this migration is what puts a public URL on that table:
+-- the 001 policy is `for select to anon using (true)` over the WHOLE row, so
+-- coach_routing.email is world-readable too. That predates this file and is not
+-- changed here — the edge function depends on the policy, and narrowing it is a
+-- separate piece of work with its own blast radius.
+--
+-- Re-runnable.
+-- ============================================================
+
+alter table public.coach_routing
+  add column if not exists calendly_url text;

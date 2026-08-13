@@ -8,6 +8,7 @@ import {
   useUrlTab, useMediaQuery, MOBILE_QUERY,
   demoParamActive, setDemoParam, useDemoParamSync,
 } from '../lib/dashboard'
+import { clearDraft } from '../lib/contentDraft'
 import CoachAdminLogin from './coach-admin/CoachAdminLogin'
 import CoachAdminDashboard from './coach-admin/CoachAdminDashboard'
 import ContentPublisher from './coach-admin/ContentPublisher'
@@ -74,6 +75,12 @@ export default function CoachAdmin({ slug }: Props) {
   const signOut = async () => {
     if (isDemo) { setDemoParam(false); setIsDemo(false); return }
     await supabase.auth.signOut()
+    // The draft goes with the session. ContentPublisher autosaves the coach's
+    // unpublished post — title, body, and the id of the row it is editing —
+    // into localStorage every 800ms, and signing out used to leave all of it on
+    // the machine for whoever opens the console next. Signing out on a shared
+    // laptop is exactly the moment somebody expects it gone.
+    if (slug) clearDraft(slug, false)
     setSession(null)
   }
 

@@ -5,9 +5,13 @@ import type { Booking } from '../../types/database'
 import { fmtTime, fmtDate } from '../../lib/availability'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { sanitizeText } from '../../utils/sanitize'
 import { DEMO_BOOKINGS } from '../../data/demoData'
 
 type Status = Booking['status']
+
+/** Long enough for a real note, short enough that nobody can post a novel. */
+const NOTES_MAX = 4000
 
 const STATUS_COLORS: Record<Status, string> = {
   pending:   '#272C84',
@@ -71,9 +75,13 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
   const saveNotes = async () => {
     if (!selected) return
     setSaving(true)
-    if (!isDemo) await supabase.from('bookings').update({ coach_notes: notes }).eq('id', selected.id)
-    setBookings(bs => bs.map(b => b.id === selected.id ? { ...b, coach_notes: notes } : b))
-    setSelected(b => b ? { ...b, coach_notes: notes } : b)
+    // Bounded and stripped on the way OUT, not only on the way back in. The
+    // textarea's maxLength is a DOM attribute and a devtools edit away from
+    // gone; this is the last place the client controls before Postgres.
+    const clean = sanitizeText(notes, NOTES_MAX)
+    if (!isDemo) await supabase.from('bookings').update({ coach_notes: clean }).eq('id', selected.id)
+    setBookings(bs => bs.map(b => b.id === selected.id ? { ...b, coach_notes: clean } : b))
+    setSelected(b => b ? { ...b, coach_notes: clean } : b)
     setSaving(false)
   }
 
@@ -211,7 +219,7 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
       {/* Coach notes */}
       <div>
         <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
-        <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
+        <textarea className="field" rows={4} maxLength={NOTES_MAX} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
         <button onClick={saveNotes} disabled={saving}
           style={{ marginTop: '.5rem', background: '#272C84', border: 'none', color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'Saving…' : 'Save Notes'}

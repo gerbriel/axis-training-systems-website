@@ -18,6 +18,7 @@ import AnalyticsPanel from './admin/AnalyticsPanel'
 import TestimonialsPanel from './admin/TestimonialsPanel'
 import ApprovalsPanel from './admin/ApprovalsPanel'
 import InvitationsPanel from './admin/InvitationsPanel'
+import UserManagementPanel from './admin/UserManagementPanel'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import { COACHES } from '../data/coaches'
 import { useRequireRole } from '../lib/useGuard'
@@ -25,27 +26,31 @@ import { useRequireRole } from '../lib/useGuard'
 type Tab =
   | 'crm' | 'bookings' | 'analytics'
   | 'approvals' | 'blog' | 'rotation' | 'meets' | 'testimonials'
-  | 'invitations' | 'availability' | 'settings'
+  | 'invitations' | 'people' | 'availability' | 'settings'
 
 const TABS: readonly Tab[] = [
   'crm', 'bookings', 'analytics',
   'approvals', 'blog', 'rotation', 'meets', 'testimonials',
-  'invitations', 'availability', 'settings',
+  'invitations', 'people', 'availability', 'settings',
 ]
 
 const TITLES: Record<Tab, string> = {
   crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics',
   approvals: 'Approvals', blog: 'Blog', rotation: 'Blog Rotation',
   meets: 'Meet Listings', testimonials: 'Testimonials',
-  invitations: 'Invitations', availability: 'Set Availability', settings: 'Settings',
+  invitations: 'Invitations', people: 'People & Access',
+  availability: 'Set Availability', settings: 'Settings',
 }
 
 // The old header was nine flat tabs in one row; the groups are the mental
 // model the owner actually has: people to talk to, content to review, setup.
+// 'people' — the accounts, roles and per-person permissions — sits under Setup:
+// it is where the site is configured, not where the day's work happens, and it
+// is the one tab whose own visibility the permission system gates (below).
 const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'People',  tabs: ['crm', 'bookings', 'analytics', 'invitations'] },
   { label: 'Content', tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
-  { label: 'Setup',   tabs: ['availability', 'settings'] },
+  { label: 'Setup',   tabs: ['people', 'availability', 'settings'] },
 ]
 
 function Nav({ tab, counts, onSelect, onSignOut, signOutLabel }: {
@@ -217,6 +222,7 @@ export default function AdminPortal() {
           {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
           {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
           {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
+          {tab === 'people'       && <UserManagementPanel isDemo={isDemo} />}
           {tab === 'blog'         && <BlogPanel isDemo={isDemo} />}
           {tab === 'rotation'     && <RotationPanel isDemo={isDemo} />}
           {tab === 'meets'        && <MeetsPanel isDemo={isDemo} />}

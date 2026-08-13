@@ -179,11 +179,34 @@ export async function revokeToken(token: string): Promise<void> {
 // Module scope, so it survives across invocations of a warm isolate. Mutex-free:
 // two concurrent refreshes for the same coach are harmless — Google keeps prior
 // access tokens valid, and the persist callback is idempotent (last write wins).
+//
+// KEYED ON THE CREDENTIAL, NOT ON THE COACH. It used to be keyed on coachSlug
+// alone, and that is wrong across a reconnect: a coach who disconnects and
+// reconnects with a DIFFERENT Google account gets a new refresh token, but a warm
+// isolate holding the old slug entry would keep handing out the old account's
+// access token for up to an hour — and 'primary' resolves on whichever account
+// the token belongs to. A client's booking, with their name and email on it, gets
+// written to the calendar the coach just walked away from. A new credential is a
+// new key, so the stale entry is simply never consulted again.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CachedToken { accessToken: string; expiresAt: number }
 
 const tokenCache = new Map<string, CachedToken>()
+
+/**
+ * The refresh token is DIGESTED, not stored. The map lives in the same process
+ * as the plaintext either way, but a key that is not itself a credential cannot
+ * be leaked by anything that dumps a map.
+ */
+async function cacheKey(conn: StoredConnection): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256', new TextEncoder().encode(conn.refreshToken),
+  )
+  const tag = [...new Uint8Array(digest)].slice(0, 8)
+    .map(b => b.toString(16).padStart(2, '0')).join('')
+  return `${conn.coachSlug}:${tag}`
+}
 
 export interface StoredConnection {
   coachSlug:    string
@@ -208,11 +231,13 @@ function isFresh(expiresAt: Date | number | null): boolean {
  * connection revoked and surfaces it; it never becomes an unhandled error.
  */
 export async function getAccessToken(conn: StoredConnection, persist?: PersistToken): Promise<string> {
-  const cached = tokenCache.get(conn.coachSlug)
+  const key = await cacheKey(conn)
+
+  const cached = tokenCache.get(key)
   if (cached && isFresh(cached.expiresAt)) return cached.accessToken
 
   if (conn.accessToken && isFresh(conn.expiresAt)) {
-    tokenCache.set(conn.coachSlug, {
+    tokenCache.set(key, {
       accessToken: conn.accessToken,
       expiresAt:   (conn.expiresAt as Date).getTime(),
     })
@@ -220,7 +245,7 @@ export async function getAccessToken(conn: StoredConnection, persist?: PersistTo
   }
 
   const tokens = await refreshAccessToken(conn.refreshToken)
-  tokenCache.set(conn.coachSlug, {
+  tokenCache.set(key, {
     accessToken: tokens.accessToken,
     expiresAt:   tokens.expiresAt.getTime(),
   })
@@ -228,9 +253,17 @@ export async function getAccessToken(conn: StoredConnection, persist?: PersistTo
   return tokens.accessToken
 }
 
-/** Drop a coach's cached access token (on revoke / disconnect). */
+/**
+ * Drop every cached access token for a coach (on revoke / disconnect).
+ *
+ * A prefix sweep, because the key is now `slug:credential-digest` and the caller
+ * disconnecting knows the slug but not which credential is cached under it.
+ */
 export function invalidateTokenCache(coachSlug: string): void {
-  tokenCache.delete(coachSlug)
+  const prefix = `${coachSlug}:`
+  for (const key of [...tokenCache.keys()]) {
+    if (key.startsWith(prefix)) tokenCache.delete(key)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -56,13 +56,23 @@ export async function resolveCoachSlugFromUser(authed: SupabaseClient): Promise<
 
   // coach_routing is read with service_role: the mapping is identity, not data the
   // coach owns, and 002's policies restrict what a coach may SELECT from it.
+  //
+  // Named columns, not `*`. This runs with service_role and the table has grown
+  // columns since it was written; pulling every one of them into a process that
+  // needs three is how a column added later ends up somewhere it was never
+  // reviewed for.
+  //
+  // The match is an exact case-folded compare in this process rather than an
+  // `ilike` filter. `_` and `%` are wildcards to ilike and ordinary characters in
+  // an email local part, so a pattern built from a caller's own address matches
+  // rows that are not theirs.
   const { data: rows, error: routeErr } = await serviceClient()
     .from('coach_routing')
-    .select('*')
+    .select('email,coach_slug,coach_name')
   if (routeErr || !rows) return null
 
   const row = (rows as Record<string, unknown>[]).find(
-    r => String(r.email ?? '').toLowerCase() === email,
+    r => String(r.email ?? '').trim().toLowerCase() === email,
   )
   if (!row) return null
 

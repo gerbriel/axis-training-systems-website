@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { fetchAllTestimonials, reviewTestimonial, deleteTestimonial } from '../../lib/testimonialsApi'
 import type { Testimonial, MainStatus } from '../../data/testimonials'
-import { sanitize } from '../../utils/sanitize'
+import { sanitizeText } from '../../utils/sanitize'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import { COACHES } from '../../data/coaches'
 
@@ -68,7 +68,7 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
 
   const confirmReject = async (id: string) => {
     setActionId(id); setActionError('')
-    try { await reviewTestimonial(id, 'rejected', sanitize(rejectNotes[id] ?? '', 500) || undefined, isDemo) }
+    try { await reviewTestimonial(id, 'rejected', sanitizeText(rejectNotes[id] ?? '', 500) || undefined, isDemo) }
     catch (e) { setActionError(e instanceof Error ? e.message : 'Failed') }
     setRejectMode(p => ({ ...p, [id]: false }))
     setActionId(null); await refresh()

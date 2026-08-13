@@ -4,6 +4,7 @@ import type { Coach } from '../../data/coaches'
 import { fmtDuration, fmtMoney } from '../../lib/availability'
 import { DEMO_SERVICES } from '../../lib/services'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { clampInt } from '../../utils/sanitize'
 
 /**
  * What this coach offers, and how they take bookings.
@@ -187,7 +188,11 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
           service_id: service.id,
           is_active: next,
           duration_minutes_override: current?.duration_minutes_override ?? null,
-          price_cents_override: current?.price_cents_override ?? null,
+          // price_cents_override is deliberately NOT sent. Nothing in this UI
+          // edits it, so echoing the value we happened to read back turned a
+          // visibility toggle into a price write: a tampered client could set
+          // any price on any service through a control that does not exist.
+          // Omitted from an upsert, the column keeps whatever the row has.
         },
         { onConflict: 'coach_slug,service_id' }
       )
@@ -223,7 +228,7 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
           service_id: service.id,
           is_active: current?.is_active ?? true,
           duration_minutes_override: minutes,
-          price_cents_override: current?.price_cents_override ?? null,
+          // Not sent, for the reason above: this control changes a LENGTH.
         },
         { onConflict: 'coach_slug,service_id' }
       )
@@ -352,7 +357,7 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
                       style={{ minWidth: 120 }}
                       disabled={readOnly}
                       value={offer?.duration_minutes_override ?? ''}
-                      onChange={e => setOverride(s, e.target.value === '' ? null : Number(e.target.value))}
+                      onChange={e => setOverride(s, e.target.value === '' ? null : clampInt(e.target.value, 5, 480, 30))}
                     >
                       {/* Empty string, not 0: an override of 0 would be a
                           zero-length call, and null is what means "use the
@@ -385,7 +390,7 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
               className="field"
               disabled={readOnly}
               value={policy.min_lead_minutes}
-              onChange={e => setPolicy(p => ({ ...p, min_lead_minutes: Number(e.target.value) }))}
+              onChange={e => setPolicy(p => ({ ...p, min_lead_minutes: clampInt(e.target.value, 0, 10080, 0) }))}
             >
               {LEAD_CHOICES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
@@ -396,7 +401,7 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
               className="field"
               disabled={readOnly}
               value={policy.max_advance_days}
-              onChange={e => setPolicy(p => ({ ...p, max_advance_days: Number(e.target.value) }))}
+              onChange={e => setPolicy(p => ({ ...p, max_advance_days: clampInt(e.target.value, 1, 365, 60) }))}
             >
               {ADVANCE_CHOICES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
@@ -407,7 +412,7 @@ export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: C
               className="field"
               disabled={readOnly}
               value={policy.buffer_minutes}
-              onChange={e => setPolicy(p => ({ ...p, buffer_minutes: Number(e.target.value) }))}
+              onChange={e => setPolicy(p => ({ ...p, buffer_minutes: clampInt(e.target.value, 0, 240, 0) }))}
             >
               {BUFFER_CHOICES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>

@@ -1,12 +1,27 @@
 import { useState } from 'react'
-import { sanitize, sanitizeShort, sanitizeEmail } from '../utils/sanitize'
+import { sanitize, sanitizeShort, sanitizeEmail, isValidEmail } from '../utils/sanitize'
 import { supabase } from '../lib/supabase'
+import { useBotTrap } from '../lib/botTrap'
 
 // ── Sanitization field map ─────────────────────────────────────────────────
 const SHORT_FIELDS = new Set([
   'firstName','lastName','social','age','height','bodyWeight','weightClass',
   'squatMax','benchMax','deadMax','squatFreq','benchFreq','deadFreq','sleep',
 ])
+
+/**
+ * The cap the browser enforces, derived from the cap `set()` already applies.
+ *
+ * Two numbers that mean the same thing will eventually be two different
+ * numbers, and the failure is silent in the worst direction: the input accepts
+ * 4 000 characters, the sanitizer truncates at 3 000, and the applicant's last
+ * paragraph disappears between typing it and reading it back. Both come from
+ * here instead.
+ */
+function maxLenFor(k: keyof FormData): number {
+  if (k === 'email') return 254
+  return SHORT_FIELDS.has(k) ? 200 : 3000
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type FormData = {
@@ -61,7 +76,7 @@ function Input({ name, placeholder, type = 'text', value, onChange, required }: 
     <input
       type={type} name={name} className="field" placeholder={placeholder}
       value={value} onChange={e => onChange(e.target.value)}
-      required={required}
+      required={required} maxLength={maxLenFor(name)}
       style={required && !value.trim() ? undefined : undefined}
     />
   )
@@ -75,6 +90,7 @@ function Textarea({ name, placeholder, rows = 3, value, onChange, required }: {
     <textarea
       name={name} className="field" placeholder={placeholder} rows={rows}
       value={value} onChange={e => onChange(e.target.value)} required={required}
+      maxLength={maxLenFor(name)}
     />
   )
 }
@@ -288,6 +304,10 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  // Honeypot + time-trap. Cuts unsophisticated form-spam before it ever reaches
+  // the database or the coach-notification email. See handleSubmit for why a
+  // suspected bot is shown success rather than an error.
+  const bot = useBotTrap()
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, boolean>>>({})
   const [privacyConsent, setPrivacyConsent] = useState(false)
   const [consentError, setConsentError] = useState(false)
@@ -329,6 +349,13 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
         valid = false
       }
     })
+    // The form is noValidate — deliberately, so the five-step flow controls its
+    // own messaging — which also means the browser's `type="email"` check never
+    // runs. Without this, "asdf" reaches the leads table and the reply bounces.
+    if (fields.includes('email') && data.email && !isValidEmail(data.email)) {
+      errors.email = true
+      valid = false
+    }
     setValidationErrors(errors)
     return valid
   }
@@ -341,7 +368,18 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // A suspected bot is shown the success screen and nothing is written. Telling
+    // it that it was caught only teaches the next attempt what to avoid, and the
+    // whole value of a honeypot is that it is silent.
+    if (bot.isSuspect()) { setSubmitted(true); return }
     if (!validateStep(TOTAL_STEPS)) return
+    // Re-checked at the point of the write, not only when step 1 was left: the
+    // Back button lets somebody return and blank the address after passing it.
+    if (!isValidEmail(data.email)) {
+      setStep(1)
+      setValidationErrors({ email: true })
+      return
+    }
     if (!privacyConsent) { setConsentError(true); return }
     setSubmitting(true)
     setError('')
@@ -446,6 +484,10 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
             <p style={{ color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>{STEP_TITLES[step - 1]}</p>
 
             <form onSubmit={handleSubmit} noValidate>
+              {/* Invisible to a person (off-screen, aria-hidden, out of tab
+                  order); a bot that fills every field trips it. Bare input by
+                  design — see botTrap.ts. */}
+              <input {...bot.fieldProps} />
               {step === 1 && <Step1 {...stepProps} lockedCoach={preselectedCoach} />}
               {step === 2 && <Step2 {...stepProps} toggleDay={toggleDay} />}
               {step === 3 && <Step3 {...stepProps} />}

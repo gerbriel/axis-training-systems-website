@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { href } from '../utils/nav'
 import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
+import { useBotTrap } from '../lib/botTrap'
 import { RPECalc, DotsCalc, WeightConverter, AttemptPlanner } from '../components/Tools'
 import Rankings from './Rankings'
 
@@ -52,9 +53,12 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+  const bot = useBotTrap()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Suspected bot: grant access silently, write nothing. See botTrap.ts.
+    if (bot.isSuspect()) { onAccess(); return }
     setError('')
     setLoading(true)
     try {
@@ -77,6 +81,7 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
         </p>
       </div>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
+        <input {...bot.fieldProps} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem' }}>
           <div>
             <label style={lbl}>First Name <span style={{ color: 'var(--text)' }}>*</span></label>

@@ -8,6 +8,10 @@
 // The coach_slug is NEVER read from the request body (integration invariant 3). For (b) it is
 // derived from the verified auth.uid() by current_coach_slug(), which takes no arguments.
 //
+// (b) is budgeted per coach and fails closed. Every press of "sync now" is a token refresh plus
+// a walk of the horizon against Google, and a page stuck retrying is how the whole project gets
+// rate-limited off the Calendar API. (a) is exempt: it holds the secret and it IS the schedule.
+//
 // We call freeBusy, not events.list, so event titles, descriptions and attendees never enter our
 // system (invariant 2) — coach_calendar_busy is publicly readable and holds instants and nothing else.
 //
@@ -25,6 +29,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { hashedSubject, rateLimitOk } from '../_shared/ratelimit.ts'
 
 const GOOGLE_TOKEN_URL    = 'https://oauth2.googleapis.com/token'
 const GOOGLE_FREEBUSY_URL = 'https://www.googleapis.com/calendar/v3/freeBusy'
@@ -32,6 +37,18 @@ const GOOGLE_FREEBUSY_URL = 'https://www.googleapis.com/calendar/v3/freeBusy'
 // Google rejects a freeBusy range longer than ~3 months; chunk well inside that.
 const MAX_QUERY_DAYS = 60
 const MS_PER_DAY     = 86_400_000
+
+/**
+ * "Sync now" budget for the coach-triggered path, per coach, failing CLOSED.
+ *
+ * The cron path is exempt — it holds the secret and it is the schedule. This is
+ * for the button: every press is a token refresh plus up to four freeBusy calls
+ * against Google, and the way Axis loses calendar sync for everybody is one
+ * coach's page stuck in a retry loop getting the whole project rate-limited off
+ * Google. Generous for a person clicking; useless for a loop.
+ */
+const SYNC_WINDOW_SECONDS = 3_600
+const SYNC_LIMIT_PER_COACH = 20
 
 // Google merges abutting busy intervals, so an interval that merely *touches* one of our bookings
 // will not be contained by it and is correctly kept. Only a busy block wholly inside a booking we
@@ -400,6 +417,17 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false } }
   )
+
+  // Only the coach-triggered path. The slug came from the verified JWT above, so
+  // this is a budget per coach and not per address — the same coach on a laptop
+  // and a phone shares it, which is the intent.
+  if (coachSlug) {
+    const ok = await rateLimitOk(
+      db, 'calendar-sync-manual', await hashedSubject(coachSlug),
+      SYNC_WINDOW_SECONDS, SYNC_LIMIT_PER_COACH,
+    )
+    if (!ok) return json({ error: 'rate_limited' }, 429, cors)
+  }
 
   const weeksAhead = Number(Deno.env.get('BOOKING_HORIZON_WEEKS') ?? '8') || 8
   const timeMin    = new Date()

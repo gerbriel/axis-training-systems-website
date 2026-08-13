@@ -106,7 +106,7 @@ function inviteEmail(opts: {
       border-left:2px solid ${ACCENT};padding-left:16px">${escapeHtml(opts.note)}</p>` : ''}
 
     <div style="margin:32px 0">
-      <a href="${opts.link}" style="display:inline-block;padding:14px 30px;background:${ACCENT};
+      <a href="${escapeHtml(opts.link)}" style="display:inline-block;padding:14px 30px;background:${ACCENT};
          color:#ffffff;border-radius:4px;text-decoration:none;font-size:12px;font-weight:900;
          letter-spacing:.12em;text-transform:uppercase">Accept the invitation</a>
     </div>
@@ -136,11 +136,20 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization') ?? ''
   if (!authHeader.startsWith('Bearer ')) return fail(req, 'not_authenticated', 401)
 
+  // Declared length first, so an oversized body is refused before it is read
+  // rather than after this isolate has already buffered the whole of it.
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (declared > MAX_BODY_BYTES) return fail(req, 'payload_too_large', 413)
+
   let body: Record<string, unknown>
   try {
     const raw = await req.text()
     if (raw.length > MAX_BODY_BYTES) return fail(req, 'payload_too_large', 413)
-    body = JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return fail(req, 'invalid_request', 400)
+    }
+    body = parsed as Record<string, unknown>
   } catch {
     return fail(req, 'invalid_request', 400)
   }
@@ -223,7 +232,12 @@ Deno.serve(async (req) => {
     // an admin can invite staff". Passing it through is the whole reason they
     // were given a distinct SQLSTATE.
     if (insertError.code === '22023') {
-      return json(req, { ok: false, error: 'refused', message: insertError.message }, 409)
+      // Only 012's own `raise` messages reach this branch, and they are short
+      // sentences by construction — but this is the one place in the codebase
+      // where a database string is repeated to a caller, so it is bounded rather
+      // than trusted to stay that way.
+      const message = String(insertError.message ?? '').slice(0, 300)
+      return json(req, { ok: false, error: 'refused', message }, 409)
     }
     console.error('invite-send insert', insertError.code)
     return fail(req, 'server_error', 500)

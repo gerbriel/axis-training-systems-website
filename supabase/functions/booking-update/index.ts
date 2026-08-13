@@ -6,7 +6,12 @@
 // in coach_routing) may only touch their own bookings; an admin (an email flagged
 // is_admin in coach_routing, matching is_content_admin() in 005) may touch any.
 // Admin is a POSITIVE allowlist — an email absent from coach_routing, or a coach
-// whose coach_slug failed to backfill, is NOT an admin and NOT authorized.
+// whose coach_slug failed to backfill, is NOT an admin and NOT authorized. The
+// verified email is matched against coach_routing EXACTLY (case-folded), never
+// with `ilike`, whose wildcards are ordinary characters in an email address.
+//
+// Budgeted per verified caller, failing closed: this endpoint writes to a real
+// calendar and mails real people, so a stolen coach session is not a loop.
 //
 // The DB row is authoritative and is written first. Google is mirrored after; a
 // Google failure leaves google_sync_status = 'pending' for the reconcile worker and
@@ -15,11 +20,28 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { mirrorCancel, mirrorUpsert } from '../_shared/mirror.ts'
+import { hashedSubject, rateLimitOk } from '../_shared/ratelimit.ts'
 import { isValidTimeZone } from '../_shared/tz.ts'
 
 const MAX_BODY_BYTES   = 8_192
 const ALLOWED_STATUSES = ['pending', 'confirmed', 'cancelled']
 const MS_PER_MINUTE    = 60_000
+
+/**
+ * Per signed-in caller. Not a defence against the coaching roster, which is
+ * trusted — it is what stops a stolen coach session from being turned into a
+ * loop, and every call here writes to a real calendar and mails real people.
+ * Generous enough that confirming a morning's bookings one by one never sees it.
+ */
+const RATE_WINDOW_SECONDS = 60
+const RATE_LIMIT_PER_USER = 60
+
+/**
+ * A sanity bound on how far out a coach may drag a booking, matching
+ * booking-create's. Google will happily accept the year 9999 and the row will
+ * happily hold it; neither is a thing anybody meant to type.
+ */
+const ABSOLUTE_MAX_ADVANCE_DAYS = 400
 
 /**
  * A sanity bound, not a menu. The four fixed durations that used to live here
@@ -122,17 +144,27 @@ async function resolveCoachSlug(
   db: SupabaseClient,
   email: string,
 ): Promise<{ slug: string | null; isAdmin: boolean }> {
+  // NOT `.ilike('email', email)`, which is what this used to be. ilike reads `%`
+  // and `_` in its PATTERN as wildcards, and the pattern here is the caller's own
+  // email — `_` is an ordinary character in a local part, so an account at
+  // `ronni_@axistrainingsystems.com` matched `ronnie@axistrainingsystems.com` and
+  // was handed that coach's slug, is_admin flag included. The roster is a handful
+  // of rows: read it whole and compare exactly, case-folded, in this process.
   const { data, error } = await db
     .from('coach_routing')
-    .select('coach_slug, is_admin')
-    .ilike('email', email)
-    .maybeSingle()
+    .select('email,coach_slug,is_admin')
 
   if (error) {
     console.error('booking-update identity', error.code)
     throw new Error('identity_lookup_failed')
   }
-  return { slug: data?.coach_slug ?? null, isAdmin: data?.is_admin === true }
+
+  const wanted = email.trim().toLowerCase()
+  const row = ((data ?? []) as {
+    email: string | null; coach_slug: string | null; is_admin: boolean | null
+  }[]).find(r => (r.email ?? '').trim().toLowerCase() === wanted)
+
+  return { slug: row?.coach_slug ?? null, isAdmin: row?.is_admin === true }
 }
 
 async function coachTimeZone(db: SupabaseClient, coachSlug: string): Promise<string> {
@@ -176,8 +208,24 @@ Deno.serve(async (req) => {
   })
 
   const { data: userData, error: userError } = await caller.auth.getUser()
-  const email = userData?.user?.email
-  if (userError || !email) return fail('unauthorized', 401, cors)
+  const email  = userData?.user?.email
+  const userId = userData?.user?.id
+  if (userError || !email || !userId) return fail('unauthorized', 401, cors)
+
+  const db = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+    auth: { persistSession: false },
+  })
+
+  // Budgeted per verified caller, not per address: the identity that matters
+  // here is the session, and a coach on a phone changing networks is still one
+  // coach. Fails CLOSED — everything past this point writes.
+  const subject = await hashedSubject(userId)
+  if (!(await rateLimitOk(db, 'booking-update', subject, RATE_WINDOW_SECONDS, RATE_LIMIT_PER_USER))) {
+    return fail('rate_limited', 429, cors)
+  }
+
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (declared > MAX_BODY_BYTES) return fail('payload_too_large', 413, cors)
 
   let payload: UpdateRequest | null
   try {
@@ -188,10 +236,6 @@ Deno.serve(async (req) => {
     return fail('invalid_payload', 400, cors)
   }
   if (!payload) return fail('invalid_payload', 400, cors)
-
-  const db = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { persistSession: false },
-  })
 
   let callerSlug: string | null
   let callerIsAdmin: boolean
@@ -235,6 +279,9 @@ Deno.serve(async (req) => {
     if (Number.isNaN(parsed.getTime())) return fail('invalid_payload', 400, cors)
     if (parsed.getTime() % MS_PER_MINUTE !== 0) return fail('invalid_payload', 400, cors)
     if (parsed.getTime() < Date.now()) return fail('past_slot', 400, cors)
+    if (parsed.getTime() > Date.now() + ABSOLUTE_MAX_ADVANCE_DAYS * 86_400_000) {
+      return fail('too_far', 400, cors)
+    }
     rescheduled = parsed.getTime() !== nextStartMs
     nextStartMs = parsed.getTime()
   }

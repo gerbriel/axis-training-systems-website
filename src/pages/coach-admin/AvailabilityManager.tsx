@@ -10,6 +10,10 @@ import { dateKeyInTimeZone } from '../../lib/timezone'
 import { DEFAULT_TIME_ZONE } from '../../lib/availability'
 import { updateBooking, calendarErrorMessage } from '../../lib/calendarSync'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
+import { sanitizeText, clampInt } from '../../utils/sanitize'
+
+/** A reason is a line, not an essay — and not an unbounded write either. */
+const REASON_MAX = 200
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import CalendarSyncPanel from './CalendarSyncPanel'
 import BookingPolicyPanel from './BookingPolicyPanel'
@@ -171,7 +175,10 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
       coach_slug: coach.slug, block_date: blockDate,
       start_time: blockFullDay ? null : blockStartTime,
       end_time:   blockFullDay ? null : blockEndTime,
-      reason:     blockReason || null,
+      // Bounded and stripped here rather than trusted from the input: the
+      // maxLength below is a DOM attribute, and this is the last point the
+      // client controls before the row reaches Postgres.
+      reason:     sanitizeText(blockReason, REASON_MAX) || null,
     }
     if (useDemoStore) {
       const item: CoachAvailabilityBlock = { ...base, id: `demo-block-${Date.now()}`, created_at: new Date().toISOString() }
@@ -394,7 +401,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
         <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'flex-end' }}>
           <div>
             <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Day</label>
-            <select value={addDay} onChange={e => setAddDay(Number(e.target.value))} style={fieldStyle}>
+            <select value={addDay} onChange={e => setAddDay(clampInt(e.target.value, 0, 6, 1))} style={fieldStyle}>
               {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>
@@ -412,7 +419,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
           </div>
           <div>
             <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }} title="How often a call may start. The service decides how long it runs.">Start Every</label>
-            <select value={addDuration} onChange={e => setAddDuration(Number(e.target.value))} style={fieldStyle}>
+            <select value={addDuration} onChange={e => setAddDuration(clampInt(e.target.value, 5, 480, 30))} style={fieldStyle}>
               {SLOT_DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}
             </select>
           </div>
@@ -499,7 +506,7 @@ export default function AvailabilityManager({ coach, isDemo = false }: { coach: 
           )}
           <div style={{ flex: '1 1 200px', minWidth: 0 }}>
             <label style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Reason (optional)</label>
-            <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="e.g. Competition weekend" style={{ ...fieldStyle, width: '100%', boxSizing: 'border-box' }} />
+            <input value={blockReason} maxLength={REASON_MAX} onChange={e => setBlockReason(e.target.value)} placeholder="e.g. Competition weekend" style={{ ...fieldStyle, width: '100%', boxSizing: 'border-box' }} />
           </div>
           <button onClick={addBlock} disabled={blocking || !blockDate}
             style={{ background: blocking || !blockDate ? 'var(--border)' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.65rem 1.25rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>

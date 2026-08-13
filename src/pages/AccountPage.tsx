@@ -6,6 +6,7 @@ import { fmtDateInZone, fmtTimeInZone, tzLabel, fmtDuration, browserTimeZone } f
 import { homeFor } from '../lib/authRoute'
 import { COACHES } from '../data/coaches'
 import { href } from '../utils/nav'
+import { safeUrl } from '../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const ACCENT = '#272C84'
@@ -58,6 +59,10 @@ function BookingRow({ booking }: { booking: MyBooking }) {
   const start = new Date(booking.booked_at)
   const isPast = start.getTime() + booking.duration_minutes * 60_000 < Date.now()
   const live   = booking.status !== 'cancelled' && !isPast
+  // `google_meet_url` is written by the calendar mirror, but it is still a URL
+  // out of a database column being handed to `href` — and React will render a
+  // `javascript:` scheme there with nothing more than a console warning.
+  const meetUrl = safeUrl(booking.google_meet_url)
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.1rem 1.25rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -78,8 +83,8 @@ function BookingRow({ booking }: { booking: MyBooking }) {
       </div>
 
       <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-        {live && booking.google_meet_url && (
-          <a href={booking.google_meet_url} target="_blank" rel="noopener noreferrer" style={{ background: ACCENT, color: '#fff', fontWeight: 900, fontSize: '.62rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1rem', borderRadius: '.25rem', textDecoration: 'none' }}>
+        {live && meetUrl && (
+          <a href={meetUrl} target="_blank" rel="noopener noreferrer" style={{ background: ACCENT, color: '#fff', fontWeight: 900, fontSize: '.62rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1rem', borderRadius: '.25rem', textDecoration: 'none' }}>
             Join
           </a>
         )}

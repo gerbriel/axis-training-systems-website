@@ -32,16 +32,39 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SLUG_RE = /^[a-z0-9-]{1,64}$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
+/**
+ * Shape is not the same as meaning. '2026-99-99' passes the regex, and every
+ * date helper downstream is happy to roll it over into some other month rather
+ * than refuse it — so the key is round-tripped through the calendar and has to
+ * come back as itself.
+ */
+function isRealDateKey(key: string): boolean {
+  if (!DATE_RE.test(key)) return false
+  const [y, m, d] = key.split('-').map(Number)
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false
+  const probe = new Date(Date.UTC(y, m - 1, d))
+  return probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
   if (req.method !== 'POST') return jsonError(req, 'method_not_allowed', 405)
 
+  // Declared length first, so an oversized body is refused before it is read
+  // rather than after this isolate has already buffered the whole of it.
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (declared > MAX_BODY_BYTES) return jsonError(req, 'payload_too_large', 413)
+
   let body: Record<string, unknown>
   try {
     const raw = await req.text()
     if (raw.length > MAX_BODY_BYTES) return jsonError(req, 'payload_too_large', 413)
-    body = JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return jsonError(req, 'invalid_request', 400)
+    }
+    body = parsed as Record<string, unknown>
   } catch {
     return jsonError(req, 'invalid_request', 400)
   }
@@ -53,9 +76,14 @@ Deno.serve(async (req) => {
   if (serviceId && !UUID_RE.test(serviceId)) return jsonError(req, 'invalid_request', 400)
 
   const from = typeof body.from === 'string' && body.from ? body.from : null
-  if (from && !DATE_RE.test(from)) return jsonError(req, 'invalid_request', 400)
+  if (from && !isRealDateKey(from)) return jsonError(req, 'invalid_request', 400)
 
-  const days = Math.min(MAX_DAYS, Math.max(1, Number(body.days) || DEFAULT_DAYS))
+  // `Number(...) || DEFAULT` also catches NaN and 0; the clamp catches the rest,
+  // including a caller who asks for a year of calendar in one round trip.
+  const requestedDays = Number(body.days)
+  const days = Number.isFinite(requestedDays)
+    ? Math.min(MAX_DAYS, Math.max(1, Math.floor(requestedDays) || DEFAULT_DAYS))
+    : DEFAULT_DAYS
 
   const db = createClient(
     Deno.env.get('SUPABASE_URL')!,

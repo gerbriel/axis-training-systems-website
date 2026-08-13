@@ -13,6 +13,7 @@ import {
   calendarErrorMessage,
   DISCONNECTED,
 } from '../../lib/calendarSync'
+import { safeUrl } from '../../utils/sanitize'
 import type { CalendarConnectionStatus } from '../../lib/calendarSync'
 
 const FALLBACK_ZONES = [
@@ -143,7 +144,18 @@ export default function CalendarSyncPanel({ coach, isDemo = false, onTimeZoneCha
       setBusy(null)
       return
     }
-    window.location.assign(res.url)
+    // Checked before we leave the page. `res.url` is minted by our own edge
+    // function today, but this is an unconditional navigation to a URL that
+    // arrived over the network — the one place where "the server would never
+    // send that" is all that stands between a compromised or misconfigured
+    // response and the browser following it anywhere.
+    const target = safeUrl(res.url)
+    if (!target || !target.startsWith('https://accounts.google.com/')) {
+      setBanner({ kind: 'error', text: 'That consent link did not look right. Try again.' })
+      setBusy(null)
+      return
+    }
+    window.location.assign(target)
   }
 
   const sync = async () => {

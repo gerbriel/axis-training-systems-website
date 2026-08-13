@@ -7,6 +7,10 @@ import {
   fetchRotation, deriveStatuses, waiveCycle, formatCycleDate,
   type RotationStatus, type CycleState,
 } from '../../lib/rotationApi'
+import { sanitizeText } from '../../utils/sanitize'
+
+/** A waive reason is a sentence. window.prompt cannot cap it, so this does. */
+const WAIVE_NOTE_MAX = 500
 
 const STATE_STYLE: Record<CycleState, { border: string; fg: string; label: string }> = {
   overdue:   { border: '#c8102e',        fg: '#f87171',        label: 'Overdue' },
@@ -51,8 +55,10 @@ export default function RotationPanel({ isDemo = false }: Props) {
     const next = !s.cycle.waived
     let note: string | undefined
     if (next) {
+      // window.prompt has no maxLength to give, so the only bound on what
+      // reaches content_rotation.waive_note is this one.
       const answer = window.prompt('Reason for waiving this cycle? (optional)') ?? ''
-      note = answer.trim() || undefined
+      note = sanitizeText(answer, WAIVE_NOTE_MAX) || undefined
     }
     setBusyId(s.cycle.id)
     try {

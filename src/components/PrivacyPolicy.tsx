@@ -52,7 +52,7 @@ export default function PrivacyPolicy({ onClose }: Props) {
           <p>Axis Training Systems ("Axis," "we," "us," or "our") is a powerlifting coaching business based in California. We can be reached at:</p>
           <p style={{ marginTop: '.75rem', color: 'var(--text-3)' }}>
             Email: <a href="mailto:coach@axistrainingsystems.com" style={{ color: 'var(--text)' }}>coach@axistrainingsystems.com</a><br />
-            Instagram: <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>@axistrainingsystems</a>
+            Instagram: <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>@axistrainingsystems</a>
           </p>
         </Section>
 
@@ -86,8 +86,8 @@ export default function PrivacyPolicy({ onClose }: Props) {
             Axis Training Systems uses industry-standard advertising and tracking technologies to measure the performance of our marketing campaigns and to show relevant ads to people who have previously visited this website. These technologies include:
           </p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <Li><strong style={{ color: 'var(--text-dim)' }}>Meta Pixel (Facebook/Instagram Pixel)</strong> — We use the Meta Pixel to track website events (page views, form submissions) and to build custom audiences for retargeting ads on Facebook and Instagram. Meta may use this data in accordance with its{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Data Policy</a>.</Li>
-            <Li><strong style={{ color: 'var(--text-dim)' }}>Google Ads & Google Analytics</strong> — We use Google Ads conversion tracking and remarketing tags (via Google Tag Manager) to measure ad performance and serve retargeting ads across Google Search, YouTube, and the Google Display Network. Governed by{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Google's Privacy Policy</a>.</Li>
+            <Li><strong style={{ color: 'var(--text-dim)' }}>Meta Pixel (Facebook/Instagram Pixel)</strong> — We use the Meta Pixel to track website events (page views, form submissions) and to build custom audiences for retargeting ads on Facebook and Instagram. Meta may use this data in accordance with its{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Data Policy</a>.</Li>
+            <Li><strong style={{ color: 'var(--text-dim)' }}>Google Ads & Google Analytics</strong> — We use Google Ads conversion tracking and remarketing tags (via Google Tag Manager) to measure ad performance and serve retargeting ads across Google Search, YouTube, and the Google Display Network. Governed by{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Google's Privacy Policy</a>.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Retargeting & Custom Audiences</strong> — Using data collected by the above pixels, we may build custom audiences (people who visited this site) and lookalike audiences to run paid ad campaigns on Meta and Google platforms. If you visited this website, you may see Axis Training Systems ads on those platforms.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Cookies for advertising</strong> — Third-party advertising platforms (Meta, Google) set first-party and third-party cookies on your browser to identify your visit, attribute conversions, and enable retargeting. These cookies persist across browsing sessions as governed by each platform's cookie policies.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Session recording & heatmaps</strong> — We do not currently use session-recording tools such as Hotjar, FullStory, or Microsoft Clarity.</Li>
@@ -95,15 +95,15 @@ export default function PrivacyPolicy({ onClose }: Props) {
           </ul>
           <p style={{ marginTop: '.75rem' }}>
             <strong style={{ color: 'var(--text)' }}>Opt out of ad targeting:</strong> You can limit ad tracking through your device settings, your browser's cookie controls, or directly via platform opt-outs:{' '}
-            <a href="https://www.facebook.com/settings/?tab=ads" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Meta Ad Preferences</a>
+            <a href="https://www.facebook.com/settings/?tab=ads" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Meta Ad Preferences</a>
             {' · '}
-            <a href="https://adssettings.google.com/" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Google Ad Settings</a>
+            <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Google Ad Settings</a>
             {' · '}
-            <a href="https://optout.aboutads.info/" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>DAA Opt-Out</a>
+            <a href="https://optout.aboutads.info/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>DAA Opt-Out</a>
           </p>
           <p style={{ marginTop: '.75rem' }}>
             This website is hosted on GitHub Pages. GitHub may collect limited server-level data (such as IP addresses) as part of their standard infrastructure operations. Governed by{' '}
-            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>GitHub's Privacy Statement</a>.
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>GitHub's Privacy Statement</a>.
           </p>
           <p style={{ marginTop: '.75rem' }}>
             Our social media profiles (Instagram, YouTube) are operated by their respective platforms, which may collect data according to their own policies when you visit or interact with those pages.
@@ -113,8 +113,8 @@ export default function PrivacyPolicy({ onClose }: Props) {
         <Section title="5. How We Share Your Information">
           <p style={{ marginBottom: '.75rem' }}>We do not sell or rent your personal information. We share data with the following categories of third parties:</p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <Li><strong style={{ color: 'var(--text-dim)' }}>Meta Platforms, Inc.</strong> — website visitor event data is shared with Meta via the Meta Pixel for ad measurement and retargeting. Subject to{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Meta's Data Policy</a>.</Li>
-            <Li><strong style={{ color: 'var(--text-dim)' }}>Google LLC</strong> — website visitor event data is shared with Google via Google Ads tags for conversion tracking and remarketing. Subject to{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={{ color: 'var(--text)' }}>Google's Privacy Policy</a>.</Li>
+            <Li><strong style={{ color: 'var(--text-dim)' }}>Meta Platforms, Inc.</strong> — website visitor event data is shared with Meta via the Meta Pixel for ad measurement and retargeting. Subject to{' '}<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Meta's Data Policy</a>.</Li>
+            <Li><strong style={{ color: 'var(--text-dim)' }}>Google LLC</strong> — website visitor event data is shared with Google via Google Ads tags for conversion tracking and remarketing. Subject to{' '}<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)' }}>Google's Privacy Policy</a>.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Formspree</strong> — processes application form submissions on our behalf (formspree.io). Subject to their privacy policy.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Zen Planner</strong> — used for billing and client management. Subject to their privacy policy.</Li>
             <Li><strong style={{ color: 'var(--text-dim)' }}>Assigned Coach</strong> — your application data is shared with your assigned Axis coach to deliver services.</Li>

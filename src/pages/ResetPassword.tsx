@@ -185,7 +185,7 @@ export default function ResetPassword() {
       <div>
         <label className="field-label">New Password</label>
         <input
-          type="password" className="field" required minLength={MIN_PASSWORD_LENGTH}
+          type="password" className="field" required minLength={MIN_PASSWORD_LENGTH} maxLength={200}
           placeholder="••••••••" autoComplete="new-password"
           value={password} onChange={e => setPassword(e.target.value)}
         />
@@ -195,7 +195,7 @@ export default function ResetPassword() {
       <div>
         <label className="field-label">Confirm Password</label>
         <input
-          type="password" className="field" required minLength={MIN_PASSWORD_LENGTH}
+          type="password" className="field" required minLength={MIN_PASSWORD_LENGTH} maxLength={200}
           placeholder="••••••••" autoComplete="new-password"
           value={confirm} onChange={e => setConfirm(e.target.value)}
         />

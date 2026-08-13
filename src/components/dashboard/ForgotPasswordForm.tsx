@@ -58,7 +58,7 @@ export default function ForgotPasswordForm({ defaultEmail, lockEmail = false, on
       <div>
         <label className="field-label">Email</label>
         <input
-          type="email" className="field" required
+          type="email" className="field" required maxLength={254}
           value={email}
           onChange={e => setEmail(e.target.value)}
           readOnly={lockEmail}

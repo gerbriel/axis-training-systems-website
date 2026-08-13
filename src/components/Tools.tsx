@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
+import { useBotTrap } from '../lib/botTrap'
 import { href } from '../utils/nav'
 import Rankings, { type CompareScore } from '../pages/Rankings'
 
@@ -961,6 +962,7 @@ export default function Tools() {
   const [gateLast,  setGateLast]  = useState('')
   const [gateEmail, setGateEmail] = useState('')
   const [gateLoading, setGateLoading] = useState(false)
+  const bot = useBotTrap()
   const [gateError,   setGateError]   = useState('')
 
   useEffect(() => {
@@ -969,6 +971,9 @@ export default function Tools() {
 
   async function handleGateSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Suspected bot: grant access silently and write nothing. A caught bot must
+    // not learn it was caught. See botTrap.ts.
+    if (bot.isSuspect()) { setHasAccess(true); return }
     setGateError('')
     setGateLoading(true)
     try {
@@ -1042,6 +1047,7 @@ export default function Tools() {
                   </p>
                 </div>
                 <form onSubmit={handleGateSubmit} style={{ maxWidth: 440, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
+                  <input {...bot.fieldProps} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem' }}>
                     <div>
                       <label style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }}>First Name <span style={{ color: 'var(--text)' }}>*</span></label>

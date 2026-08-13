@@ -85,11 +85,26 @@ export function sanitizeNumeric(input: string): string {
 }
 
 /**
- * Email sanitize — strips tags, validates rough shape, limits length.
+ * Email sanitize — strips tags, whitespace and control characters, caps at the
+ * RFC's 254. Shape is `isValidEmail`'s job; this one only makes the string safe
+ * to carry.
+ *
+ * NOT entity-escaped, for the reason sanitizeText spells out and one more: an
+ * address is never rendered as HTML here (React escapes text, PostgREST binds
+ * parameters), but it IS used as a credential — `supabase.auth.signInWithPassword`
+ * gets this exact string. Escaping turned `o'brien@axis.com` into
+ * `o&#x27;brien@axis.com`, which is a different address, so the owner of the
+ * account could not sign in and their confirmation email went nowhere.
  */
 export function sanitizeEmail(input: string): string {
   if (typeof input !== 'string') return ''
-  return escapeHtml(input.replace(/<[^>]*>/g, '').replace(/\s/g, '').trim()).slice(0, 254)
+  return input
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s/g, '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .slice(0, 254)
 }
 
 /**
@@ -97,6 +112,64 @@ export function sanitizeEmail(input: string): string {
  */
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())
+}
+
+// ── URLs ──────────────────────────────────────────────────────────────────
+
+/**
+ * A URL that is safe to hand to `href` or `src`, or undefined.
+ *
+ * React escapes TEXT but not SCHEMES: `<a href={value}>` with a value of
+ * `javascript:…` is a working script link, and React only warns about it. Every
+ * URL rendered on this site arrives from somewhere a person can type into — a
+ * Google Meet link mirrored onto a booking row, an athlete photo a coach pastes
+ * into their portal — so the scheme is checked rather than assumed.
+ *
+ * An allow-list, deliberately: `javascript:`, `data:` and `vbscript:` are the
+ * ones that matter today, and a deny-list would miss the next one.
+ *
+ * A relative path is allowed through unchanged, which is what makes this usable
+ * on our own `/booking/…` links as well as foreign ones. A protocol-relative
+ * `//evil.com` is not relative — it is an absolute URL wearing a costume — and
+ * is refused for the same reason `safeNext` refuses it.
+ */
+export function safeUrl(input: unknown): string | undefined {
+  if (typeof input !== 'string') return undefined
+  const raw = input.trim()
+  if (!raw) return undefined
+  // Control characters have no business in a URL we are about to render, and
+  // they are how the classic bypass works: the tab inside "java\tscript:" is
+  // stripped by the URL parser but not by a naive prefix test.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(raw)) return undefined
+
+  if (raw.startsWith('//')) return undefined
+  if (raw.startsWith('/') || raw.startsWith('#') || raw.startsWith('?')) return raw
+
+  try {
+    // Resolved against the current origin so a bare `example.com/x` is read as
+    // the relative path it actually is rather than guessed at as a host.
+    const url = new URL(raw, window.location.origin)
+    return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? raw : undefined
+  } catch {
+    return undefined
+  }
+}
+
+// ── Numbers ───────────────────────────────────────────────────────────────
+
+/**
+ * A whole number from a text field, clamped, or the fallback.
+ *
+ * `parseInt('')` and `parseInt('abc')` are both NaN, and NaN sent to PostgREST
+ * serializes as `null` — so an empty box quietly becomes "no value" on a NOT
+ * NULL column, and a pasted `1e9` becomes a lead time nobody can book around.
+ * Every numeric field on this site goes through here so that neither happens.
+ */
+export function clampInt(input: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof input === 'number' ? input : parseInt(String(input ?? ''), 10)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.trunc(n)))
 }
 
 // ── Rate limiting (client-side, localStorage-backed) ─────────────────────

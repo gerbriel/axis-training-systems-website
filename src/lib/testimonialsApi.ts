@@ -15,7 +15,7 @@
  */
 
 import { supabase, supabaseConfigured } from './supabase'
-import { sanitizeText } from '../utils/sanitize'
+import { sanitizeText, safeUrl } from '../utils/sanitize'
 import { SEED_TESTIMONIALS } from '../data/testimonials'
 import type { Testimonial, MainStatus } from '../data/testimonials'
 
@@ -53,7 +53,10 @@ function rowToTestimonial(row: Record<string, unknown>): Testimonial {
     quote:         txt(row.quote, 1500) ?? '',
     athlete:       txt(row.athlete, 200) ?? '',
     result:        txt(row.result, 200) ?? '',
-    photo:         typeof row.photo === 'string' && row.photo ? row.photo : undefined,
+    // A coach types this one into their portal and four screens render it as an
+    // `src`. Checked here rather than at each of them, so a scheme that should
+    // never reach a DOM attribute cannot arrive through the one that was missed.
+    photo:         safeUrl(row.photo),
     showOnCoach:   row.show_on_coach === true,
     mainStatus:    (row.main_status as MainStatus) ?? 'none',
     rejectionNote: txt(row.rejection_note, 500),
@@ -70,14 +73,22 @@ export type TestimonialInput = Pick<
   requestMainPage: boolean
 }
 
+/**
+ * The bound on what reaches Postgres. Previously the only length limit was the
+ * `maxLength` attribute on the manager's inputs — a DOM property, and this
+ * table takes inserts from any signed-in coach. The numbers match what
+ * rowToTestimonial truncates to on the way back out.
+ */
+const FIELD_MAX = { quote: 1500, athlete: 200, result: 200, photo: 1000 } as const
+
 function inputToRow(item: TestimonialInput) {
   return {
     coach_slug:    item.coachSlug,
     coach_name:    item.coachName,
-    quote:         item.quote,
-    athlete:       item.athlete,
-    result:        item.result,
-    photo:         item.photo ?? null,
+    quote:         sanitizeText(item.quote,   FIELD_MAX.quote),
+    athlete:       sanitizeText(item.athlete, FIELD_MAX.athlete),
+    result:        sanitizeText(item.result,  FIELD_MAX.result),
+    photo:         safeUrl(item.photo)?.slice(0, FIELD_MAX.photo) ?? null,
     show_on_coach: item.showOnCoach,
     // A coach can only ever REQUEST the main page. Never 'approved' from here.
     main_status:   item.requestMainPage ? 'pending' : 'none',
@@ -179,10 +190,12 @@ export async function updateTestimonial(
   }
 
   const row: Record<string, unknown> = {}
-  if (patch.quote       !== undefined) row.quote         = patch.quote
-  if (patch.athlete     !== undefined) row.athlete       = patch.athlete
-  if (patch.result      !== undefined) row.result        = patch.result
-  if (patch.photo       !== undefined) row.photo         = patch.photo || null
+  // Capped and scheme-checked for the same reason inputToRow is: an edit is a
+  // write too, and the photo lands in an `img src` on four screens.
+  if (patch.quote       !== undefined) row.quote         = sanitizeText(patch.quote,   FIELD_MAX.quote)
+  if (patch.athlete     !== undefined) row.athlete       = sanitizeText(patch.athlete, FIELD_MAX.athlete)
+  if (patch.result      !== undefined) row.result        = sanitizeText(patch.result,  FIELD_MAX.result)
+  if (patch.photo       !== undefined) row.photo         = safeUrl(patch.photo)?.slice(0, FIELD_MAX.photo) ?? null
   if (patch.showOnCoach !== undefined) row.show_on_coach = patch.showOnCoach
 
   // Only ever downgrade to 'none' or request 'pending' from the coach side.

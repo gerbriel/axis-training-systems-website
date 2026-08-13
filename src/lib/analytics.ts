@@ -12,11 +12,44 @@ function sessionId(): string {
   return id
 }
 
+/**
+ * Two of this site's routes carry a CREDENTIAL in the path.
+ *
+ * `/booking/<manage_token>` is the client's only way back to their booking —
+ * there are no accounts, so the link IS the identity. `/invite/<token>` is a
+ * 256-bit secret that turns a stranger into a coach. Recording either verbatim
+ * would copy a live credential out of the URL bar and into `pageviews`, a table
+ * anon can INSERT into and every admin can read: an analytics row that can be
+ * replayed is not an analytics row.
+ *
+ * The SHAPE is what analytics wanted anyway — how many people opened a manage
+ * link, not which one — so the segment is replaced rather than the row dropped.
+ *
+ * The `referrer` alongside it is a foreign URL by definition and can carry the
+ * same kind of secret, so anything with a query or fragment is reduced to its
+ * origin and path before it is stored.
+ */
+export function redactPath(path: string): string {
+  return path
+    .replace(/^(\/[^/]*)?\/booking\/[^/?#]+/, '$1/booking/:token')
+    .replace(/^(\/[^/]*)?\/invite\/[^/?#]+/, '$1/invite/:token')
+}
+
+function redactReferrer(raw: string): string | null {
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    return `${url.origin}${redactPath(url.pathname)}`
+  } catch {
+    return null
+  }
+}
+
 export function trackPageview(path: string): void {
   if (!supabaseConfigured) return
   supabase.from('pageviews').insert({
-    path,
-    referrer: document.referrer || null,
+    path: redactPath(path),
+    referrer: redactReferrer(document.referrer),
     session_id: sessionId(),
   }).then(() => {})
 }

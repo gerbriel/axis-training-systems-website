@@ -278,4 +278,4 @@ export async function loadAvailability(opts: {
 // already import it from this module keep working.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export { rateLimitOk, requestSubject } from './ratelimit.ts'
+export { hashedSubject, rateLimitOk, requestSubject } from './ratelimit.ts'
