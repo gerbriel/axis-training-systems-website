@@ -33,8 +33,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Without these, src/lib/supabase.ts falls back to placeholder credentials
+      # and supabaseConfigured is false — the deployed site then runs entirely in
+      # demo mode, so coach blog posts go to an in-memory store and never reach
+      # the database. The anon key is designed to ship in a client bundle; RLS
+      # (see supabase/migrations/004) is what actually guards the data.
       - name: Build
         run: npm run build
+        env:
+          VITE_SUPABASE_URL:      ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Add 404.html for SPA routing
         run: cp dist/index.html dist/404.html

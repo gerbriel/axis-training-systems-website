@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { fetchAllContent, reviewContent, removeContent, submitContent, updateContent } from '../../lib/contentApi'
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
+import DemoBanner from '../../components/dashboard/DemoBanner'
 
 const STATUS_COLORS: Record<ContentStatus, string> = { pending: '#272C84', approved: '#22c55e', rejected: '#c8102e' }
 const lbl: React.CSSProperties = { color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }
@@ -166,7 +167,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
 
   return (
     <div style={{ padding:'2rem', maxWidth:960 }}>
-      {isDemo && mode==='list' && <div style={{background:'#2d2500',border:'1px solid #5c4800',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.5rem'}}><span style={{color:'var(--text)',fontSize:'.7rem',fontWeight:700}}>Demo Mode — </span><span style={{color:'#a08c30',fontSize:'.75rem'}}>Changes reset on reload.</span></div>}
+      {isDemo && mode==='list' && <DemoBanner />}
 
       {mode==='list' && (
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'1.75rem',flexWrap:'wrap',gap:'1rem'}}>

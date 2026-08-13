@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { CoachRouting } from '../../types/database'
 import { supabase } from '../../lib/supabase'
 import { DEMO_ROUTING, DEMO_CONFIG } from '../../data/demoData'
+import DemoBanner from '../../components/dashboard/DemoBanner'
 
 function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -101,13 +102,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
 
   return (
     <div style={{ padding: '2rem', maxWidth: 720 }}>
-      {/* Demo banner */}
-      {isDemo && (
-        <div style={{ background: '#2d2500', border: '1px solid #5c4800', padding: '.75rem 1.25rem', borderRadius: '.25rem', marginBottom: '2rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase', flexShrink: 0 }}>Demo Mode</span>
-          <span style={{ color: '#7a6500', fontSize: '.8rem' }}>Changes are local only — nothing will be written to a database.</span>
-        </div>
-      )}
+      {isDemo && <DemoBanner />}
 
       {/* ── Email Routing ── */}
       <section style={{ marginBottom: '3rem' }}>

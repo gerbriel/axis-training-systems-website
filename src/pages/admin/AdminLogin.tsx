@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { COACHES } from '../../data/coaches'
+import { adminHref } from '../../utils/nav'
+import ForgotPasswordForm from '../../components/dashboard/ForgotPasswordForm'
+import { ADMIN_LOGIN_SCOPE } from '../../lib/auth'
 import { sanitizeEmail, isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
 
-const RL_SCOPE = 'admin_login'
+const RL_SCOPE = ADMIN_LOGIN_SCOPE
 
 interface Props { onDemo?: () => void }
 
@@ -12,6 +16,7 @@ export default function AdminLogin({ onDemo }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lockRemaining, setLockRemaining] = useState(0)
+  const [forgot, setForgot] = useState(false)
 
   // Poll lockout countdown every second
   useEffect(() => {
@@ -56,6 +61,9 @@ export default function AdminLogin({ onDemo }: Props) {
           <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.75rem', textTransform: 'uppercase', letterSpacing: '-.02em' }}>Sign In</h1>
         </div>
 
+        {forgot ? (
+          <ForgotPasswordForm defaultEmail={email} onBack={() => setForgot(false)} />
+        ) : (
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label className="field-label">Email</label>
@@ -87,13 +95,21 @@ export default function AdminLogin({ onDemo }: Props) {
 
           <button
             type="submit" disabled={loading || isBlocked}
-            style={{ background: loading ? '#5c0e14' : '#c8102e', border: 'none', color: 'var(--text)', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem' }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#1a1f6b' }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#272C84' }}
+            style={{ background: loading ? '#5c0e14' : '#c8102e', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '1rem', borderRadius: '.25rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '.5rem', fontFamily: 'inherit' }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a30d26' }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#c8102e' }}
           >
             {loading ? 'Signing In…' : 'Sign In'}
           </button>
+
+          <button
+            type="button" onClick={() => setForgot(true)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '.75rem', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', padding: '.5rem' }}
+          >
+            Forgot password?
+          </button>
         </form>
+        )}
 
         {/* Demo mode button */}
         {onDemo && (
@@ -115,7 +131,20 @@ export default function AdminLogin({ onDemo }: Props) {
           </>
         )}
 
-        <p style={{ color: 'var(--text-3)', fontSize: '.75rem', textAlign: 'center', marginTop: '2rem' }}>
+        {/* Coaches land here via the footer's Admin link, then fail to log in —
+            their credentials only work on their own portal. Hand them there. */}
+        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '.25rem' }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach? Sign in at your own portal:</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.35rem .9rem' }}>
+            {COACHES.map(c => (
+              <a key={c.slug} href={adminHref(c.slug)} style={{ color: 'var(--text-2)', fontSize: '.8rem', textDecoration: 'underline', padding: '.25rem 0' }}>
+                {c.firstName}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <p style={{ color: 'var(--text-3)', fontSize: '.75rem', textAlign: 'center', marginTop: '1.5rem' }}>
           Admin access only.{' '}
           <a href={(import.meta as any).env?.BASE_URL ?? '/'} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>← Back to site</a>
         </p>

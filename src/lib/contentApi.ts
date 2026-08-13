@@ -182,11 +182,19 @@ export async function reviewContent(
     reviewed_at: new Date().toISOString(),
   }
   if (rejectionNote) update.rejection_note = sanitize(rejectionNote, 500)
-  const { error } = await supabase
+  // .select() for the same reason as updateContent: RLS refuses by matching no
+  // rows, which PostgREST reports as a 204 success. Without this, a signed-in
+  // coach who is not a content admin can click Approve and be told it worked.
+  const { data, error } = await supabase
     .from('pending_content')
     .update(update)
     .eq('id', id)
+    .select('id')
+
   if (error) throw new Error(error.message)
+  if (!data || data.length === 0) {
+    throw new Error('That review could not be applied — you may not have permission, or the item no longer exists.')
+  }
 }
 
 /** Delete a content record (withdraw or admin cleanup). */
@@ -194,14 +202,23 @@ export async function removeContent(id: string, isDemo: boolean): Promise<void> 
   if (!useDB(isDemo)) {
     const store = getDemoStore()
     const idx = store.findIndex(c => c.id === id)
-    if (idx >= 0) store.splice(idx, 1)
+    if (idx < 0) throw new Error('That submission no longer exists.')
+    store.splice(idx, 1)
     return
   }
-  const { error } = await supabase
+  // coach_delete_own_pending only matches status='pending', so withdrawing an
+  // already-reviewed item deletes nothing. Silently, until now: the row simply
+  // reappeared on the next refresh.
+  const { data, error } = await supabase
     .from('pending_content')
     .delete()
     .eq('id', id)
+    .select('id')
+
   if (error) throw new Error(error.message)
+  if (!data || data.length === 0) {
+    throw new Error('That submission could not be withdrawn — it has already been reviewed.')
+  }
 }
 
 /** Update the fields of an existing content record (admin edit or direct publish). */
@@ -213,7 +230,8 @@ export async function updateContent(
   if (!useDB(isDemo)) {
     const store = getDemoStore()
     const idx = store.findIndex(c => c.id === id)
-    if (idx >= 0) store[idx] = { ...store[idx], ...patch }
+    if (idx < 0) throw new Error('That submission no longer exists.')
+    store[idx] = { ...store[idx], ...patch }
     return
   }
   const row: Record<string, unknown> = {}
@@ -231,8 +249,21 @@ export async function updateContent(
   if (patch.meetType    !== undefined) row.meet_type     = patch.meetType
   if (patch.meetNote    !== undefined) row.meet_note     = patch.meetNote
   if (patch.rejectionNote !== undefined) row.rejection_note = patch.rejectionNote
-  const { error } = await supabase.from('pending_content').update(row).eq('id', id)
+  // .select() is load-bearing, not decoration. Without it PostgREST answers an
+  // RLS-refused UPDATE with 204 and no error — so a coach editing a post the
+  // head coach had just approved (coach_update_own_unapproved only matches
+  // 'pending'/'rejected') got a cheerful "Saved", an empty form, and a rewrite
+  // that reached nobody. A write that changed no rows is a failed write.
+  const { data, error } = await supabase
+    .from('pending_content')
+    .update(row)
+    .eq('id', id)
+    .select('id')
+
   if (error) throw new Error(error.message)
+  if (!data || data.length === 0) {
+    throw new Error('This submission can no longer be edited — it may have been approved or withdrawn. Copy your text somewhere safe and refresh.')
+  }
 }
 
 /**
@@ -247,7 +278,12 @@ export async function fetchApprovedPosts(isDemo: boolean): Promise<PendingConten
     .eq('type', 'blog')
     .eq('status', 'approved')
     .order('submitted_at', { ascending: false })
-  if (error) return getDemoStore().filter(c => c.type === 'blog' && c.status === 'approved') // graceful fallback
+  if (error) {
+    // Keep the public blog rendering, but never fail silently — a swallowed
+    // error here (e.g. missing table) looks identical to "no posts yet".
+    console.error('[content] could not load approved posts:', error.message)
+    return getDemoStore().filter(c => c.type === 'blog' && c.status === 'approved')
+  }
   return (data ?? []).map(r => rowToContent(r as Record<string, unknown>))
 }
 
@@ -263,6 +299,9 @@ export async function fetchApprovedMeets(isDemo: boolean): Promise<PendingConten
     .eq('type', 'meet')
     .eq('status', 'approved')
     .order('submitted_at', { ascending: false })
-  if (error) return getDemoStore().filter(c => c.type === 'meet' && c.status === 'approved') // graceful fallback
+  if (error) {
+    console.error('[content] could not load approved meets:', error.message)
+    return getDemoStore().filter(c => c.type === 'meet' && c.status === 'approved')
+  }
   return (data ?? []).map(r => rowToContent(r as Record<string, unknown>))
 }

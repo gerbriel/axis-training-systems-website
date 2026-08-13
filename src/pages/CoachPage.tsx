@@ -1,5 +1,10 @@
+import { useState, useEffect } from 'react'
 import { getCoachBySlug } from '../data/coaches'
 import { href, applyHref, adminHref, bookCoachHref } from '../utils/nav'
+import { supabaseConfigured } from '../lib/supabase'
+import { fetchCoachPageTestimonials } from '../lib/testimonialsApi'
+import { SEED_TESTIMONIALS } from '../data/testimonials'
+import type { Testimonial } from '../data/testimonials'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -7,6 +12,23 @@ interface Props { slug: string }
 
 export default function CoachPage({ slug }: Props) {
   const coach = getCoachBySlug(slug)
+
+  // Coaches manage these from their portal now. Seeded from the static data so the
+  // first paint is never empty while the fetch is in flight.
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() =>
+    SEED_TESTIMONIALS
+      .filter(t => t.coachSlug === slug && t.showOnCoach)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+  )
+
+  useEffect(() => {
+    if (!coach) return
+    let cancelled = false
+    fetchCoachPageTestimonials(slug, !supabaseConfigured)
+      .then(rows => { if (!cancelled) setTestimonials(rows) })
+      .catch(() => { /* keep the static seed */ })
+    return () => { cancelled = true }
+  }, [slug, coach])
 
   if (!coach) {
     return (
@@ -169,6 +191,7 @@ export default function CoachPage({ slug }: Props) {
       </section>
 
       {/* ── Testimonials ─────────────────────────────────────────────────── */}
+      {testimonials.length > 0 && (
       <section style={{ padding: '5rem 2rem', borderBottom: '1px solid var(--surface)' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Results</p>
@@ -176,8 +199,8 @@ export default function CoachPage({ slug }: Props) {
             Athlete Outcomes
           </h2>
           <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-            {coach.testimonials.map((t, i) => (
-              <div key={i} style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '2rem', borderRadius: '.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {testimonials.map(t => (
+              <div key={t.id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '2rem', borderRadius: '.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Quote mark */}
                 <span style={{ color: 'var(--text)', fontSize: '2rem', fontWeight: 900, lineHeight: 1, opacity: .6 }}>"</span>
                 <p style={{ color: 'var(--text-dim)', fontSize: '.875rem', lineHeight: 1.8, flex: 1 }}>{t.quote}</p>
@@ -203,6 +226,7 @@ export default function CoachPage({ slug }: Props) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <section style={{ position: 'relative', padding: '7rem 2rem', overflow: 'hidden' }}>

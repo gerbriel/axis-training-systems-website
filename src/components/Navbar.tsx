@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { href, adminHref, bookHref } from '../utils/nav'
+import AccountLink from './AccountLink'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -58,6 +59,10 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-5">
+          <AccountLink
+            className="text-xs font-bold tracking-widest uppercase transition-colors"
+            style={{ color: 'var(--text-3)' }}
+          />
           <a
             href={bookHref()}
             className="text-xs font-black px-5 py-2.5 rounded tracking-widest uppercase transition-colors"
@@ -113,6 +118,9 @@ export default function Navbar() {
           >
             Book a Call
           </a>
+          <AccountLink
+            style={{ color: 'var(--text-3)', fontSize: '.875rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' }}
+          />
           <a
             href="#coaches"
             onClick={() => setMenuOpen(false)}
