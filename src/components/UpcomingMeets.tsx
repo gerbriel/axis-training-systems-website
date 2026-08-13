@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { fetchApprovedMeets } from '../lib/contentApi'
 import { supabaseConfigured } from '../lib/supabase'
 
-const STATIC_MEETS = [
+// Exported so the one-click importer (src/lib/seedContent.ts) writes exactly what
+// the site has always shown into the database — no second, hand-copied list to
+// drift out of step. These are the FALLBACK now: once the DB has meets, the
+// section renders those instead (see the effect below), so nothing double-shows.
+export const STATIC_MEETS = [
   {
     name: 'USAPL Raw Nationals',
     date: 'July 24–27, 2026',
@@ -52,16 +56,20 @@ export default function UpcomingMeets() {
 
   useEffect(() => {
     fetchApprovedMeets(!supabaseConfigured).then(approved => {
+      // The DB is the source of truth once it has anything. Nothing is appended
+      // to STATIC_MEETS any more: appending is exactly what made the built-in
+      // three impossible to edit or remove from the admin, since they only ever
+      // lived in this file. Empty DB keeps the static fallback (a first-run site,
+      // or before the content is imported), so the section is never blank.
       if (approved.length === 0) return
-      const mapped: Meet[] = approved.map(m => ({
+      setMeets(approved.map(m => ({
         name: m.meetName ?? '',
         date: m.meetDate ?? '',
         location: m.meetLocation ?? '',
         federation: m.federation ?? '',
         type: m.meetType ?? 'Local',
         note: m.meetNote ?? '',
-      }))
-      setMeets([...STATIC_MEETS, ...mapped])
+      })))
     }).catch(() => { /* fallback to static only */ })
   }, [])
 

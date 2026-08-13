@@ -5,6 +5,7 @@ import { DEMO_ROUTING, DEMO_CONFIG } from '../../data/demoData'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import { safeUrl, sanitizeEmail, isValidEmail } from '../../utils/sanitize'
 import { fetchSiteFlag, setSiteFlag } from '../../lib/siteSettings'
+import { importSiteContent } from '../../lib/seedContent'
 
 function StatusMsg({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -69,6 +70,28 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
     }
     load()
   }, [isDemo])
+
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState<{ text: string; ok: boolean } | null>(null)
+
+  const runImport = async () => {
+    if (importing) return
+    setImporting(true)
+    setImportMsg(null)
+    if (isDemo) { setImporting(false); setImportMsg({ text: 'Demo mode — nothing imported.', ok: true }); return }
+    const r = await importSiteContent()
+    setImporting(false)
+    if (!r.ok) { setImportMsg({ text: r.message ?? 'Import failed.', ok: false }); return }
+    const parts: string[] = []
+    if (r.meets.imported) parts.push(`${r.meets.imported} meet${r.meets.imported === 1 ? '' : 's'}`)
+    if (r.testimonials.imported) parts.push(`${r.testimonials.imported} testimonial${r.testimonials.imported === 1 ? '' : 's'}`)
+    setImportMsg({
+      text: parts.length
+        ? `Imported ${parts.join(' and ')}. They're now in the panels above and on the site — edit or remove them there.`
+        : 'Everything is already imported — nothing to do.',
+      ok: true,
+    })
+  }
 
   const toggleDemo = async (next: boolean) => {
     setDemoEnabled(next) // optimistic
@@ -213,6 +236,33 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         </label>
 
         {demoMsg && <div style={{ marginTop: '.75rem' }}><StatusMsg msg={demoMsg.text} ok={demoMsg.ok} /></div>}
+      </section>
+
+      {/* ── Import built-in content ── */}
+      <section style={{ marginBottom: '3rem' }}>
+        <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.5rem' }}>
+          Import Site Content
+        </h2>
+        <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+          The upcoming meets and testimonials the site launched with were built into the code, which is
+          why they didn't appear in the panels here. This copies them into the database once, so you can
+          edit and remove them like anything else. Safe to click more than once — it skips whatever's
+          already imported. <strong style={{ color: 'var(--text-3)' }}>Blog posts aren't included</strong> —
+          importing them would change their page URLs, so they stay as they are for now.
+        </p>
+        <button
+          onClick={runImport}
+          disabled={importing}
+          style={{
+            background: importing ? 'var(--border)' : '#272C84', border: 'none',
+            color: importing ? 'var(--text-3)' : '#fff', fontWeight: 900, fontSize: '.75rem',
+            letterSpacing: '.1em', textTransform: 'uppercase', padding: '.7rem 1.5rem',
+            borderRadius: '.25rem', cursor: importing ? 'default' : 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          {importing ? 'Importing…' : 'Import meets & testimonials'}
+        </button>
+        {importMsg && <div style={{ marginTop: '.75rem' }}><StatusMsg msg={importMsg.text} ok={importMsg.ok} /></div>}
       </section>
 
       {/* ── Email Routing ── */}
