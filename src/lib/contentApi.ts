@@ -12,7 +12,7 @@
 
 import { supabase, supabaseConfigured } from './supabase'
 import type { PendingContent, ContentStatus } from '../data/pendingContent'
-import { sanitize } from '../utils/sanitize'
+import { sanitizeText } from '../utils/sanitize'
 import { DEMO_CONTENT } from '../data/demoData'
 import { POSTS } from '../data/blog'
 
@@ -57,8 +57,13 @@ function getDemoStore(): PendingContent[] {
 // ── DB ↔ app field mapping ──────────────────────────────────────────────────
 
 function rowToContent(row: Record<string, unknown>): PendingContent {
+  // sanitizeText, not sanitize: every one of these is rendered as a React TEXT
+  // node, and React escapes those already. Escaping here as well double-encoded
+  // them, so a post reading "it's a 8/9 week block" reached the blog as
+  // "it&#x27;s a 8&#x2F;9 week block". Same call testimonialsApi makes, for the
+  // same reason — the tag, protocol and handler stripping is unchanged.
   const str = (v: unknown, max = 500) =>
-    typeof v === 'string' && v ? sanitize(v, max) : undefined
+    typeof v === 'string' && v ? sanitizeText(v, max) : undefined
 
   return {
     id:            String(row.id),
@@ -85,24 +90,48 @@ function rowToContent(row: Record<string, unknown>): PendingContent {
   }
 }
 
+/**
+ * The bound on what actually reaches Postgres.
+ *
+ * Until now the only length limit on any of these was the `maxLength` attribute
+ * on the editor's inputs — a DOM property, one devtools edit or one paste-into-
+ * a-reordered-array away from not existing, on a table any signed-in coach can
+ * insert into. The numbers match what rowToContent truncates to on the way back
+ * out, so nothing is stored that could never be displayed.
+ *
+ * `content` is a JSON blob of sections rather than prose, so it is capped but
+ * not stripped — the strip happens per-field on read.
+ */
+const FIELD_MAX = {
+  title: 200, subtitle: 300, tags: 200, summary: 1000, content: 8000,
+  meetName: 200, meetDate: 100, meetLocation: 200, federation: 50, meetNote: 300,
+  rejectionNote: 500,
+} as const
+
+const cap = (v: string | undefined, max: number): string | null =>
+  typeof v === 'string' && v ? sanitizeText(v, max) || null : null
+
+const capRaw = (v: string | undefined, max: number): string | null =>
+  typeof v === 'string' && v ? v.slice(0, max) : null
+
 function contentToRow(item: Omit<PendingContent, 'id' | 'submittedAt' | 'status'>) {
   return {
     type:          item.type,
     coach_slug:    item.coachSlug,
     coach_name:    item.coachName,
     // Blog
-    title:         item.title         ?? null,
-    subtitle:      item.subtitle      ?? null,
-    tags:          item.tags          ?? null,
-    summary:       item.summary       ?? null,
-    content:       item.content       ?? null,
+    title:         cap(item.title,        FIELD_MAX.title),
+    subtitle:      cap(item.subtitle,     FIELD_MAX.subtitle),
+    tags:          cap(item.tags,         FIELD_MAX.tags),
+    summary:       cap(item.summary,      FIELD_MAX.summary),
+    content:       capRaw(item.content,   FIELD_MAX.content),
     // Meet
-    meet_name:     item.meetName      ?? null,
-    meet_date:     item.meetDate      ?? null,
-    meet_location: item.meetLocation  ?? null,
-    federation:    item.federation    ?? null,
+    meet_name:     cap(item.meetName,     FIELD_MAX.meetName),
+    meet_date:     cap(item.meetDate,     FIELD_MAX.meetDate),
+    meet_location: cap(item.meetLocation, FIELD_MAX.meetLocation),
+    federation:    cap(item.federation,   FIELD_MAX.federation),
     meet_type:     item.meetType      ?? null,
-    meet_note:     item.meetNote      ?? null,
+    meet_note:     cap(item.meetNote,     FIELD_MAX.meetNote),
   }
 }
 
@@ -181,7 +210,7 @@ export async function reviewContent(
     status,
     reviewed_at: new Date().toISOString(),
   }
-  if (rejectionNote) update.rejection_note = sanitize(rejectionNote, 500)
+  if (rejectionNote) update.rejection_note = sanitizeText(rejectionNote, 500)
   // .select() for the same reason as updateContent: RLS refuses by matching no
   // rows, which PostgREST reports as a 204 success. Without this, a signed-in
   // coach who is not a content admin can click Approve and be told it worked.
@@ -237,18 +266,19 @@ export async function updateContent(
   const row: Record<string, unknown> = {}
   if (patch.status      !== undefined) row.status        = patch.status
   if (patch.reviewedAt  !== undefined) row.reviewed_at   = patch.reviewedAt
-  if (patch.title       !== undefined) row.title         = patch.title
-  if (patch.subtitle    !== undefined) row.subtitle      = patch.subtitle
-  if (patch.tags        !== undefined) row.tags          = patch.tags
-  if (patch.summary     !== undefined) row.summary       = patch.summary
-  if (patch.content     !== undefined) row.content       = patch.content
-  if (patch.meetName    !== undefined) row.meet_name     = patch.meetName
-  if (patch.meetDate    !== undefined) row.meet_date     = patch.meetDate
-  if (patch.meetLocation !== undefined) row.meet_location = patch.meetLocation
-  if (patch.federation  !== undefined) row.federation    = patch.federation
+  // Capped for the same reason contentToRow is — an edit is a write too.
+  if (patch.title       !== undefined) row.title         = cap(patch.title,        FIELD_MAX.title)
+  if (patch.subtitle    !== undefined) row.subtitle      = cap(patch.subtitle,     FIELD_MAX.subtitle)
+  if (patch.tags        !== undefined) row.tags          = cap(patch.tags,         FIELD_MAX.tags)
+  if (patch.summary     !== undefined) row.summary       = cap(patch.summary,      FIELD_MAX.summary)
+  if (patch.content     !== undefined) row.content       = capRaw(patch.content,   FIELD_MAX.content)
+  if (patch.meetName    !== undefined) row.meet_name     = cap(patch.meetName,     FIELD_MAX.meetName)
+  if (patch.meetDate    !== undefined) row.meet_date     = cap(patch.meetDate,     FIELD_MAX.meetDate)
+  if (patch.meetLocation !== undefined) row.meet_location = cap(patch.meetLocation, FIELD_MAX.meetLocation)
+  if (patch.federation  !== undefined) row.federation    = cap(patch.federation,   FIELD_MAX.federation)
   if (patch.meetType    !== undefined) row.meet_type     = patch.meetType
-  if (patch.meetNote    !== undefined) row.meet_note     = patch.meetNote
-  if (patch.rejectionNote !== undefined) row.rejection_note = patch.rejectionNote
+  if (patch.meetNote    !== undefined) row.meet_note     = cap(patch.meetNote,     FIELD_MAX.meetNote)
+  if (patch.rejectionNote !== undefined) row.rejection_note = cap(patch.rejectionNote, FIELD_MAX.rejectionNote)
   // .select() is load-bearing, not decoration. Without it PostgREST answers an
   // RLS-refused UPDATE with 204 and no error — so a coach editing a post the
   // head coach had just approved (coach_update_own_unapproved only matches

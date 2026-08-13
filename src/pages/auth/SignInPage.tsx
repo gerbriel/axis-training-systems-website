@@ -131,7 +131,7 @@ export default function SignInPage() {
           <div>
             <label className="field-label" htmlFor="au-password">Password</label>
             <input
-              id="au-password" className="field" type="password" value={password} required
+              id="au-password" className="field" type="password" value={password} required maxLength={200}
               minLength={mode === 'signup' ? MIN_PASSWORD_LENGTH : undefined}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               onChange={e => setPassword(e.target.value)}

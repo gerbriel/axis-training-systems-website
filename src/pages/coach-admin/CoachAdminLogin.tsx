@@ -4,6 +4,7 @@ import type { Coach } from '../../data/coaches'
 import { href } from '../../utils/nav'
 import ForgotPasswordForm from '../../components/dashboard/ForgotPasswordForm'
 import { coachLoginScope } from '../../lib/auth'
+import { authMessage } from '../../lib/account'
 import { isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
@@ -53,7 +54,9 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
       if (result.blocked) {
         setError(`Too many failed attempts. Locked for ${formatLockRemaining(result.lockedUntil! - Date.now())}.`)
       } else {
-        setError(`${err.message} (${result.attempts}/5 attempts)`)
+        // authMessage, not err.message — see AdminLogin. The provider's own
+        // wording distinguishes "no such user" from "wrong password".
+        setError(`${authMessage(err, 'Could not sign you in.')} (${result.attempts}/5 attempts)`)
       }
     } else {
       clearRateLimit(rlScope)
@@ -99,7 +102,7 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
           <div>
             <label className="field-label">Password</label>
             <input
-              type="password" className="field" placeholder="••••••••"
+              type="password" className="field" placeholder="••••••••" maxLength={200}
               value={password} onChange={e => setPassword(e.target.value)} required
               autoComplete="current-password"
             />

@@ -4,16 +4,20 @@ export function href(path: string) {
   return `${base}${path}`
 }
 
+// Encoded, like bookCoachHref already was. A slug is a database value on the
+// testimonial and content paths, not only a constant off the static roster, and
+// an unencoded one carrying `?`, `#` or `..` builds a different URL than the
+// one intended. Real slugs are [a-z-], which encodeURIComponent leaves alone.
 export function coachHref(slug: string) {
-  return href(`/coaches/${slug}`)
+  return href(`/coaches/${encodeURIComponent(slug)}`)
 }
 
 export function applyHref(slug: string) {
-  return href(`/apply/${slug}`)
+  return href(`/apply/${encodeURIComponent(slug)}`)
 }
 
 export function adminHref(slug?: string) {
-  return slug ? href(`/admin/${slug}`) : href('/admin')
+  return slug ? href(`/admin/${encodeURIComponent(slug)}`) : href('/admin')
 }
 
 export function bookHref() {

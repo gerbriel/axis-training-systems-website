@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { href } from '../utils/nav'
 import { subscribeNewsletter, getNewsletterAccess } from '../lib/newsletterApi'
+import { useBotTrap } from '../lib/botTrap'
 import type { NewsletterAccess } from '../types/newsletter'
 import { TOOL_LIST } from './ToolPage'
 
@@ -733,9 +734,12 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
   const [email,     setEmail]     = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
+  const bot = useBotTrap()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Suspected bot: grant access silently, write nothing. See botTrap.ts.
+    if (bot.isSuspect()) { onAccess({ email, firstName, source, signedUpAt: new Date().toISOString() }); return }
     setError('')
     setLoading(true)
     try {
@@ -755,6 +759,7 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
 
   return (
     <form onSubmit={handleSubmit} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.5rem', padding: '2.5rem', maxWidth: 480, margin: '0 auto' }}>
+      <input {...bot.fieldProps} />
       <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Access</p>
       <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.75rem' }}>Unlock All 6 Guides</h2>
       <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets — no credit card, no spam.</p>

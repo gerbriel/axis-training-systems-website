@@ -129,7 +129,7 @@ export default function UpcomingMeets() {
 
         <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '1.5rem' }}>
           Meet schedule subject to change. Follow{' '}
-          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>@axistrainingsystems</a>
+          <a href="https://www.instagram.com/axistrainingsystems/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>@axistrainingsystems</a>
           {' '}for real-time updates.
         </p>
       </div>

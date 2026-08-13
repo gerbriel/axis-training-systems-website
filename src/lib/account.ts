@@ -65,7 +65,7 @@ export function callbackUrl(next?: string): string {
  * oracle — so "Invalid login credentials" is answered with one sentence that
  * covers both a wrong password and no such user.
  */
-function authMessage(error: { message?: string; status?: number } | null, fallback: string): string {
+export function authMessage(error: { message?: string; status?: number } | null, fallback: string): string {
   if (!error) return fallback
   if (error.status === 429 || /rate|too many/i.test(error.message ?? '')) {
     return 'Too many attempts. Wait a few minutes and try again.'

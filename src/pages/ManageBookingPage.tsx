@@ -11,6 +11,7 @@ import { downloadCalendarFile } from '../lib/ics'
 import { trackBookingEvent } from '../lib/analytics'
 import { COACHES } from '../data/coaches'
 import { href } from '../utils/nav'
+import { safeUrl } from '../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const ACCENT = '#272C84'
@@ -323,8 +324,11 @@ export default function ManageBookingPage({ token }: { token: string }) {
                 </p>
               )}
 
-              {booking.meetLink && !booking.isPast && booking.status !== 'cancelled' && (
-                <a href={booking.meetLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1.25rem', background: ACCENT, color: '#fff', fontWeight: 900, fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.25rem', textDecoration: 'none' }}>
+              {/* The link comes back from booking-manage, but it is still a URL
+                  out of a database column being handed to `href` — and React
+                  renders a `javascript:` scheme there with only a warning. */}
+              {safeUrl(booking.meetLink) && !booking.isPast && booking.status !== 'cancelled' && (
+                <a href={safeUrl(booking.meetLink)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1.25rem', background: ACCENT, color: '#fff', fontWeight: 900, fontSize: '.68rem', letterSpacing: '.15em', textTransform: 'uppercase', padding: '.75rem 1.5rem', borderRadius: '.25rem', textDecoration: 'none' }}>
                   Join the call
                 </a>
               )}

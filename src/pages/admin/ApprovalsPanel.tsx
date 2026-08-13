@@ -3,7 +3,7 @@ import { fetchAllContent, reviewContent } from '../../lib/contentApi'
 import { fetchAllTestimonials, reviewTestimonial } from '../../lib/testimonialsApi'
 import type { PendingContent } from '../../data/pendingContent'
 import type { Testimonial } from '../../data/testimonials'
-import { sanitize } from '../../utils/sanitize'
+import { sanitizeText } from '../../utils/sanitize'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 
@@ -142,7 +142,7 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
   }
 
   async function confirmReject(q: QueueItem) {
-    const note = sanitize(rejectNote, 500).trim()
+    const note = sanitizeText(rejectNote, 500)
     if (q.kind !== 'testimonial' && !note) return
     setBusyKey(q.key); setError(null)
     try {

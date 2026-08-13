@@ -4,6 +4,7 @@ import { COACHES } from '../../data/coaches'
 import { adminHref } from '../../utils/nav'
 import ForgotPasswordForm from '../../components/dashboard/ForgotPasswordForm'
 import { ADMIN_LOGIN_SCOPE } from '../../lib/auth'
+import { authMessage } from '../../lib/account'
 import { sanitizeEmail, isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
 
 const RL_SCOPE = ADMIN_LOGIN_SCOPE
@@ -43,7 +44,11 @@ export default function AdminLogin({ onDemo }: Props) {
       if (result.blocked) {
         setError(`Too many failed attempts. Locked for ${formatLockRemaining(result.lockedUntil! - Date.now())}.`)
       } else {
-        setError(`${err.message} (${result.attempts}/5 attempts)`)
+        // authMessage, not err.message. Supabase distinguishes "Invalid login
+        // credentials" from "Email not confirmed", and repeating that verbatim
+        // tells an attacker which addresses have accounts — the exact oracle
+        // account.ts:60-67 exists to close.
+        setError(`${authMessage(err, 'Could not sign you in.')} (${result.attempts}/5 attempts)`)
       }
     } else {
       clearRateLimit(RL_SCOPE)
@@ -68,7 +73,7 @@ export default function AdminLogin({ onDemo }: Props) {
           <div>
             <label className="field-label">Email</label>
             <input
-              type="email" className="field" placeholder="admin@axistrainingsystems.com"
+              type="email" className="field" maxLength={254} placeholder="admin@axistrainingsystems.com"
               value={email} onChange={e => setEmail(e.target.value)} required
               autoComplete="email"
             />
@@ -76,7 +81,7 @@ export default function AdminLogin({ onDemo }: Props) {
           <div>
             <label className="field-label">Password</label>
             <input
-              type="password" className="field" placeholder="••••••••"
+              type="password" className="field" placeholder="••••••••" maxLength={200}
               value={password} onChange={e => setPassword(e.target.value)} required
               autoComplete="current-password"
             />

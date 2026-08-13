@@ -12,6 +12,7 @@ import { dateKeyInTimeZone, addDaysToDateKey } from '../lib/tz'
 import { createBooking, calendarErrorMessage } from '../lib/calendarSync'
 import type { BookingCreateSuccess } from '../lib/calendarSync'
 import { downloadCalendarFile } from '../lib/ics'
+import { useBotTrap } from '../lib/botTrap'
 import { trackBookingEvent } from '../lib/analytics'
 import { href } from '../utils/nav'
 
@@ -594,6 +595,10 @@ function BookingForm({ coach, service, slot, onBack, onDone, onSlotTaken }: {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const viewerZone = browserTimeZone()
+  // Honeypot + time-trap. booking-create is rate-limited server-side already;
+  // this stops a bot burning that budget (and a coach's calendar) before the
+  // request is even made.
+  const bot = useBotTrap()
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -603,6 +608,10 @@ function BookingForm({ coach, service, slot, onBack, onDone, onSlotTaken }: {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!complete || submitting) return
+    // Suspected bot: silently drop it back to the slot picker, no booking made.
+    // Not an error message — a honeypot that announces itself is a honeypot that
+    // gets bypassed next time.
+    if (bot.isSuspect()) { onSlotTaken(''); return }
     setSubmitting(true)
     setError(null)
 
@@ -658,6 +667,8 @@ function BookingForm({ coach, service, slot, onBack, onDone, onSlotTaken }: {
       </div>
 
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: 560 }}>
+        {/* Off-screen honeypot — see botTrap.ts. A person never sees or tabs to it. */}
+        <input {...bot.fieldProps} />
         <div className="book-field-pair">
           <div>
             <label className="field-label" htmlFor="bk-first">First name *</label>

@@ -29,7 +29,7 @@ const YoutubeIcon = () => (
 function SocialLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
     <a
-      href={href} target="_blank" rel="noopener" aria-label={label}
+      href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
       style={{ color: 'var(--text-3)', transition: 'color .2s' }}
       onMouseEnter={e => (e.currentTarget.style.color = '#272C84')}
       onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}

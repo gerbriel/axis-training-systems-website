@@ -33,7 +33,9 @@ function Badge({ status }: { status: LeadStatus }) {
 function EmailLink({ email, style }: { email: string; style?: CSSProperties }) {
   return (
     <a
-      href={`mailto:${email}`}
+      // Encoded, because an address is a DB value and `a@b.com?bcc=…` in an
+      // unencoded mailto: is a header the visitor never typed.
+      href={`mailto:${encodeURIComponent(email)}`}
       onClick={e => e.stopPropagation()}
       style={{ color: 'var(--text-2)', textDecoration: 'underline', textUnderlineOffset: '3px', wordBreak: 'break-all', ...style }}
     >
@@ -114,6 +116,7 @@ export default function CoachAdminDashboard({ coach, isDemo = false }: Props) {
       {/* Toolbar */}
       <div style={{ padding: isMobile ? '1rem' : '1.5rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', flexWrap: 'wrap', gap: isMobile ? '.75rem' : '1rem', alignItems: 'center' }}>
         <input
+          maxLength={120}
           className="field" placeholder="Search name or email…"
           value={search} onChange={e => setSearch(e.target.value)}
           style={{ maxWidth: isMobile ? 'none' : 280, flex: isMobile ? '1 1 100%' : 1 }}
