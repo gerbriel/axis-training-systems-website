@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
+import { BOOKING_STAFF_COLUMNS } from '../../types/database'
 import type { Booking } from '../../types/database'
 import { fmtTime, fmtDate } from '../../lib/availability'
+import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
+import DemoBanner from '../../components/dashboard/DemoBanner'
+import { DEMO_BOOKINGS } from '../../data/demoData'
 
 type Status = Booking['status']
 
@@ -11,71 +15,47 @@ const STATUS_COLORS: Record<Status, string> = {
   cancelled: 'var(--text-4)',
 }
 
-const DEMO_BOOKINGS: Booking[] = [
-  {
-    id: 'demo-b1',
-    coach_slug: 'ronnie-vallejo',
-    booked_at: new Date(Date.now() + 2 * 24 * 3600_000).toISOString(),
-    duration_minutes: 30,
-    first_name: 'Alex', last_name: 'Mercer',
-    email: 'alex.mercer@gmail.com', phone: '555-0101',
-    service_interest: '1:1 Coaching (Full Service)',
-    goals: 'Hit 1400 total at 93kg before nationals.',
-    status: 'pending', coach_notes: null,
-    created_at: new Date(Date.now() - 3600_000).toISOString(),
-  },
-  {
-    id: 'demo-b2',
-    coach_slug: 'seth-burman',
-    booked_at: new Date(Date.now() + 5 * 24 * 3600_000).toISOString(),
-    duration_minutes: 30,
-    first_name: 'Priya', last_name: 'Suresh',
-    email: 'priya.suresh@outlook.com', phone: null,
-    service_interest: 'Game Day Coaching',
-    goals: 'First meet, need help with attempts and warm-ups.',
-    status: 'confirmed', coach_notes: 'Meet is USPA Aug 3rd.',
-    created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),
-  },
-  {
-    id: 'demo-b3',
-    coach_slug: 'lucas-sison',
-    booked_at: new Date(Date.now() + 10 * 24 * 3600_000).toISOString(),
-    duration_minutes: 30,
-    first_name: 'Jamie', last_name: 'Carter',
-    email: 'jamiecarter@proton.me', phone: '555-0199',
-    service_interest: 'Movement Consulting',
-    goals: 'Fix squat depth issue before my next meet.',
-    status: 'pending', coach_notes: null,
-    created_at: new Date(Date.now() - 5 * 3600_000).toISOString(),
-  },
-]
+const coachName = (slug: string) => slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
 function Badge({ status }: { status: Status }) {
   const c = STATUS_COLORS[status]
   return (
-    <span style={{ background: c + '18', border: `1px solid ${c}`, color: c, fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.2rem' }}>
+    <span style={{ background: c + '18', border: `1px solid ${c}`, color: c, fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.2rem', whiteSpace: 'nowrap' }}>
       {status}
     </span>
   )
 }
 
 export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) {
+  const isMobile = useMediaQuery(MOBILE_QUERY)
   const [bookings, setBookings] = useState<Booking[]>(isDemo ? DEMO_BOOKINGS : [])
   const [loading,  setLoading]  = useState(!isDemo)
   const [filter,   setFilter]   = useState<Status | 'all'>('all')
   const [selected, setSelected] = useState<Booking | null>(null)
   const [notes,    setNotes]    = useState('')
   const [saving,   setSaving]   = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   const fetch = useCallback(async () => {
     if (isDemo) { setBookings(DEMO_BOOKINGS); return }
     setLoading(true)
-    const { data } = await supabase.from('bookings').select('*').order('booked_at', { ascending: true })
+    const { data } = await supabase.from('bookings').select(BOOKING_STAFF_COLUMNS).order('booked_at', { ascending: true })
     if (data) setBookings(data as Booking[])
     setLoading(false)
   }, [isDemo])
 
   useEffect(() => { fetch() }, [fetch])
+
+  // Lock background scroll while the mobile detail overlay is open.
+  useEffect(() => {
+    if (!(isMobile && selected)) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [isMobile, selected])
+
+  const openDetail  = (b: Booking) => { setSelected(b); setNotes(b.coach_notes ?? ''); setConfirmingCancel(false) }
+  const closeDetail = () => { setSelected(null); setConfirmingCancel(false) }
 
   const updateStatus = async (id: string, status: Status) => {
     if (isDemo) {
@@ -103,17 +83,153 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
 
   const upcoming = bookings.filter(b => b.status !== 'cancelled' && new Date(b.booked_at) > new Date()).length
 
+  // Upcoming first ascending (soonest at top), past bookings descending below a divider —
+  // the next call must never be buried under history.
+  const now = Date.now()
+  const upcomingList = filtered
+    .filter(b => new Date(b.booked_at).getTime() >= now)
+    .sort((a, b) => new Date(a.booked_at).getTime() - new Date(b.booked_at).getTime())
+  const pastList = filtered
+    .filter(b => new Date(b.booked_at).getTime() < now)
+    .sort((a, b) => new Date(b.booked_at).getTime() - new Date(a.booked_at).getTime())
+
+  const pastLabel = (
+    <span style={{ color: 'var(--text-4)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Past</span>
+  )
+
+  const tableRow = (b: Booking) => {
+    const dt = new Date(b.booked_at)
+    return (
+      <tr key={b.id} onClick={() => openDetail(b)}
+        style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.id === b.id ? 'var(--surface)' : 'transparent' }}>
+        <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap' }}>
+          <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '.8rem' }}>{fmtDate(dt)}</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.1rem' }}>{fmtTime(dt)}</p>
+        </td>
+        <td style={{ padding: '1rem 1.25rem', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.first_name} {b.last_name}</td>
+        <td style={{ padding: '1rem 1.25rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{coachName(b.coach_slug)}</td>
+        <td style={{ padding: '1rem 1.25rem', color: 'var(--text-3)', whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.service_interest ?? '—'}</td>
+        <td style={{ padding: '1rem 1.25rem' }}><Badge status={b.status} /></td>
+      </tr>
+    )
+  }
+
+  const card = (b: Booking) => {
+    const dt = new Date(b.booked_at)
+    return (
+      <div key={b.id} onClick={() => openDetail(b)}
+        style={{ display: 'flex', alignItems: 'center', gap: '.75rem', padding: '1rem', borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.id === b.id ? 'var(--surface)' : 'transparent' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.75rem' }}>
+            <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.first_name} {b.last_name}</p>
+            <Badge status={b.status} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '.75rem', marginTop: '.4rem' }}>
+            <p style={{ color: 'var(--text-3)', fontSize: '.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{coachName(b.coach_slug)}</p>
+            <p style={{ color: 'var(--text-2)', fontSize: '.72rem', whiteSpace: 'nowrap' }}>{fmtDate(dt)} · {fmtTime(dt)}</p>
+          </div>
+        </div>
+        <span aria-hidden style={{ color: 'var(--text-4)', fontSize: '1.2rem', lineHeight: 1, flexShrink: 0 }}>›</span>
+      </div>
+    )
+  }
+
+  const detailBody = selected && (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+        <div>
+          <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem' }}>{selected.first_name} {selected.last_name}</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.2rem' }}>{selected.email}</p>
+          {selected.phone && <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{selected.phone}</p>}
+        </div>
+        {!isMobile && (
+          <button onClick={closeDetail} style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '1rem', padding: '.25rem .5rem', fontFamily: 'inherit' }}>×</button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', background: 'var(--surface)', borderRadius: '.25rem', padding: '1rem' }}>
+        {[
+          ['Date',    fmtDate(new Date(selected.booked_at))],
+          ['Time',    fmtTime(new Date(selected.booked_at))],
+          ['Coach',   coachName(selected.coach_slug)],
+          ['Service', selected.service_interest ?? '—'],
+        ].map(([l, v]) => (
+          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.8rem' }}>
+            <span style={{ color: 'var(--text-3)' }}>{l}</span>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+
+      {selected.goals && (
+        <div>
+          <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Goals</p>
+          <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.7 }}>{selected.goals}</p>
+        </div>
+      )}
+
+      {/* Status actions */}
+      <div>
+        <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Status</p>
+        {confirmingCancel ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text-2)', fontSize: '.78rem', fontWeight: 600 }}>Cancel this booking?</span>
+            <button onClick={() => { updateStatus(selected.id, 'cancelled'); setConfirmingCancel(false) }}
+              style={{ background: '#c8102e', border: '1px solid #c8102e', color: '#ffffff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem 1.25rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Yes
+            </button>
+            <button onClick={() => setConfirmingCancel(false)}
+              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem 1.25rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              No
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+            {(['pending','confirmed','cancelled'] as Status[]).map(s => (
+              <button key={s}
+                onClick={() => {
+                  if (s === 'cancelled') {
+                    if (selected.status !== 'cancelled') setConfirmingCancel(true)
+                  } else {
+                    updateStatus(selected.id, s)
+                  }
+                }}
+                style={{
+                  background: selected.status === s ? STATUS_COLORS[s] + '22' : 'transparent',
+                  border: `1px solid ${selected.status === s ? STATUS_COLORS[s] : 'var(--border-mid)'}`,
+                  color: selected.status === s ? STATUS_COLORS[s] : 'var(--text-4)',
+                  fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+                  padding: isMobile ? '.6rem .75rem' : '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Coach notes */}
+      <div>
+        <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
+        <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
+        <button onClick={saveNotes} disabled={saving}
+          style={{ marginTop: '.5rem', background: '#272C84', border: 'none', color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : 'Save Notes'}
+        </button>
+      </div>
+    </>
+  )
+
   return (
     <>
       {isDemo && (
-        <div style={{ background: '#2d2500', borderBottom: '1px solid #5c4800', padding: '.625rem 2rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.25em', textTransform: 'uppercase' }}>Demo Mode</span>
-          <span style={{ color: '#7a6500', fontSize: '.75rem' }}>Sample bookings — no database connection.</span>
+        <div className="dash-pad" style={{ paddingBottom: 0 }}>
+          <DemoBanner />
         </div>
       )}
 
       {/* Stats */}
-      <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '2rem' }}>
+      <div style={{ padding: isMobile ? '1rem' : '1.25rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: isMobile ? '1.25rem 1.75rem' : '2rem', flexWrap: 'wrap' }}>
         {[
           ['Upcoming', upcoming, '#272C84'],
           ['Confirmed', counts.confirmed, '#22c55e'],
@@ -128,8 +244,8 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
       </div>
 
       {/* Toolbar */}
-      <div style={{ padding: '1rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '.5rem' }}>
+      <div style={{ padding: isMobile ? '.75rem 1rem' : '1rem 2rem', borderBottom: '1px solid var(--surface)', display: 'flex', gap: isMobile ? '.75rem' : '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
           {(['all', 'pending', 'confirmed', 'cancelled'] as const).map(s => (
             <button key={s} onClick={() => setFilter(s)}
               style={{
@@ -137,13 +253,13 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
                 border: `1px solid ${filter === s ? 'var(--text-dim)' : 'var(--border)'}`,
                 color: filter === s ? 'var(--text)' : 'var(--text-4)',
                 fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-                padding: '.3rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
+                padding: isMobile ? '.55rem .75rem' : '.3rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
               }}>
               {s} ({counts[s] ?? 0})
             </button>
           ))}
         </div>
-        <button onClick={fetch} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={fetch} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
           ↺ Refresh
         </button>
       </div>
@@ -152,8 +268,17 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>Loading bookings…</div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>No bookings found.</div>
+      ) : isMobile ? (
+        /* Stacked cards on phones */
+        <div>
+          {upcomingList.map(card)}
+          {pastList.length > 0 && (
+            <div style={{ padding: '1rem 1rem .5rem', borderBottom: '1px solid var(--surface)' }}>{pastLabel}</div>
+          )}
+          {pastList.map(card)}
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr min(380px, 45vw)' : '1fr' }}>
           {/* Table */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
@@ -165,91 +290,38 @@ export default function BookingsPanel({ isDemo = false }: { isDemo?: boolean }) 
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(b => {
-                  const dt = new Date(b.booked_at)
-                  return (
-                    <tr key={b.id} onClick={() => { setSelected(b); setNotes(b.coach_notes ?? '') }}
-                      style={{ borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: selected?.id === b.id ? 'var(--surface)' : 'transparent', transition: 'background .1s' }}
-                      onMouseEnter={e => { if (selected?.id !== b.id) e.currentTarget.style.background = 'var(--surface)' }}
-                      onMouseLeave={e => { if (selected?.id !== b.id) e.currentTarget.style.background = 'transparent' }}>
-                      <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap' }}>
-                        <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '.8rem' }}>{fmtDate(dt)}</p>
-                        <p style={{ color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.1rem' }}>{fmtTime(dt)}</p>
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.first_name} {b.last_name}</td>
-                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{b.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td>
-                      <td style={{ padding: '1rem 1.25rem', color: 'var(--text-3)', whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.service_interest ?? '—'}</td>
-                      <td style={{ padding: '1rem 1.25rem' }}><Badge status={b.status} /></td>
-                    </tr>
-                  )
-                })}
+                {upcomingList.map(tableRow)}
+                {pastList.length > 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '.75rem 1.25rem', borderBottom: '1px solid var(--surface)' }}>{pastLabel}</td>
+                  </tr>
+                )}
+                {pastList.map(tableRow)}
               </tbody>
             </table>
           </div>
 
-          {/* Detail panel */}
+          {/* Detail panel (desktop column) */}
           {selected && (
             <div style={{ borderLeft: '1px solid var(--surface-2)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem' }}>{selected.first_name} {selected.last_name}</p>
-                  <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.2rem' }}>{selected.email}</p>
-                  {selected.phone && <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{selected.phone}</p>}
-                </div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', background: 'var(--surface)', borderRadius: '.25rem', padding: '1rem' }}>
-                {[
-                  ['Date',    fmtDate(new Date(selected.booked_at))],
-                  ['Time',    fmtTime(new Date(selected.booked_at))],
-                  ['Coach',   selected.coach_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())],
-                  ['Service', selected.service_interest ?? '—'],
-                ].map(([l, v]) => (
-                  <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.8rem' }}>
-                    <span style={{ color: 'var(--text-3)' }}>{l}</span>
-                    <span style={{ color: 'var(--text)', fontWeight: 600 }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-
-              {selected.goals && (
-                <div>
-                  <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Goals</p>
-                  <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.7 }}>{selected.goals}</p>
-                </div>
-              )}
-
-              {/* Status actions */}
-              <div>
-                <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Status</p>
-                <div style={{ display: 'flex', gap: '.5rem' }}>
-                  {(['pending','confirmed','cancelled'] as Status[]).map(s => (
-                    <button key={s} onClick={() => updateStatus(selected.id, s)}
-                      style={{
-                        background: selected.status === s ? STATUS_COLORS[s] + '22' : 'transparent',
-                        border: `1px solid ${selected.status === s ? STATUS_COLORS[s] : 'var(--border-mid)'}`,
-                        color: selected.status === s ? STATUS_COLORS[s] : 'var(--text-4)',
-                        fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-                        padding: '.35rem .75rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit',
-                      }}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Coach notes */}
-              <div>
-                <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Coach Notes</p>
-                <textarea className="field" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes…" />
-                <button onClick={saveNotes} disabled={saving}
-                  style={{ marginTop: '.5rem', background: '#272C84', border: 'none', color: '#ffffff', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.4rem 1rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
-                  {saving ? 'Saving…' : 'Save Notes'}
-                </button>
-              </div>
+              {detailBody}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Detail panel (mobile full-screen overlay) */}
+      {selected && isMobile && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'var(--bg)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)', borderBottom: '1px solid var(--surface)', padding: '.4rem .5rem' }}>
+            <button onClick={closeDetail}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem', background: 'none', border: 'none', color: 'var(--text-2)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.75rem .6rem', minHeight: '2.5rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              ← Back
+            </button>
+          </div>
+          <div style={{ padding: '1rem 1rem calc(2.5rem + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {detailBody}
+          </div>
         </div>
       )}
     </>
