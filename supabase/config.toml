@@ -1,0 +1,35 @@
+# Supabase local/CLI config — Axis Training Systems
+#
+# Only the settings that must not be left at their defaults are declared here.
+#
+# `verify_jwt = false` is the platform gate, and turning it off never means "no
+# authorization" — it means the function does its own, because the caller has no
+# Supabase JWT to check. Every entry below says which.
+
+[functions.google-oauth]
+# The /callback leg is a browser redirect from Google: it carries no Supabase
+# JWT, so the platform gate must be off. The /start, /disconnect and /status
+# legs verify the caller's JWT themselves and derive coach_slug server-side.
+verify_jwt = false
+
+[functions.booking-availability]
+# Anonymous visitors ask what times are open. Nothing is trusted: the coach slug
+# is validated, the service is priced from the database, and only open start
+# times come back.
+verify_jwt = false
+
+[functions.booking-create]
+# Anonymous visitors book. The requested slot is re-derived server-side in the
+# coach's zone and the exclusion constraint (008) settles the race.
+verify_jwt = false
+
+[functions.booking-manage]
+# The credential is the manage_token from the confirmation email — there are no
+# client accounts on this path, so there is no JWT to verify. The token is
+# checked against exactly one row.
+verify_jwt = false
+
+# invite-send and booking-notify are deliberately absent: both keep the platform
+# JWT gate ON. invite-send is the endpoint that hands out access to the site and
+# the caller has to be somebody; booking-notify is invoked by cron with the
+# service-role key.

@@ -1,28 +1,99 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import {
+  useUrlTab, useMediaQuery, MOBILE_QUERY,
+  demoParamActive, setDemoParam, useDemoParamSync,
+  fetchPendingCounts, ZERO_PENDING,
+} from '../lib/dashboard'
+import type { PendingCounts } from '../lib/dashboard'
 import AdminLogin from './admin/AdminLogin'
 import AdminSettings from './admin/AdminSettings'
 import CRMPanel from './admin/CRMPanel'
 import BlogPanel from './admin/BlogPanel'
+import RotationPanel from './admin/RotationPanel'
 import MeetsPanel from './admin/MeetsPanel'
 import BookingsPanel from './admin/BookingsPanel'
 import AnalyticsPanel from './admin/AnalyticsPanel'
+import TestimonialsPanel from './admin/TestimonialsPanel'
+import ApprovalsPanel from './admin/ApprovalsPanel'
+import InvitationsPanel from './admin/InvitationsPanel'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import { COACHES } from '../data/coaches'
-import { getPendingContent } from '../data/pendingContent'
+import { useRequireRole } from '../lib/useGuard'
 
-type Tab = 'crm' | 'bookings' | 'analytics' | 'blog' | 'meets' | 'availability' | 'settings'
+type Tab =
+  | 'crm' | 'bookings' | 'analytics'
+  | 'approvals' | 'blog' | 'rotation' | 'meets' | 'testimonials'
+  | 'invitations' | 'availability' | 'settings'
+
+const TABS: readonly Tab[] = [
+  'crm', 'bookings', 'analytics',
+  'approvals', 'blog', 'rotation', 'meets', 'testimonials',
+  'invitations', 'availability', 'settings',
+]
+
+const TITLES: Record<Tab, string> = {
+  crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics',
+  approvals: 'Approvals', blog: 'Blog', rotation: 'Blog Rotation',
+  meets: 'Meet Listings', testimonials: 'Testimonials',
+  invitations: 'Invitations', availability: 'Set Availability', settings: 'Settings',
+}
+
+// The old header was nine flat tabs in one row; the groups are the mental
+// model the owner actually has: people to talk to, content to review, setup.
+const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
+  { label: 'People',  tabs: ['crm', 'bookings', 'analytics', 'invitations'] },
+  { label: 'Content', tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
+  { label: 'Setup',   tabs: ['availability', 'settings'] },
+]
+
+function Nav({ tab, counts, onSelect, onSignOut, signOutLabel }: {
+  tab: Tab
+  counts: PendingCounts
+  onSelect: (t: Tab) => void
+  onSignOut?: () => void
+  signOutLabel?: string
+}) {
+  return (
+    <>
+      {NAV_GROUPS.map(group => (
+        <div key={group.label}>
+          <p className="dash-group-label">{group.label}</p>
+          {group.tabs.map(t => (
+            <button
+              key={t}
+              className="dash-navitem"
+              data-active={tab === t}
+              aria-current={tab === t ? 'page' : undefined}
+              onClick={() => onSelect(t)}
+            >
+              {TITLES[t]}
+              {t === 'approvals' && counts.total > 0 && (
+                <span className="dash-badge">{counts.total}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      ))}
+      {onSignOut && (
+        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--surface)' }}>
+          <button className="dash-navitem" onClick={onSignOut}>{signOutLabel}</button>
+        </div>
+      )}
+    </>
+  )
+}
 
 export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('crm')
+  const [tab, setTab] = useUrlTab(TABS, 'crm')
   const [availCoach, setAvailCoach] = useState(COACHES[0].slug)
-  const [isDemo, setIsDemo] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('demo') === '1'
-  })
+  const [isDemo, setIsDemo] = useState(demoParamActive)
+  const [counts, setCounts] = useState<PendingCounts>(ZERO_PENDING)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const isMobile = useMediaQuery(MOBILE_QUERY)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -33,8 +104,46 @@ export default function AdminPortal() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useDemoParamSync(setIsDemo)
+
+  // A signed-in athlete or coach reaching /admin is sent where they belong.
+  // RLS already returns them nothing here; this is what turns that into a
+  // sentence rather than a dozen empty panels.
+  useRequireRole({ skip: isDemo })
+
+  // Refetched on every tab change so approving/rejecting inside a panel is
+  // reflected in the badge as soon as the owner navigates anywhere. Keyed on
+  // the user id, not the session object — supabase mints a new session object
+  // on every token refresh and each would refire both fetches.
+  const userId = session?.user.id ?? null
+  useEffect(() => {
+    if (!userId && !isDemo) return
+    let live = true
+    fetchPendingCounts(isDemo).then(c => { if (live) setCounts(c) })
+    return () => { live = false }
+  }, [isDemo, userId, tab])
+
+  // The sheet is a modal: page must not scroll under it, Escape closes it,
+  // and Back (which changes the tab) should never leave it hanging open.
+  useEffect(() => {
+    if (!sheetOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSheetOpen(false) }
+    const onPop = () => setSheetOpen(false)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('popstate', onPop)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('popstate', onPop)
+    }
+  }, [sheetOpen])
+
+  const enterDemo = () => { setDemoParam(true); setIsDemo(true) }
+
   const signOut = async () => {
-    if (isDemo) { setIsDemo(false); return }
+    if (isDemo) { setDemoParam(false); setIsDemo(false); return }
     await supabase.auth.signOut()
     setSession(null)
   }
@@ -45,106 +154,106 @@ export default function AdminPortal() {
     </div>
   )
 
-  if (!session && !isDemo) return <AdminLogin onDemo={() => setIsDemo(true)} />
+  if (!session && !isDemo) return <AdminLogin onDemo={enterDemo} />
+
+  const signOutLabel = isDemo ? 'Exit Demo' : 'Sign Out'
+
+  const selectTab = (t: Tab) => { setTab(t); setSheetOpen(false) }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      {/* Top bar */}
-      <header style={{ background: 'var(--bg)', borderBottom: '1px solid var(--surface)', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '2rem', flexShrink: 0 }}>
+    <div className="dash-shell">
+      <header className="dash-topbar">
+        {isMobile && (
+          <button className="dash-menu-btn" aria-label="Open navigation" onClick={() => setSheetOpen(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+        )}
         <a href={(import.meta as any).env?.BASE_URL ?? '/'}>
-          <img src={`${ (import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)' }} />
+          <img src={`${(import.meta as any).env?.BASE_URL ?? '/'}logo.svg`} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)', display: 'block' }} />
         </a>
         <span style={{ color: 'var(--text-3)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.25em', textTransform: 'uppercase' }}>Admin</span>
 
-        {/* Tabs */}
-        <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
-        {(['crm', 'bookings', 'analytics', 'blog', 'meets', 'availability', 'settings'] as Tab[]).map(t => {
-              const pending = getPendingContent().filter(c => c.status === 'pending')
-              const pendingCount = t === 'blog' ? pending.filter(c => c.type === 'blog').length : t === 'meets' ? pending.filter(c => c.type === 'meet').length : 0
-              return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: tab === t ? 'var(--text)' : 'var(--text-dim)',
-                fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
-                borderBottom: `2px solid ${tab === t ? '#272C84' : 'transparent'}`,
-                paddingBottom: '1px', transition: 'color .15s',
-                display: 'flex', alignItems: 'center', gap: '.35rem',
-              }}
-              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-3)' }}
-              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-2)' }}
-            >
-              {{ crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics', blog: 'Blog', meets: 'Meets', availability: 'Availability', settings: 'Settings' }[t]}
-              {pendingCount > 0 && (
-                <span style={{ background: '#272C84', color: '#ffffff', fontSize: '.5rem', fontWeight: 900, borderRadius: '10rem', padding: '.1rem .4rem', lineHeight: 1.4 }}>{pendingCount}</span>
-              )}
-            </button>
-              )
-            })}
-        </nav>
-
-        {/* Right side */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>
-            {isDemo ? <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span> : session?.user.email}
-          </span>
+          {isDemo ? (
+            <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>Demo Mode</span>
+          ) : (
+            <span className="dash-hide-mobile" style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{session?.user.email}</span>
+          )}
           <button
+            className="dash-hide-mobile"
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            {isDemo ? 'Exit Demo' : 'Sign Out'}
+            {signOutLabel}
           </button>
         </div>
       </header>
 
-      {/* Page header */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--surface)', background: 'var(--bg)' }}>
-        <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {{ crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics', blog: 'Blog', meets: 'Meet Listings', availability: 'Set Availability', settings: 'Settings' }[tab]}
-        </h1>
-      </div>
+      {isMobile && sheetOpen && (
+        <>
+          <div className="dash-sheet-backdrop" onClick={() => setSheetOpen(false)} />
+          <nav className="dash-sheet" aria-label="Admin navigation">
+            <Nav tab={tab} counts={counts} onSelect={selectTab} onSignOut={signOut} signOutLabel={signOutLabel} />
+          </nav>
+        </>
+      )}
 
-      {/* Content */}
-      <main style={{ flex: 1, overflowX: 'auto' }}>
-        {tab === 'crm'          && <CRMPanel isDemo={isDemo} />}
-        {tab === 'bookings'     && <BookingsPanel isDemo={isDemo} />}
-        {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
-        {tab === 'blog'         && <BlogPanel isDemo={isDemo} />}
-        {tab === 'meets'        && <MeetsPanel isDemo={isDemo} />}
-        {tab === 'settings'     && <AdminSettings isDemo={isDemo} />}
-        {tab === 'availability' && (
-          <div style={{ padding: '2rem' }}>
-            {/* Coach picker */}
-            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-              {COACHES.map(c => (
-                <button
-                  key={c.slug}
-                  onClick={() => setAvailCoach(c.slug)}
-                  style={{
-                    background: availCoach === c.slug ? '#c8102e' : 'var(--surface)',
-                    border: `1px solid ${availCoach === c.slug ? '#c8102e' : 'var(--border)'}`,
-                    color: availCoach === c.slug ? 'var(--text)' : 'var(--text-3)',
-                    borderRadius: '.3rem', padding: '.5rem 1.1rem',
-                    fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em',
-                    textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  {c.firstName}
-                </button>
-              ))}
-            </div>
-            <AvailabilityManager
-              key={availCoach}
-              coach={COACHES.find(c => c.slug === availCoach)!}
-              isDemo={isDemo}
-            />
-          </div>
+      <div className="dash-layout">
+        {!isMobile && (
+          <nav className="dash-sidebar" aria-label="Admin navigation">
+            <Nav tab={tab} counts={counts} onSelect={selectTab} />
+          </nav>
         )}
-      </main>
+
+        <main className="dash-main">
+          <div className="dash-pagehead">
+            <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
+              {TITLES[tab]}
+            </h1>
+          </div>
+
+          {tab === 'crm'          && <CRMPanel isDemo={isDemo} />}
+          {tab === 'bookings'     && <BookingsPanel isDemo={isDemo} />}
+          {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
+          {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
+          {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
+          {tab === 'blog'         && <BlogPanel isDemo={isDemo} />}
+          {tab === 'rotation'     && <RotationPanel isDemo={isDemo} />}
+          {tab === 'meets'        && <MeetsPanel isDemo={isDemo} />}
+          {tab === 'testimonials' && <TestimonialsPanel isDemo={isDemo} />}
+          {tab === 'settings'     && <AdminSettings isDemo={isDemo} />}
+          {tab === 'availability' && (
+            <div>
+              {/* AvailabilityManager pads itself with .dash-pad — a padded
+                  wrapper here would double the inset to 4rem. Only the coach
+                  picker needs its own gutter. */}
+              <div className="dash-pad" style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', paddingBottom: 0 }}>
+                {COACHES.map(c => (
+                  <button
+                    key={c.slug}
+                    onClick={() => setAvailCoach(c.slug)}
+                    style={{
+                      background: availCoach === c.slug ? '#c8102e' : 'var(--surface)',
+                      border: `1px solid ${availCoach === c.slug ? '#c8102e' : 'var(--border)'}`,
+                      color: availCoach === c.slug ? 'var(--text)' : 'var(--text-3)',
+                      borderRadius: '.3rem', padding: '.6rem 1.1rem', minHeight: '2.5rem',
+                      fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em',
+                      textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {c.firstName}
+                  </button>
+                ))}
+              </div>
+              <AvailabilityManager
+                key={availCoach}
+                coach={COACHES.find(c => c.slug === availCoach)!}
+                isDemo={isDemo}
+              />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   )
 }
