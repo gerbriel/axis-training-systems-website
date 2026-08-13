@@ -1,14 +1,43 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, supabaseConfigured } from '../lib/supabase'
-import { getCoachBySlug } from '../data/coaches'
+import { getCoachBySlug, COACHES } from '../data/coaches'
 import { href, adminHref } from '../utils/nav'
+import { useRequireRole } from '../lib/useGuard'
+import {
+  useUrlTab, useMediaQuery, MOBILE_QUERY,
+  demoParamActive, setDemoParam, useDemoParamSync,
+} from '../lib/dashboard'
 import CoachAdminLogin from './coach-admin/CoachAdminLogin'
 import CoachAdminDashboard from './coach-admin/CoachAdminDashboard'
 import ContentPublisher from './coach-admin/ContentPublisher'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
+import TestimonialsManager from './coach-admin/TestimonialsManager'
 
-type CoachTab = 'leads' | 'availability' | 'content'
+type CoachTab = 'leads' | 'availability' | 'content' | 'testimonials'
+
+const COACH_TABS: readonly CoachTab[] = ['leads', 'availability', 'content', 'testimonials']
+
+// Short labels: 'Publish Content' was one of the reasons four tabs could not
+// fit a phone header. The long form lives in the page heading instead.
+const TAB_LABELS: Record<CoachTab, string> = {
+  leads: 'Leads', availability: 'Availability', content: 'Content', testimonials: 'Testimonials',
+}
+
+const TAB_ICONS: Record<CoachTab, string> = {
+  leads:        'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  availability: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  content:      'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
+  testimonials: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+}
+
+function TabIcon({ tab }: { tab: CoachTab }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={TAB_ICONS[tab]} />
+    </svg>
+  )
+}
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -18,8 +47,17 @@ export default function CoachAdmin({ slug }: Props) {
   const coach = getCoachBySlug(slug)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
-  const [tab, setTab] = useState<CoachTab>('leads')
+  // ?demo=1 works here exactly like on the master admin — it used to silently
+  // do nothing on the coach route, and a refresh mid-demo hit the login wall.
+  const [isDemo, setIsDemo] = useState(demoParamActive)
+  const [tab, setTab] = useUrlTab(COACH_TABS, 'leads')
+  const isMobile = useMediaQuery(MOBILE_QUERY)
+
+  useDemoParamSync(setIsDemo)
+
+  // A coach may open their OWN portal. Anyone else signed in is sent home —
+  // an admin passes, because the master portal renders this same component.
+  useRequireRole({ skip: isDemo, coachSlug: slug })
 
   useEffect(() => {
     if (!supabaseConfigured) { setLoading(false); return }
@@ -31,18 +69,29 @@ export default function CoachAdmin({ slug }: Props) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const enterDemo = () => { setDemoParam(true); setIsDemo(true) }
+
   const signOut = async () => {
-    if (isDemo) { setIsDemo(false); return }
+    if (isDemo) { setDemoParam(false); setIsDemo(false); return }
     await supabase.auth.signOut()
     setSession(null)
   }
 
   if (!coach) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem', padding: '1rem' }}>
         <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
         <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase' }}>Coach Not Found</h1>
-        <a href={adminHref()} style={{ color: 'var(--text-2)', fontSize: '.8rem', textDecoration: 'underline' }}>← Master Admin</a>
+        {/* A coach who guessed their slug ('/admin/ronnie') lands here — list
+            the real portals instead of dead-ending them at the wrong login. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem 1.25rem', justifyContent: 'center' }}>
+          {COACHES.map(c => (
+            <a key={c.slug} href={adminHref(c.slug)} style={{ color: 'var(--text-2)', fontSize: '.85rem', textDecoration: 'underline', padding: '.25rem 0' }}>
+              {c.name}
+            </a>
+          ))}
+        </div>
+        <a href={adminHref()} style={{ color: 'var(--text-3)', fontSize: '.75rem', textDecoration: 'underline' }}>← Master Admin</a>
       </div>
     )
   }
@@ -61,7 +110,7 @@ export default function CoachAdmin({ slug }: Props) {
     return (
       <CoachAdminLogin
         coach={coach}
-        onDemo={() => setIsDemo(true)}
+        onDemo={enterDemo}
         sessionMismatch={!!(session && !sessionEmailMatches)}
         onSignOut={signOut}
       />
@@ -69,49 +118,38 @@ export default function CoachAdmin({ slug }: Props) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      {/* Top bar */}
-      <header style={{ background: 'var(--bg)', borderBottom: '1px solid var(--surface)', padding: '0 2rem', display: 'flex', alignItems: 'center', height: '3.5rem', gap: '1.5rem', flexShrink: 0 }}>
+    <div className="dash-shell">
+      <header className="dash-topbar">
         <a href={href('/')}>
-          <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)' }} />
+          <img src={`${BASE}logo.svg`} alt="Axis" style={{ height: 22, filter: 'var(--logo-filter)', display: 'block' }} />
         </a>
-        <span style={{ color: 'var(--text-3)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>Coach Portal</span>
-        <span style={{ color: 'var(--text-3)' }}>›</span>
-        <span style={{ color: 'var(--text)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase' }}>{coach.name}</span>
+        <span style={{ color: 'var(--text)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{coach.name}</span>
 
-        {/* Tabs */}
-        <nav style={{ display: 'flex', gap: '1.5rem', marginLeft: '1rem' }}>
-          {([['leads', 'Leads'], ['availability', 'Availability'], ['content', 'Publish Content']] as [CoachTab, string][]).map(([t, label]) => (
+        <nav className="dash-tabs" aria-label="Coach portal navigation">
+          {COACH_TABS.map(t => (
             <button
               key={t}
+              className="dash-tab"
+              data-active={tab === t}
+              aria-current={tab === t ? 'page' : undefined}
               onClick={() => setTab(t)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: tab === t ? 'var(--text)' : 'var(--text-dim)',
-                fontSize: '.7rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
-                borderBottom: `2px solid ${tab === t ? '#272C84' : 'transparent'}`,
-                paddingBottom: '1px', transition: 'color .15s', fontFamily: 'inherit',
-              }}
-              onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-3)' }}
-              onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-2)' }}
             >
-              {label}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </nav>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          {isDemo && (
-            <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo Mode</span>
-          )}
-          {!isDemo && session && (
-            <span style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{session.user.email}</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {isDemo ? (
+            <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase' }}>Demo</span>
+          ) : (
+            /* Hidden below 1150px, not just on phones: name + 4 tabs + email +
+               Sign Out overflow a single row anywhere under ~1100px. */
+            <span className="dash-hide-narrow" style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{session?.user.email}</span>
           )}
           <button
             onClick={signOut}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#272C84'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
           >
             {isDemo ? 'Exit Demo' : 'Sign Out'}
           </button>
@@ -119,19 +157,39 @@ export default function CoachAdmin({ slug }: Props) {
       </header>
 
       {/* Page header */}
-      <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--surface)', background: 'var(--bg)' }}>
+      <div className="dash-pagehead">
         <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
         <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {{ leads: `${coach.firstName}'s Leads`, availability: 'Availability', content: 'Publish Content' }[tab]}
+          {{ leads: `${coach.firstName}'s Leads`, availability: 'Availability', content: 'Publish Content', testimonials: 'Testimonials' }[tab]}
         </h1>
       </div>
 
       {/* Content */}
-      <main style={{ flex: 1, overflowX: 'auto' }}>
+      <main className={`dash-main${isMobile ? ' dash-has-bottombar' : ''}`}>
         {tab === 'leads'        && <CoachAdminDashboard coach={coach} isDemo={isDemo} />}
         {tab === 'availability' && <AvailabilityManager coach={coach} isDemo={isDemo} />}
         {tab === 'content'      && <ContentPublisher coach={coach} isDemo={isDemo} />}
+        {tab === 'testimonials' && <TestimonialsManager coach={coach} isDemo={isDemo} />}
       </main>
+
+      {/* Phone navigation: thumb-reachable, always visible — the header tab
+          strip is display:none below 768px. */}
+      {isMobile && (
+        <nav className="dash-bottombar" aria-label="Coach portal navigation">
+          {COACH_TABS.map(t => (
+            <button
+              key={t}
+              className="dash-bottombar-item"
+              data-active={tab === t}
+              aria-current={tab === t ? 'page' : undefined}
+              onClick={() => setTab(t)}
+            >
+              <TabIcon tab={t} />
+              {TAB_LABELS[t]}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }

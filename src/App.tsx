@@ -11,6 +11,7 @@ import UpcomingMeets from './components/UpcomingMeets'
 import Footer from './components/Footer'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import AdminPortal from './pages/AdminPortal'
+import ResetPassword from './pages/ResetPassword'
 import CoachPage from './pages/CoachPage'
 import ApplyPage from './pages/ApplyPage'
 import CoachAdmin from './pages/CoachAdmin'
@@ -19,7 +20,14 @@ import BlogPostPage from './pages/BlogPostPage'
 import GuidesPage from './pages/GuidesPage'
 import Rankings from './pages/Rankings'
 import BookPage from './pages/BookPage'
+import ManageBookingPage from './pages/ManageBookingPage'
+import AccountPage from './pages/AccountPage'
+import SignInPage from './pages/auth/SignInPage'
+import InvitePage from './pages/auth/InvitePage'
+import PendingPage from './pages/auth/PendingPage'
+import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 import ToolPage from './pages/ToolPage'
+import { AuthProvider } from './context/AuthContext'
 import { trackPageview } from './lib/analytics'
 import { href } from './utils/nav'
 
@@ -118,6 +126,25 @@ const rawPath = window.location.pathname
 const path = rawPath.startsWith(base) ? rawPath.slice(base.length) || '/' : rawPath
 
 function getRoute() {
+  // Before the /admin matchers: the recovery link is followed by a signed-out
+  // coach, and any admin route would bounce them to a login they cannot pass.
+  if (path === '/reset-password') return { type: 'reset-password' }
+
+  // Auth, also before /admin, and for the same reason — every one of these is
+  // reached by somebody who is either signed out or not yet allowed in.
+  //
+  // /auth/callback is where Google, the magic link and the signup confirmation
+  // all return to. supabase-js exchanges the `code` in the query string for a
+  // session on its own; the page's job is to wait for it and then route by who
+  // the person turned out to be.
+  if (path === '/auth/callback') return { type: 'auth-callback' }
+  if (path === '/signin' || path === '/login') return { type: 'signin' }
+  if (path === '/pending') return { type: 'pending' }
+  if (path === '/account') return { type: 'account' }
+  // The token is base64url of 32 bytes — 43 characters. Matched strictly rather
+  // than passed through as whatever happened to be in the path.
+  const inviteMatch = path.match(/^\/invite\/([A-Za-z0-9_-]{16,400})$/)
+  if (inviteMatch) return { type: 'invite', token: inviteMatch[1] }
   const coachAdminMatch = path.match(/^\/admin\/([^/]+)/)
   if (coachAdminMatch) return { type: 'coach-admin', slug: coachAdminMatch[1] }
   if (path === '/admin' || path.startsWith('/admin/')) return { type: 'admin' }
@@ -133,6 +160,12 @@ function getRoute() {
   if (toolMatch) return { type: 'tool', slug: toolMatch[1] }
   if (path === '/rankings') return { type: 'rankings' }
   if (path === '/book') return { type: 'book' }
+  // The client's own booking, addressed by the manage_token from their
+  // confirmation email (010). There are no accounts, so the link IS the
+  // credential — which is why it is matched strictly as a uuid rather than
+  // passed through as whatever happened to be in the path.
+  const manageMatch = path.match(/^\/booking\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i)
+  if (manageMatch) return { type: 'manage-booking', token: manageMatch[1] }
   return { type: 'home' }
 }
 
@@ -141,6 +174,12 @@ trackPageview(path || '/')
 
 // ── Page content (routing) ─────────────────────────────────────────────────
 function AppContent() {
+  if (route.type === 'reset-password') return <ResetPassword />
+  if (route.type === 'auth-callback') return <AuthCallbackPage />
+  if (route.type === 'signin') return <SignInPage />
+  if (route.type === 'pending') return <PendingPage />
+  if (route.type === 'account') return <AccountPage />
+  if (route.type === 'invite') return <InvitePage token={route.token!} />
   if (route.type === 'coach-admin') return <CoachAdmin slug={route.slug!} />
   if (route.type === 'admin') return <AdminPortal />
   if (route.type === 'coach') return <CoachPage slug={route.slug!} />
@@ -151,6 +190,7 @@ function AppContent() {
   if (route.type === 'tool') return <ToolPage slug={route.slug!} />
   if (route.type === 'rankings') return <Rankings />
   if (route.type === 'book') return <BookPage />
+  if (route.type === 'manage-booking') return <ManageBookingPage token={route.token!} />
 
   // ── Home ─────────────────────────────────────────────────────────────────
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -181,9 +221,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <>
+    // Wraps everything, not just the signed-in routes: the booking page and the
+    // marketing pages both want to know whether somebody is signed in, and a
+    // provider mounted per-route re-runs its session fetch on every navigation.
+    <AuthProvider>
       <AppContent />
       <ThemeToggle />
-    </>
+    </AuthProvider>
   )
 }
