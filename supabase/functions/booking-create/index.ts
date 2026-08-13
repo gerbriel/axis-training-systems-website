@@ -19,6 +19,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { mirrorUpsert } from '../_shared/mirror.ts'
 import {
+  hashedSubject,
   loadAvailability,
   loadCoachPolicy,
   priceService,
@@ -172,11 +173,17 @@ Deno.serve(async (req) => {
   // ── Rate limit ────────────────────────────────────────────────────────────
   // Two budgets, both fail-closed. The address one is checked first because it
   // is free — no second lookup — and it is the one a loop trips instantly.
+  //
+  // The client's email is HASHED before it becomes a subject. It used to go in
+  // as plaintext, which quietly turned `rate_limit_hit` into a list of everybody
+  // who had tried to book — a table that exists to count, holding contact
+  // details it has no use for. The digest counts identically.
   const subject = await requestSubject(req)
   if (!(await rateLimitOk(db, 'booking-create-ip', subject, RATE_WINDOW_SECONDS, RATE_LIMIT_PER_IP))) {
     return fail('rate_limited', 429, cors)
   }
-  if (!(await rateLimitOk(db, 'booking-create-email', payload.email, EMAIL_WINDOW_SECONDS, EMAIL_LIMIT_PER_DAY))) {
+  const emailSubject = await hashedSubject(payload.email)
+  if (!(await rateLimitOk(db, 'booking-create-email', emailSubject, EMAIL_WINDOW_SECONDS, EMAIL_LIMIT_PER_DAY))) {
     return fail('rate_limited', 429, cors)
   }
 

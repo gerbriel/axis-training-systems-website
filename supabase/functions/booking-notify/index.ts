@@ -15,8 +15,20 @@
 // a "2 hours before" queued for 07:00 goes out somewhere in 07:00–07:05, which
 // is what anyone means by two hours.
 //
-// verify_jwt stays ON. Nothing about this is public — it is invoked by cron with
-// the service-role key, or by hand from the dashboard.
+// verify_jwt stays ON, AND THAT IS NOT ENOUGH ON ITS OWN. The platform gate only
+// asks for a valid Supabase JWT, and the anon key is one — it ships in the Vite
+// bundle, so "verify_jwt = true" left this dispatcher open to anybody who viewed
+// source. They could not read the queue, but they could make it fire whenever
+// they liked and spend Axis's Resend quota doing it.
+//
+// So the caller is checked here as well, against exactly two credentials, both
+// compared in constant time:
+//   • Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>  — what the cron job
+//     below already sends, and what a by-hand run from the dashboard must send.
+//   • X-Cron-Secret: <BOOKING_NOTIFY_CRON_SECRET>        — optional alternative,
+//     for a scheduler that should not be holding the service-role key at all.
+// Anything else is 401, including a signed-in coach: nobody's session dispatches
+// the queue.
 //
 // The queue is the record. This function claims due rows through
 // `claim_booking_notifications` (which counts the attempt and takes a row lock,
@@ -191,21 +203,27 @@ function copyFor(n: Claimed, when: string, coach: string): Copy {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderEmail(copy: Copy, n: Claimed, when: string, isCoach: boolean): string {
-  const manageUrl = `${siteUrl()}/booking/${n.manage_token}`
+  // Percent-encoded, not interpolated raw: a path segment built by concatenation
+  // is a path traversal waiting for the first value with a slash in it.
+  const manageUrl = `${siteUrl()}/booking/${encodeURIComponent(n.manage_token)}`
 
+  // Every href goes through escapeHtml too. These URLs are all ours — SITE_URL,
+  // a uuid, a Google Meet link — but "it came from the database" is the same
+  // sentence that was true of the lead fields in send-lead-email, and an
+  // unescaped attribute is one bad row away from being a hole.
   const button = (label: string, url: string, filled: boolean) => `
-    <a href="${url}" style="display:inline-block;padding:12px 26px;margin:0 8px 10px 0;border-radius:4px;
+    <a href="${escapeHtml(url)}" style="display:inline-block;padding:12px 26px;margin:0 8px 10px 0;border-radius:4px;
        text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
        ${filled
          ? `background:${BRAND};color:#ffffff;border:1px solid ${BRAND}`
          : 'background:transparent;color:#bbbbbb;border:1px solid #2a2a2a'}">${label}</a>`
 
   const actions = isCoach
-    ? button('Open the portal', `${siteUrl()}/admin/${n.coach_slug}`, true)
+    ? button('Open the portal', `${siteUrl()}/admin/${encodeURIComponent(n.coach_slug)}`, true)
     : [
         n.meet_url ? button('Join the call', n.meet_url, true) : '',
         n.kind === 'cancellation'
-          ? button('Book again', `${siteUrl()}/book?coach=${n.coach_slug}`, !n.meet_url)
+          ? button('Book again', `${siteUrl()}/book?coach=${encodeURIComponent(n.coach_slug)}`, !n.meet_url)
           : button('Manage this booking', manageUrl, !n.meet_url),
       ].join('')
 
@@ -247,7 +265,7 @@ function renderEmail(copy: Copy, n: Claimed, when: string, isCoach: boolean): st
               border-top:1px solid #1a1a1a;padding-top:20px">
       ${isCoach
         ? 'You are getting this because notifications are on for your coach profile.'
-        : `Need to change or cancel? <a href="${manageUrl}" style="color:#666">Manage your booking</a>. Times are shown in ${escapeHtml(n.time_zone.replace('_', ' '))}.`}
+        : `Need to change or cancel? <a href="${escapeHtml(manageUrl)}" style="color:#666">Manage your booking</a>. Times are shown in ${escapeHtml(n.time_zone.replace('_', ' '))}.`}
     </p>
   </div>
 </body></html>`
@@ -319,9 +337,41 @@ async function send(n: Claimed): Promise<{ ok: true } | { ok: false; error: stri
   return { ok: true }
 }
 
+/**
+ * Constant-time string compare. Returns false on a length mismatch, which does
+ * leak the length — irrelevant for credentials whose length is not the secret,
+ * and the alternative is a compare that leaks the prefix instead.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length === 0 || a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+/** Either of the two credentials above. Never a user session. */
+function isDispatcher(req: Request): boolean {
+  const header  = req.headers.get('Authorization') ?? ''
+  const bearer  = header.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (timingSafeEqual(bearer, service)) return true
+
+  const cronSecret = Deno.env.get('BOOKING_NOTIFY_CRON_SECRET') ?? ''
+  return timingSafeEqual(req.headers.get('x-cron-secret')?.trim() ?? '', cronSecret)
+}
+
 Deno.serve(async (req) => {
   const cors = corsHeaders(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+
+  // Before anything is claimed. A claim counts an attempt against every row it
+  // takes, so an unauthorized caller who got this far would be burning the
+  // retry budget of mail that has not been sent yet.
+  if (!isDispatcher(req)) {
+    return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
+      status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+  }
 
   const db = createClient(
     Deno.env.get('SUPABASE_URL')!,

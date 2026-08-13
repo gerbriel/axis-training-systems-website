@@ -119,11 +119,22 @@ Deno.serve(async (req) => {
   if (pre) return pre
   if (req.method !== 'POST') return jsonError(req, 'method_not_allowed', 405)
 
+  // Declared length first, so an oversized body is refused before it is read
+  // rather than after this isolate has already buffered the whole of it.
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (declared > MAX_BODY_BYTES) return jsonError(req, 'payload_too_large', 413)
+
   let body: Record<string, unknown>
   try {
     const raw = await req.text()
     if (raw.length > MAX_BODY_BYTES) return jsonError(req, 'payload_too_large', 413)
-    body = JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    // `JSON.parse('"x"')` and `JSON.parse('[]')` both succeed, and every field
+    // read below would then be undefined rather than rejected.
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return jsonError(req, 'invalid_request', 400)
+    }
+    body = parsed as Record<string, unknown>
   } catch {
     return jsonError(req, 'invalid_request', 400)
   }
