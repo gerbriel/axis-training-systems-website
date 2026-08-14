@@ -106,9 +106,9 @@ function BlogPreview({ content }: { content: string }) {
   return <>{(content??'').split('\n\n').filter(Boolean).map((p,i)=><p key={i} style={{color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.65,marginBottom:'.5rem'}}>{p}</p>)}</>
 }
 
-interface BlogForm { title:string; subtitle:string; tags:string; summary:string; sections:EditorSection[] }
-const emptyBlog = (): BlogForm => ({ title:'', subtitle:'', tags:'', summary:'', sections:defaultSections() })
-const itemToBlog = (item: PendingContent): BlogForm => ({ title:item.title??'', subtitle:item.subtitle??'', tags:item.tags??'', summary:item.summary??'', sections:deserializeSections(item.content) })
+interface BlogForm { title:string; slug:string; subtitle:string; tags:string; summary:string; sections:EditorSection[] }
+const emptyBlog = (): BlogForm => ({ title:'', slug:'', subtitle:'', tags:'', summary:'', sections:defaultSections() })
+const itemToBlog = (item: PendingContent): BlogForm => ({ title:item.title??'', slug:item.slug??'', subtitle:item.subtitle??'', tags:item.tags??'', summary:item.summary??'', sections:deserializeSections(item.content) })
 
 type FilterStatus = 'pending' | 'reviewed'
 type Mode = 'list' | 'create' | 'edit'
@@ -146,7 +146,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
   const saveCreate = async () => {
     setSaving(true); setActionError(null)
     try {
-      const item = await submitContent({ type:'blog', coachSlug:'admin', coachName:'Axis Admin', title:blog.title.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo)
+      const item = await submitContent({ type:'blog', coachSlug:'admin', coachName:'Axis Admin', title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo)
       await updateContent(item.id, { status:'approved', reviewedAt:new Date().toISOString() }, isDemo)
       setMode('list'); setFilterStatus('reviewed'); await refresh()
     } catch(e) { setActionError(e instanceof Error?e.message:'Save failed') }
@@ -156,7 +156,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
   const saveEdit = async () => {
     if (!editItem) return
     setSaving(true); setActionError(null)
-    try { await updateContent(editItem.id, { title:blog.title.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo); setMode('list'); setEditItem(null); await refresh() }
+    try { await updateContent(editItem.id, { title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo); setMode('list'); setEditItem(null); await refresh() }
     catch(e) { setActionError(e instanceof Error?e.message:'Save failed') }
     finally { setSaving(false) }
   }
@@ -196,6 +196,9 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
           <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'.25rem',padding:'2rem'}}>
             <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
               <div><label style={lbl}>Title *</label><input style={inp} maxLength={200} placeholder="e.g. Meet Recap USAPL Raw Nationals 2026" value={blog.title} onChange={e=>setBlog(b=>({...b,title:e.target.value}))}/></div>
+              {/* The URL. Blank = the post's id is used; a value is cleaned to
+                  lowercase-hyphen on save (contentApi.slugify), so /blog/<this>. */}
+              <div><label style={lbl}>URL slug</label><input style={inp} maxLength={120} placeholder="meet-recap-usapl-2026 (optional)" value={blog.slug} onChange={e=>setBlog(b=>({...b,slug:e.target.value}))}/></div>
               <div><label style={lbl}>Subtitle</label><input style={inp} maxLength={300} placeholder="One-line description" value={blog.subtitle} onChange={e=>setBlog(b=>({...b,subtitle:e.target.value}))}/></div>
               <div><label style={lbl}>Tags (comma-separated)</label><input style={inp} maxLength={200} placeholder="Meet Recap, USAPL, Case Study" value={blog.tags} onChange={e=>setBlog(b=>({...b,tags:e.target.value}))}/></div>
               <div><label style={lbl}>Summary *</label><textarea style={{...inp,minHeight:80,resize:'vertical'}} maxLength={1000} placeholder="2-3 sentence summary" value={blog.summary} onChange={e=>setBlog(b=>({...b,summary:e.target.value}))}/></div>

@@ -13,6 +13,7 @@ export interface PendingContent {
   reviewedAt?: string
   rejectionNote?: string
   // Blog fields
+  slug?: string          // URL segment for a blog post; falls back to id
   title?: string
   subtitle?: string
   tags?: string          // comma-separated

@@ -75,6 +75,7 @@ function rowToContent(row: Record<string, unknown>): PendingContent {
     reviewedAt:    typeof row.reviewed_at === 'string' ? row.reviewed_at : undefined,
     rejectionNote: str(row.rejection_note, 500),
     // Blog
+    slug:          str(row.slug, 120),
     title:         str(row.title, 200),
     subtitle:      str(row.subtitle, 300),
     tags:          str(row.tags, 200),
@@ -103,10 +104,21 @@ function rowToContent(row: Record<string, unknown>): PendingContent {
  * not stripped — the strip happens per-field on read.
  */
 const FIELD_MAX = {
-  title: 200, subtitle: 300, tags: 200, summary: 1000, content: 8000,
+  slug: 120, title: 200, subtitle: 300, tags: 200, summary: 1000, content: 8000,
   meetName: 200, meetDate: 100, meetLocation: 200, federation: 50, meetNote: 300,
   rejectionNote: 500,
 } as const
+
+// The DB CHECK on pending_content.slug is ^[a-z0-9-]+$ (migration 020). Coerce
+// whatever the coach typed into that shape rather than let the insert fail: a
+// space becomes a hyphen, an accented title is stripped to its ascii bones,
+// runs of hyphens collapse. Empty result -> null, so the reader falls back to
+// the id.
+function slugify(v: string | undefined | null): string | null {
+  if (!v) return null
+  const s = v.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, FIELD_MAX.slug)
+  return s || null
+}
 
 const cap = (v: string | undefined, max: number): string | null =>
   typeof v === 'string' && v ? sanitizeText(v, max) || null : null
@@ -120,6 +132,7 @@ function contentToRow(item: Omit<PendingContent, 'id' | 'submittedAt' | 'status'
     coach_slug:    item.coachSlug,
     coach_name:    item.coachName,
     // Blog
+    slug:          slugify(item.slug),
     title:         cap(item.title,        FIELD_MAX.title),
     subtitle:      cap(item.subtitle,     FIELD_MAX.subtitle),
     tags:          cap(item.tags,         FIELD_MAX.tags),
@@ -267,6 +280,7 @@ export async function updateContent(
   if (patch.status      !== undefined) row.status        = patch.status
   if (patch.reviewedAt  !== undefined) row.reviewed_at   = patch.reviewedAt
   // Capped for the same reason contentToRow is — an edit is a write too.
+  if (patch.slug        !== undefined) row.slug          = slugify(patch.slug)
   if (patch.title       !== undefined) row.title         = cap(patch.title,        FIELD_MAX.title)
   if (patch.subtitle    !== undefined) row.subtitle      = cap(patch.subtitle,     FIELD_MAX.subtitle)
   if (patch.tags        !== undefined) row.tags          = cap(patch.tags,         FIELD_MAX.tags)

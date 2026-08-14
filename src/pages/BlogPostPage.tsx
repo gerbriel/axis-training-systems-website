@@ -21,7 +21,7 @@ function parseContent(raw: string | undefined): BlogSection[] {
 
 function pendingToPost(p: PendingContent): BlogPost {
   return {
-    slug: p.id,
+    slug: p.slug ?? p.id,
     title: p.title ?? '',
     subtitle: p.subtitle ?? '',
     date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
@@ -102,7 +102,7 @@ export default function BlogPostPage({ slug }: Props) {
     if (staticPost) return
     fetchApprovedPosts(!supabaseConfigured)
       .then(approved => {
-        const found = approved.find(p => p.id === slug)
+        const found = approved.find(p => (p.slug ?? p.id) === slug)
         setDynPost(found ? pendingToPost(found) : null)
       })
       .catch(() => setDynPost(null))

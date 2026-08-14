@@ -19,7 +19,7 @@ export default function BlogIndex() {
     fetchApprovedPosts(!supabaseConfigured).then(approved => {
       if (approved.length === 0) return
       const mapped: BlogPost[] = approved.map(p => ({
-        slug: p.id,
+        slug: p.slug ?? p.id,
         title: p.title ?? '',
         subtitle: p.subtitle ?? '',
         date: new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
