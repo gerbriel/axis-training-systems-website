@@ -110,11 +110,11 @@ interface BlogForm { title:string; slug:string; subtitle:string; tags:string; su
 const emptyBlog = (): BlogForm => ({ title:'', slug:'', subtitle:'', tags:'', summary:'', sections:defaultSections() })
 const itemToBlog = (item: PendingContent): BlogForm => ({ title:item.title??'', slug:item.slug??'', subtitle:item.subtitle??'', tags:item.tags??'', summary:item.summary??'', sections:deserializeSections(item.content) })
 
-type FilterStatus = 'pending' | 'reviewed'
+type FilterStatus = 'all' | 'pending' | 'reviewed'
 type Mode = 'list' | 'create' | 'edit'
 
 export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('pending')
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [items,        setItems]        = useState<PendingContent[]>([])
   const [loading,      setLoading]      = useState(true)
   const [actionId,     setActionId]     = useState<string | null>(null)
@@ -161,7 +161,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
     finally { setSaving(false) }
   }
 
-  const filtered = items.filter(c => filterStatus==='pending' ? c.status==='pending' : c.status!=='pending').sort((a,b) => b.submittedAt.localeCompare(a.submittedAt))
+  const filtered = items.filter(c => filterStatus==='all' ? true : filterStatus==='pending' ? c.status==='pending' : c.status!=='pending').sort((a,b) => b.submittedAt.localeCompare(a.submittedAt))
   const pendingCount = items.filter(c=>c.status==='pending').length
   const blogValid = blog.title.trim() && blog.summary.trim() && blog.sections.some(s => s.type==='divider' || (s.type==='list'||s.type==='week' ? (s.items??'').trim() : (s.text??'').trim()))
 
@@ -218,9 +218,9 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
         <>
           {actionError && <div style={{background:'#1a0309',border:'1px solid #2d0810',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.5rem',color:'#f87171',fontSize:'.8rem'}}>{actionError}</div>}
           <div style={{display:'flex',gap:'.5rem',marginBottom:'1.5rem'}}>
-            {(['pending','reviewed'] as FilterStatus[]).map(s=>(
+            {(['all','pending','reviewed'] as FilterStatus[]).map(s=>(
               <button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?'var(--surface)':'transparent',border:`1px solid ${filterStatus===s?'var(--steel)':'var(--border)'}`,color:filterStatus===s?'var(--text)':'var(--steel)',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}>
-                {s==='pending'?`Pending (${items.filter(c=>c.status==='pending').length})`:'Published / Reviewed'}
+                {s==='all'?`All (${items.length})`:s==='pending'?`Pending (${items.filter(c=>c.status==='pending').length})`:'Published / Reviewed'}
               </button>
             ))}
           </div>

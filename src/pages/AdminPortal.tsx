@@ -9,8 +9,7 @@ import {
 import type { PendingCounts } from '../lib/dashboard'
 import AdminLogin from './admin/AdminLogin'
 import CRMPanel from './admin/CRMPanel'
-import BlogPanel from './admin/BlogPanel'
-import RotationPanel from './admin/RotationPanel'
+import BlogWorkspace from './admin/BlogWorkspace'
 import MeetsPanel from './admin/MeetsPanel'
 import BookingsPanel from './admin/BookingsPanel'
 import AnalyticsPanel from './admin/AnalyticsPanel'
@@ -35,14 +34,14 @@ import { useUnreadCount } from '../lib/useUnreadCount'
 
 type Tab =
   | 'calendar' | 'crm' | 'bookings' | 'messages' | 'timeclock' | 'forms'
-  | 'approvals' | 'blog' | 'rotation' | 'meets' | 'testimonials'
+  | 'approvals' | 'blog' | 'meets' | 'testimonials'
   | 'catalog' | 'sales'
   | 'insights' | 'marketing' | 'analytics' | 'newsletter'
   | 'invitations' | 'availability' | 'settings'
 
 const TABS: readonly Tab[] = [
   'calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms',
-  'approvals', 'blog', 'rotation', 'meets', 'testimonials',
+  'approvals', 'blog', 'meets', 'testimonials',
   'catalog', 'sales',
   'insights', 'marketing', 'analytics', 'newsletter',
   'invitations', 'availability', 'settings',
@@ -51,7 +50,7 @@ const TABS: readonly Tab[] = [
 const TITLES: Record<Tab, string> = {
   calendar: 'Calendar', crm: 'Clients', bookings: 'Bookings',
   messages: 'Messages', timeclock: 'Time Clock', forms: 'Forms',
-  approvals: 'Waiting on you', blog: 'Blog', rotation: 'Blog Rotation',
+  approvals: 'Waiting on you', blog: 'Blog',
   meets: 'Meet Listings', testimonials: 'Testimonials',
   catalog: 'Catalog', sales: 'Sales',
   insights: 'Insights', marketing: 'Marketing', analytics: 'Analytics', newsletter: 'Newsletter',
@@ -66,7 +65,7 @@ const TITLES: Record<Tab, string> = {
 // Categories/Inventory inside Catalog rather than crowding the rail.
 const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'Business', tabs: ['calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms'] },
-  { label: 'Content',  tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
+  { label: 'Content',  tabs: ['approvals', 'blog', 'meets', 'testimonials'] },
   { label: 'Store',    tabs: ['catalog', 'sales'] },
   { label: 'Grow',     tabs: ['insights', 'marketing', 'analytics', 'newsletter'] },
   { label: 'Setup',    tabs: ['invitations', 'availability', 'settings'] },
@@ -251,8 +250,7 @@ export default function AdminPortal() {
           {tab === 'newsletter'   && <NewsletterPanel isDemo={isDemo} />}
           {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
           {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
-          {tab === 'blog'         && <BlogPanel isDemo={isDemo} />}
-          {tab === 'rotation'     && <RotationPanel isDemo={isDemo} />}
+          {tab === 'blog'         && <BlogWorkspace isDemo={isDemo} />}
           {tab === 'meets'        && <MeetsPanel isDemo={isDemo} />}
           {tab === 'testimonials' && <TestimonialsPanel isDemo={isDemo} />}
           {tab === 'catalog'      && <CatalogPanel isDemo={isDemo} />}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { fetchAllTestimonials, reviewTestimonial, deleteTestimonial } from '../../lib/testimonialsApi'
+import { fetchAllTestimonials, reviewTestimonial, deleteTestimonial, createTestimonial, updateTestimonial } from '../../lib/testimonialsApi'
 import type { Testimonial, MainStatus } from '../../data/testimonials'
 import { sanitizeText } from '../../utils/sanitize'
 import DemoBanner from '../../components/dashboard/DemoBanner'
@@ -82,6 +82,67 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
     setActionId(null); await refresh()
   }
 
+  // ── Create / edit form ──────────────────────────────────────────────────
+  // The head coach can author or fix any coach's testimonial here. "Feature on
+  // homepage" does the approval in the same step (create → request → approve),
+  // so this panel is a full CRUD surface and not just a review queue.
+  type FormState = {
+    coachSlug: string; athlete: string; result: string; quote: string
+    photo: string; showOnCoach: boolean; featureHome: boolean
+  }
+  const BLANK: FormState = {
+    coachSlug: COACHES[0].slug, athlete: '', result: '', quote: '',
+    photo: '', showOnCoach: true, featureHome: false,
+  }
+  const [editingId, setEditingId] = useState<string | null>(null) // null when adding
+  const [formOpen, setFormOpen]   = useState(false)
+  const [form, setForm]           = useState<FormState>(BLANK)
+  const [saving, setSaving]       = useState(false)
+
+  const openCreate = () => { setEditingId(null); setForm(BLANK); setFormOpen(true); setActionError('') }
+  const openEdit = (t: Testimonial) => {
+    setEditingId(t.id)
+    setForm({
+      coachSlug: t.coachSlug, athlete: t.athlete, result: t.result ?? '',
+      quote: t.quote, photo: t.photo ?? '', showOnCoach: t.showOnCoach,
+      featureHome: t.mainStatus === 'approved' || t.mainStatus === 'pending',
+    })
+    setFormOpen(true); setActionError('')
+  }
+  const closeForm = () => { setFormOpen(false); setEditingId(null) }
+
+  const saveForm = async () => {
+    if (!form.quote.trim() || !form.athlete.trim()) {
+      setActionError('Athlete name and quote are both required.')
+      return
+    }
+    const coach = COACHES.find(c => c.slug === form.coachSlug)
+    const coachName = coach?.name ?? form.coachSlug
+    const input = {
+      coachSlug: form.coachSlug, coachName,
+      quote: form.quote, athlete: form.athlete, result: form.result,
+      photo: form.photo, showOnCoach: form.showOnCoach,
+      requestMainPage: form.featureHome,
+    }
+    setSaving(true); setActionError('')
+    try {
+      if (editingId === null) {
+        const created = await createTestimonial(input, isDemo)
+        // Featuring puts it in the queue at 'pending'; as the reviewer, approve it now.
+        if (form.featureHome) await reviewTestimonial(created.id, 'approved', undefined, isDemo)
+      } else {
+        await updateTestimonial(editingId, input, isDemo)
+        if (form.featureHome) await reviewTestimonial(editingId, 'approved', undefined, isDemo)
+      }
+      closeForm()
+      await refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Could not save the testimonial.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const pendingCount = useMemo(() => items.filter(t => t.mainStatus === 'pending').length, [items])
 
   const visible = useMemo(() => items.filter(t => {
@@ -122,12 +183,70 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
         </select>
 
         <button
+          onClick={openCreate}
+          style={{ ...btn, background: '#272C84', color: '#fff', marginLeft: 'auto' }}
+        >
+          + New Testimonial
+        </button>
+        <button
           onClick={refresh}
-          style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', marginLeft: 'auto' }}
+          style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)' }}
         >
           Refresh
         </button>
       </div>
+
+      {formOpen && (
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.4rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--text)', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+            {editingId === null ? 'New testimonial' : 'Edit testimonial'}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.85rem' }}>
+            <label style={{ display: 'block' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Coach</span>
+              <select value={form.coachSlug} onChange={e => setForm(f => ({ ...f, coachSlug: e.target.value }))} style={{ ...inp, appearance: 'none', cursor: 'pointer' }}>
+                {COACHES.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '.85rem', flexWrap: 'wrap' }}>
+              <label style={{ flex: 1, minWidth: 200 }}>
+                <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Athlete</span>
+                <input style={inp} maxLength={200} value={form.athlete} onChange={e => setForm(f => ({ ...f, athlete: e.target.value }))} placeholder="Athlete's name" />
+              </label>
+              <label style={{ flex: 1, minWidth: 200 }}>
+                <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Result <span style={{ textTransform: 'none', fontWeight: 400 }}>(optional)</span></span>
+                <input style={inp} maxLength={200} value={form.result} onChange={e => setForm(f => ({ ...f, result: e.target.value }))} placeholder="e.g. +45lb total in 12 weeks" />
+              </label>
+            </div>
+            <label style={{ display: 'block' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Quote</span>
+              <textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} maxLength={1500} value={form.quote} onChange={e => setForm(f => ({ ...f, quote: e.target.value }))} placeholder="What the athlete said…" />
+            </label>
+            <label style={{ display: 'block' }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Photo URL <span style={{ textTransform: 'none', fontWeight: 400 }}>(optional)</span></span>
+              <input style={inp} maxLength={1000} value={form.photo} onChange={e => setForm(f => ({ ...f, photo: e.target.value }))} placeholder="https://…" />
+            </label>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', color: 'var(--text-2)', fontSize: '.8rem' }}>
+                <input type="checkbox" checked={form.showOnCoach} onChange={e => setForm(f => ({ ...f, showOnCoach: e.target.checked }))} />
+                Show on coach page
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', color: 'var(--text-2)', fontSize: '.8rem' }}>
+                <input type="checkbox" checked={form.featureHome} onChange={e => setForm(f => ({ ...f, featureHome: e.target.checked }))} />
+                Feature on homepage
+              </label>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.25rem' }}>
+            <button onClick={saveForm} disabled={saving} style={{ ...btn, background: '#22c55e', color: '#04240f', opacity: saving ? 0.5 : 1 }}>
+              {saving ? 'Saving…' : editingId === null ? 'Create' : 'Save Changes'}
+            </button>
+            <button onClick={closeForm} disabled={saving} style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {actionError && (
         <p style={{ color: '#c8102e', fontSize: '.75rem', fontWeight: 700, marginBottom: '1rem' }}>{actionError}</p>
@@ -222,8 +341,13 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
                     </button>
                   )}
 
+                  <button onClick={() => openEdit(t)} disabled={actionId === t.id}
+                    style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', marginLeft: 'auto' }}>
+                    Edit
+                  </button>
+
                   <button onClick={() => handleDelete(t)} disabled={actionId === t.id}
-                    style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-3)', marginLeft: 'auto' }}
+                    style={{ ...btn, background: 'none', border: '1px solid var(--border)', color: 'var(--text-3)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' }}>
                     Delete
