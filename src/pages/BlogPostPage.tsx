@@ -96,23 +96,33 @@ function renderSection(s: BlogSection, i: number) {
 export default function BlogPostPage({ slug }: Props) {
   const staticPost = getPostBySlug(slug)
   const [dynPost, setDynPost] = useState<BlogPost | null>(null)
-  const [loading, setLoading]  = useState(!staticPost)
+  const [loading, setLoading]  = useState(true)
 
+  // Always ask the database, even when a static post exists for this slug: once
+  // a founding post is imported and then edited, the DATABASE version is the one
+  // that should show. The static copy is only a fallback for a slug the DB does
+  // not have (nothing imported yet, or an old code-only post). So the DB wins in
+  // `post` below, and the static post is shown immediately while the DB loads.
   useEffect(() => {
-    if (staticPost) return
+    let live = true
     fetchApprovedPosts(!supabaseConfigured)
       .then(approved => {
+        if (!live) return
         const found = approved.find(p => (p.slug ?? p.id) === slug)
         setDynPost(found ? pendingToPost(found) : null)
       })
-      .catch(() => setDynPost(null))
-      .finally(() => setLoading(false))
+      .catch(() => { if (live) setDynPost(null) })
+      .finally(() => { if (live) setLoading(false) })
+    return () => { live = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  const post = staticPost ?? dynPost
+  // DB wins; the static copy fills the gap for a slug the DB doesn't have.
+  const post = dynPost ?? staticPost
 
-  if (loading) return (
+  // Only block on the fetch when there is nothing to show yet. A static post is
+  // rendered immediately and silently upgraded to its DB version when it lands.
+  if (loading && !post) return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <p style={{ color: 'var(--text-3)', fontSize: '.8rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
     </div>

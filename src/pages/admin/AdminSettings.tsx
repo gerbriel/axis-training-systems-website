@@ -85,6 +85,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
     const parts: string[] = []
     if (r.meets.imported) parts.push(`${r.meets.imported} meet${r.meets.imported === 1 ? '' : 's'}`)
     if (r.testimonials.imported) parts.push(`${r.testimonials.imported} testimonial${r.testimonials.imported === 1 ? '' : 's'}`)
+    if (r.blog.imported) parts.push(`${r.blog.imported} blog post${r.blog.imported === 1 ? '' : 's'}`)
     setImportMsg({
       text: parts.length
         ? `Imported ${parts.join(' and ')}. They're now in the panels above and on the site — edit or remove them there.`
@@ -244,11 +245,10 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
           Import Site Content
         </h2>
         <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-          The upcoming meets and testimonials the site launched with were built into the code, which is
-          why they didn't appear in the panels here. This copies them into the database once, so you can
-          edit and remove them like anything else. Safe to click more than once — it skips whatever's
-          already imported. <strong style={{ color: 'var(--text-3)' }}>Blog posts aren't included</strong> —
-          importing them would change their page URLs, so they stay as they are for now.
+          The upcoming meets, testimonials and blog posts the site launched with were built into the code,
+          which is why they didn't appear in the panels here. This copies them into the database once, so you
+          can edit and remove them like anything else — blog posts keep their existing URLs. Safe to click
+          more than once; it skips whatever's already imported.
         </p>
         <button
           onClick={runImport}
@@ -260,7 +260,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
             borderRadius: '.25rem', cursor: importing ? 'default' : 'pointer', fontFamily: 'inherit',
           }}
         >
-          {importing ? 'Importing…' : 'Import meets & testimonials'}
+          {importing ? 'Importing…' : 'Import meets, testimonials & blog'}
         </button>
         {importMsg && <div style={{ marginTop: '.75rem' }}><StatusMsg msg={importMsg.text} ok={importMsg.ok} /></div>}
       </section>

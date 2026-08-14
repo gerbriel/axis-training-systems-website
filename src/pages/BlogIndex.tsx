@@ -31,7 +31,14 @@ export default function BlogIndex() {
         summary: p.summary ?? '',
         content: (p.content ?? '').split('\n\n').map(text => ({ type: 'paragraph' as const, text })),
       }))
-      setAllPosts([...POSTS, ...mapped])
+      // The DB is the source of truth once it has anything. A founding post that
+      // has been imported (same slug) shows its DATABASE version — that is what
+      // makes an admin edit appear here — and the static twin is dropped. Static
+      // posts whose slug is NOT in the DB stay, so nothing vanishes before the
+      // one-time import is run. (Before the import, DB is empty and the initial
+      // POSTS state above is what shows.)
+      const dbSlugs = new Set(mapped.map(p => p.slug))
+      setAllPosts([...mapped, ...POSTS.filter(sp => !dbSlugs.has(sp.slug))])
     }).catch(() => { /* fallback to static only */ })
   }, [])
 
