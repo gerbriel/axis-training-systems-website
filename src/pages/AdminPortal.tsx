@@ -8,7 +8,6 @@ import {
 } from '../lib/dashboard'
 import type { PendingCounts } from '../lib/dashboard'
 import AdminLogin from './admin/AdminLogin'
-import AdminSettings from './admin/AdminSettings'
 import CRMPanel from './admin/CRMPanel'
 import BlogPanel from './admin/BlogPanel'
 import RotationPanel from './admin/RotationPanel'
@@ -18,48 +17,59 @@ import AnalyticsPanel from './admin/AnalyticsPanel'
 import TestimonialsPanel from './admin/TestimonialsPanel'
 import ApprovalsPanel from './admin/ApprovalsPanel'
 import InvitationsPanel from './admin/InvitationsPanel'
-import UserManagementPanel from './admin/UserManagementPanel'
 import NewsletterPanel from './admin/NewsletterPanel'
 import MessagingWorkspace from '../components/messaging/MessagingWorkspace'
+// ── Wave-1 verticals ──
+import CalendarPanel from './admin/CalendarPanel'
+import TimeClockPanel from './admin/TimeClockPanel'
+import FormsPanel from './admin/FormsPanel'
+import CatalogPanel from './admin/CatalogPanel'   // hosts Products / Categories / Inventory
+import SalesPanel from './admin/SalesPanel'        // hosts Sales / Orders / Expenses
+import InsightsPanel from './admin/InsightsPanel'  // hosts Reports / Custom Reports
+import MarketingPanel from './admin/MarketingPanel'// hosts Announcements / Newsletter / Analytics
+import SettingsPanel from './admin/SettingsPanel'  // hosts General + Users + the settings sub-tabs
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import { COACHES } from '../data/coaches'
 import { useRequireRole } from '../lib/useGuard'
 import { useUnreadCount } from '../lib/useUnreadCount'
 
 type Tab =
-  | 'crm' | 'bookings' | 'analytics'
-  | 'messages' | 'newsletter'
+  | 'calendar' | 'crm' | 'bookings' | 'messages' | 'timeclock' | 'forms'
   | 'approvals' | 'blog' | 'rotation' | 'meets' | 'testimonials'
-  | 'invitations' | 'people' | 'availability' | 'settings'
+  | 'catalog' | 'sales'
+  | 'insights' | 'marketing' | 'analytics' | 'newsletter'
+  | 'invitations' | 'availability' | 'settings'
 
 const TABS: readonly Tab[] = [
-  'crm', 'bookings', 'analytics',
-  'messages', 'newsletter',
+  'calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms',
   'approvals', 'blog', 'rotation', 'meets', 'testimonials',
-  'invitations', 'people', 'availability', 'settings',
+  'catalog', 'sales',
+  'insights', 'marketing', 'analytics', 'newsletter',
+  'invitations', 'availability', 'settings',
 ]
 
 const TITLES: Record<Tab, string> = {
-  crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics',
-  messages: 'Messages', newsletter: 'Newsletter',
-  approvals: 'Approvals', blog: 'Blog', rotation: 'Blog Rotation',
+  calendar: 'Calendar', crm: 'Clients', bookings: 'Bookings',
+  messages: 'Messages', timeclock: 'Time Clock', forms: 'Forms',
+  approvals: 'Waiting on you', blog: 'Blog', rotation: 'Blog Rotation',
   meets: 'Meet Listings', testimonials: 'Testimonials',
-  invitations: 'Invitations', people: 'People & Access',
-  availability: 'Set Availability', settings: 'Settings',
+  catalog: 'Catalog', sales: 'Sales',
+  insights: 'Insights', marketing: 'Marketing', analytics: 'Analytics', newsletter: 'Newsletter',
+  invitations: 'Invitations', availability: 'Set Availability', settings: 'Settings',
 }
 
-// The old header was nine flat tabs in one row; the groups are the mental
-// model the owner actually has: people to talk to, content to review, setup.
-// 'people' — the accounts, roles and per-person permissions — sits under Setup:
-// it is where the site is configured, not where the day's work happens, and it
-// is the one tab whose own visibility the permission system gates (below).
+// The sidebar groups mirror the reference studio's information architecture:
+// the day's work up top, then content to review, the merch store, the
+// grow/reporting surfaces, and setup last. Sub-tabbed areas (Catalog, Sales,
+// Insights, Marketing, Settings) are ONE entry each — the panel behind it hosts
+// its own sub-navigation, so Users/Permissions live inside Settings and
+// Categories/Inventory inside Catalog rather than crowding the rail.
 const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
-  { label: 'People',  tabs: ['crm', 'bookings', 'analytics', 'invitations'] },
-  // Talking to people, as opposed to reviewing what they wrote: the inbox and
-  // the newsletter are the same job aimed at one person or at everybody.
-  { label: 'Comms',   tabs: ['messages', 'newsletter'] },
-  { label: 'Content', tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
-  { label: 'Setup',   tabs: ['people', 'availability', 'settings'] },
+  { label: 'Business', tabs: ['calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms'] },
+  { label: 'Content',  tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
+  { label: 'Store',    tabs: ['catalog', 'sales'] },
+  { label: 'Grow',     tabs: ['insights', 'marketing', 'analytics', 'newsletter'] },
+  { label: 'Setup',    tabs: ['invitations', 'availability', 'settings'] },
 ]
 
 function Nav({ tab, counts, unread, onSelect, onSignOut, signOutLabel }: {
@@ -231,19 +241,25 @@ export default function AdminPortal() {
             </h1>
           </div>
 
+          {tab === 'calendar'     && <CalendarPanel isDemo={isDemo} />}
           {tab === 'crm'          && <CRMPanel isDemo={isDemo} />}
           {tab === 'bookings'     && <BookingsPanel isDemo={isDemo} />}
-          {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
           {tab === 'messages'     && <MessagingWorkspace isDemo={isDemo} />}
+          {tab === 'timeclock'    && <TimeClockPanel isDemo={isDemo} />}
+          {tab === 'forms'        && <FormsPanel isDemo={isDemo} />}
+          {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
           {tab === 'newsletter'   && <NewsletterPanel isDemo={isDemo} />}
           {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
           {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
-          {tab === 'people'       && <UserManagementPanel isDemo={isDemo} />}
           {tab === 'blog'         && <BlogPanel isDemo={isDemo} />}
           {tab === 'rotation'     && <RotationPanel isDemo={isDemo} />}
           {tab === 'meets'        && <MeetsPanel isDemo={isDemo} />}
           {tab === 'testimonials' && <TestimonialsPanel isDemo={isDemo} />}
-          {tab === 'settings'     && <AdminSettings isDemo={isDemo} />}
+          {tab === 'catalog'      && <CatalogPanel isDemo={isDemo} />}
+          {tab === 'sales'        && <SalesPanel isDemo={isDemo} />}
+          {tab === 'insights'     && <InsightsPanel isDemo={isDemo} />}
+          {tab === 'marketing'    && <MarketingPanel isDemo={isDemo} />}
+          {tab === 'settings'     && <SettingsPanel isDemo={isDemo} />}
           {tab === 'availability' && (
             <div>
               {/* AvailabilityManager pads itself with .dash-pad — a padded

@@ -21,6 +21,8 @@ import GuidesPage from './pages/GuidesPage'
 import Rankings from './pages/Rankings'
 import BookPage from './pages/BookPage'
 import ManageBookingPage from './pages/ManageBookingPage'
+import ShopPage from './pages/ShopPage'
+import IntakeForm from './components/IntakeForm'
 import AccountPage from './pages/AccountPage'
 import MessagesPage from './pages/MessagesPage'
 import SignInPage from './pages/auth/SignInPage'
@@ -189,6 +191,11 @@ function getRoute() {
   if (toolMatch) return { type: 'tool', slug: toolMatch[1] }
   if (path === '/rankings') return { type: 'rankings' }
   if (path === '/book') return { type: 'book' }
+  if (path === '/shop') return { type: 'shop' }
+  // Intake: the general form, or a coach-specific one at /intake/<slug>.
+  if (path === '/intake') return { type: 'intake' }
+  const intakeMatch = path.match(/^\/intake\/([a-z0-9-]+)$/)
+  if (intakeMatch) return { type: 'intake', slug: intakeMatch[1] }
   // The client's own booking, addressed by the manage_token from their
   // confirmation email (010). There are no accounts, so the link IS the
   // credential — which is why it is matched strictly as a uuid rather than
@@ -220,6 +227,14 @@ function AppContent() {
   if (route.type === 'tool') return <ToolPage slug={route.slug!} />
   if (route.type === 'rankings') return <Rankings />
   if (route.type === 'book') return <BookPage />
+  if (route.type === 'shop') return <ShopPage />
+  if (route.type === 'intake') return (
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '3rem 1.25rem' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <IntakeForm coachSlug={route.slug} />
+      </div>
+    </div>
+  )
   if (route.type === 'manage-booking') return <ManageBookingPage token={route.token!} />
 
   // ── Home ─────────────────────────────────────────────────────────────────

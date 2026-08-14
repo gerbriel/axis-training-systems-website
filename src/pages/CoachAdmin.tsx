@@ -15,21 +15,24 @@ import ContentPublisher from './coach-admin/ContentPublisher'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import TestimonialsManager from './coach-admin/TestimonialsManager'
 import MessagingWorkspace from '../components/messaging/MessagingWorkspace'
+import CalendarPanel from './admin/CalendarPanel'
+import TimeClock from '../components/TimeClock'
 import { useUnreadCount } from '../lib/useUnreadCount'
 
-type CoachTab = 'leads' | 'availability' | 'content' | 'testimonials' | 'messages'
+type CoachTab = 'leads' | 'calendar' | 'availability' | 'content' | 'testimonials' | 'messages'
 
-const COACH_TABS: readonly CoachTab[] = ['leads', 'availability', 'content', 'testimonials', 'messages']
+const COACH_TABS: readonly CoachTab[] = ['leads', 'calendar', 'availability', 'content', 'testimonials', 'messages']
 
 // Short labels: 'Publish Content' was one of the reasons four tabs could not
 // fit a phone header. The long form lives in the page heading instead.
 const TAB_LABELS: Record<CoachTab, string> = {
-  leads: 'Leads', availability: 'Availability', content: 'Content', testimonials: 'Testimonials',
+  leads: 'Leads', calendar: 'Calendar', availability: 'Availability', content: 'Content', testimonials: 'Testimonials',
   messages: 'Messages',
 }
 
 const TAB_ICONS: Record<CoachTab, string> = {
   leads:        'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  calendar:     'M12 6v6l4 2M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z',
   availability: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   content:      'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   testimonials: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
@@ -175,13 +178,22 @@ export default function CoachAdmin({ slug }: Props) {
       <div className="dash-pagehead">
         <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
         <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {{ leads: `${coach.firstName}'s Leads`, availability: 'Availability', content: 'Publish Content', testimonials: 'Testimonials', messages: 'Messages' }[tab]}
+          {{ leads: `${coach.firstName}'s Leads`, calendar: 'Calendar', availability: 'Availability', content: 'Publish Content', testimonials: 'Testimonials', messages: 'Messages' }[tab]}
         </h1>
       </div>
 
       {/* Content */}
       <main className={`dash-main${isMobile ? ' dash-has-bottombar' : ''}`}>
         {tab === 'leads'        && <CoachAdminDashboard coach={coach} isDemo={isDemo} />}
+        {tab === 'calendar'     && (
+          <div className="dash-pad" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* The coach's own work-hours clock, then their calendar locked to
+                their slug — the server scopes it either way, lockCoach just
+                hides the picker. */}
+            <TimeClock variant="coach" isDemo={isDemo} />
+            <CalendarPanel coachSlug={coach.slug} lockCoach isDemo={isDemo} />
+          </div>
+        )}
         {tab === 'availability' && <AvailabilityManager coach={coach} isDemo={isDemo} />}
         {tab === 'content'      && <ContentPublisher coach={coach} isDemo={isDemo} />}
         {tab === 'testimonials' && <TestimonialsManager coach={coach} isDemo={isDemo} />}

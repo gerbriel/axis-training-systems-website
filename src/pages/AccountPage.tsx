@@ -6,6 +6,7 @@ import { fmtDateInZone, fmtTimeInZone, tzLabel, fmtDuration, browserTimeZone } f
 import { homeFor } from '../lib/authRoute'
 import { COACHES } from '../data/coaches'
 import { href, messagesHref } from '../utils/nav'
+import TimeClock from '../components/TimeClock'
 import { safeUrl } from '../utils/sanitize'
 import { useUnreadCount } from '../lib/useUnreadCount'
 
@@ -174,9 +175,14 @@ export default function AccountPage() {
         <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.6rem,5vw,2.4rem)', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1, marginBottom: '.5rem' }}>
           Hey {displayName}
         </h1>
-        <p style={{ color: 'var(--text-3)', fontSize: '.9rem', marginBottom: '2.5rem' }}>
+        <p style={{ color: 'var(--text-3)', fontSize: '.9rem', marginBottom: '2rem' }}>
           {profile?.email}
         </p>
+
+        {/* Gym check-in. The widget derives the athlete variant from the session. */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <TimeClock />
+        </div>
 
         {loading ? (
           <p style={{ color: 'var(--text-3)', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
