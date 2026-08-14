@@ -27,3 +27,7 @@ export function bookHref() {
 export function bookCoachHref(slug: string) {
   return href(`/book?coach=${encodeURIComponent(slug)}`)
 }
+
+export function messagesHref() {
+  return href('/messages')
+}

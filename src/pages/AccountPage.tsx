@@ -5,8 +5,9 @@ import { signOut } from '../lib/account'
 import { fmtDateInZone, fmtTimeInZone, tzLabel, fmtDuration, browserTimeZone } from '../lib/availability'
 import { homeFor } from '../lib/authRoute'
 import { COACHES } from '../data/coaches'
-import { href } from '../utils/nav'
+import { href, messagesHref } from '../utils/nav'
 import { safeUrl } from '../utils/sanitize'
+import { useUnreadCount } from '../lib/useUnreadCount'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 const ACCENT = '#272C84'
@@ -106,6 +107,8 @@ export default function AccountPage() {
   const [bookings, setBookings] = useState<MyBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  // Conversations waiting on them, live. Counts threads, not messages.
+  const unread = useUnreadCount('account-unread')
 
   // Guards are UX, not security: the policies on `bookings` and the projection
   // in `my_bookings` are what actually decide what comes back.
@@ -148,9 +151,20 @@ export default function AccountPage() {
         <span style={{ color: 'var(--text-3)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase' }}>
           Your account
         </span>
+        <a
+          href={messagesHref()}
+          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '.4rem', color: 'var(--text-3)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', textDecoration: 'none' }}
+        >
+          Messages
+          {unread > 0 && (
+            <span style={{ background: '#c8102e', color: '#ffffff', fontSize: '.55rem', fontWeight: 900, borderRadius: '10rem', padding: '.15rem .5rem', lineHeight: 1.3 }}>
+              {unread}
+            </span>
+          )}
+        </a>
         <button
           onClick={() => void signOut().then(() => window.location.replace(href('/')))}
-          style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-4)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-4)', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Sign out
         </button>

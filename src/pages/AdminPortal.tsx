@@ -19,23 +19,29 @@ import TestimonialsPanel from './admin/TestimonialsPanel'
 import ApprovalsPanel from './admin/ApprovalsPanel'
 import InvitationsPanel from './admin/InvitationsPanel'
 import UserManagementPanel from './admin/UserManagementPanel'
+import NewsletterPanel from './admin/NewsletterPanel'
+import MessagingWorkspace from '../components/messaging/MessagingWorkspace'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import { COACHES } from '../data/coaches'
 import { useRequireRole } from '../lib/useGuard'
+import { useUnreadCount } from '../lib/useUnreadCount'
 
 type Tab =
   | 'crm' | 'bookings' | 'analytics'
+  | 'messages' | 'newsletter'
   | 'approvals' | 'blog' | 'rotation' | 'meets' | 'testimonials'
   | 'invitations' | 'people' | 'availability' | 'settings'
 
 const TABS: readonly Tab[] = [
   'crm', 'bookings', 'analytics',
+  'messages', 'newsletter',
   'approvals', 'blog', 'rotation', 'meets', 'testimonials',
   'invitations', 'people', 'availability', 'settings',
 ]
 
 const TITLES: Record<Tab, string> = {
   crm: 'CRM', bookings: 'Bookings', analytics: 'Analytics',
+  messages: 'Messages', newsletter: 'Newsletter',
   approvals: 'Approvals', blog: 'Blog', rotation: 'Blog Rotation',
   meets: 'Meet Listings', testimonials: 'Testimonials',
   invitations: 'Invitations', people: 'People & Access',
@@ -49,13 +55,17 @@ const TITLES: Record<Tab, string> = {
 // is the one tab whose own visibility the permission system gates (below).
 const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'People',  tabs: ['crm', 'bookings', 'analytics', 'invitations'] },
+  // Talking to people, as opposed to reviewing what they wrote: the inbox and
+  // the newsletter are the same job aimed at one person or at everybody.
+  { label: 'Comms',   tabs: ['messages', 'newsletter'] },
   { label: 'Content', tabs: ['approvals', 'blog', 'rotation', 'meets', 'testimonials'] },
   { label: 'Setup',   tabs: ['people', 'availability', 'settings'] },
 ]
 
-function Nav({ tab, counts, onSelect, onSignOut, signOutLabel }: {
+function Nav({ tab, counts, unread, onSelect, onSignOut, signOutLabel }: {
   tab: Tab
   counts: PendingCounts
+  unread: number
   onSelect: (t: Tab) => void
   onSignOut?: () => void
   signOutLabel?: string
@@ -76,6 +86,9 @@ function Nav({ tab, counts, onSelect, onSignOut, signOutLabel }: {
               {TITLES[t]}
               {t === 'approvals' && counts.total > 0 && (
                 <span className="dash-badge">{counts.total}</span>
+              )}
+              {t === 'messages' && unread > 0 && (
+                <span className="dash-badge">{unread}</span>
               )}
             </button>
           ))}
@@ -99,6 +112,7 @@ export default function AdminPortal() {
   const [counts, setCounts] = useState<PendingCounts>(ZERO_PENDING)
   const [sheetOpen, setSheetOpen] = useState(false)
   const isMobile = useMediaQuery(MOBILE_QUERY)
+  const unread = useUnreadCount('admin-unread', isDemo)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -198,7 +212,7 @@ export default function AdminPortal() {
         <>
           <div className="dash-sheet-backdrop" onClick={() => setSheetOpen(false)} />
           <nav className="dash-sheet" aria-label="Admin navigation">
-            <Nav tab={tab} counts={counts} onSelect={selectTab} onSignOut={signOut} signOutLabel={signOutLabel} />
+            <Nav tab={tab} counts={counts} unread={unread} onSelect={selectTab} onSignOut={signOut} signOutLabel={signOutLabel} />
           </nav>
         </>
       )}
@@ -206,7 +220,7 @@ export default function AdminPortal() {
       <div className="dash-layout">
         {!isMobile && (
           <nav className="dash-sidebar" aria-label="Admin navigation">
-            <Nav tab={tab} counts={counts} onSelect={selectTab} />
+            <Nav tab={tab} counts={counts} unread={unread} onSelect={selectTab} />
           </nav>
         )}
 
@@ -220,6 +234,8 @@ export default function AdminPortal() {
           {tab === 'crm'          && <CRMPanel isDemo={isDemo} />}
           {tab === 'bookings'     && <BookingsPanel isDemo={isDemo} />}
           {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
+          {tab === 'messages'     && <MessagingWorkspace isDemo={isDemo} />}
+          {tab === 'newsletter'   && <NewsletterPanel isDemo={isDemo} />}
           {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
           {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
           {tab === 'people'       && <UserManagementPanel isDemo={isDemo} />}

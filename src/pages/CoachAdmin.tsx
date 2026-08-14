@@ -14,15 +14,18 @@ import CoachAdminDashboard from './coach-admin/CoachAdminDashboard'
 import ContentPublisher from './coach-admin/ContentPublisher'
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import TestimonialsManager from './coach-admin/TestimonialsManager'
+import MessagingWorkspace from '../components/messaging/MessagingWorkspace'
+import { useUnreadCount } from '../lib/useUnreadCount'
 
-type CoachTab = 'leads' | 'availability' | 'content' | 'testimonials'
+type CoachTab = 'leads' | 'availability' | 'content' | 'testimonials' | 'messages'
 
-const COACH_TABS: readonly CoachTab[] = ['leads', 'availability', 'content', 'testimonials']
+const COACH_TABS: readonly CoachTab[] = ['leads', 'availability', 'content', 'testimonials', 'messages']
 
 // Short labels: 'Publish Content' was one of the reasons four tabs could not
 // fit a phone header. The long form lives in the page heading instead.
 const TAB_LABELS: Record<CoachTab, string> = {
   leads: 'Leads', availability: 'Availability', content: 'Content', testimonials: 'Testimonials',
+  messages: 'Messages',
 }
 
 const TAB_ICONS: Record<CoachTab, string> = {
@@ -30,6 +33,7 @@ const TAB_ICONS: Record<CoachTab, string> = {
   availability: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   content:      'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
   testimonials: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  messages:     'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
 }
 
 function TabIcon({ tab }: { tab: CoachTab }) {
@@ -53,6 +57,7 @@ export default function CoachAdmin({ slug }: Props) {
   const [isDemo, setIsDemo] = useState(demoParamActive)
   const [tab, setTab] = useUrlTab(COACH_TABS, 'leads')
   const isMobile = useMediaQuery(MOBILE_QUERY)
+  const unread = useUnreadCount('coach-unread', isDemo)
 
   useDemoParamSync(setIsDemo)
 
@@ -142,6 +147,9 @@ export default function CoachAdmin({ slug }: Props) {
               onClick={() => setTab(t)}
             >
               {TAB_LABELS[t]}
+              {t === 'messages' && unread > 0 && (
+                <span aria-hidden style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#c8102e', marginLeft: '.35rem', verticalAlign: 'middle' }} />
+              )}
             </button>
           ))}
         </nav>
@@ -167,7 +175,7 @@ export default function CoachAdmin({ slug }: Props) {
       <div className="dash-pagehead">
         <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.25rem' }}>{coach.role}</p>
         <h1 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '-.01em' }}>
-          {{ leads: `${coach.firstName}'s Leads`, availability: 'Availability', content: 'Publish Content', testimonials: 'Testimonials' }[tab]}
+          {{ leads: `${coach.firstName}'s Leads`, availability: 'Availability', content: 'Publish Content', testimonials: 'Testimonials', messages: 'Messages' }[tab]}
         </h1>
       </div>
 
@@ -177,6 +185,7 @@ export default function CoachAdmin({ slug }: Props) {
         {tab === 'availability' && <AvailabilityManager coach={coach} isDemo={isDemo} />}
         {tab === 'content'      && <ContentPublisher coach={coach} isDemo={isDemo} />}
         {tab === 'testimonials' && <TestimonialsManager coach={coach} isDemo={isDemo} />}
+        {tab === 'messages'     && <MessagingWorkspace isDemo={isDemo} />}
       </main>
 
       {/* Phone navigation: thumb-reachable, always visible — the header tab
@@ -190,8 +199,12 @@ export default function CoachAdmin({ slug }: Props) {
               data-active={tab === t}
               aria-current={tab === t ? 'page' : undefined}
               onClick={() => setTab(t)}
+              style={{ position: 'relative' }}
             >
               <TabIcon tab={t} />
+              {t === 'messages' && unread > 0 && (
+                <span aria-hidden style={{ position: 'absolute', top: '.3rem', left: 'calc(50% + .35rem)', width: 7, height: 7, borderRadius: '50%', background: '#c8102e' }} />
+              )}
               {TAB_LABELS[t]}
             </button>
           ))}

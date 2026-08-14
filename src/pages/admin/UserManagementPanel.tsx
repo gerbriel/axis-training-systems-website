@@ -7,6 +7,7 @@ import {
   sortPeople, matchesSearch, personName, personInitials, waitingFor, fmtDate,
   ROLE_LABELS, STATUS_LABELS, STATUS_COLORS, ROLE_COLORS,
 } from '../../lib/userManagement'
+import { fetchCoachAssignments, setCoachAssignment } from '../../lib/messagingApi'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import { COACHES } from '../../data/coaches'
@@ -60,6 +61,96 @@ function ErrorNote({ message }: { message: string }) {
   return (
     <div role="alert" style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.35)', borderRadius: '.25rem', padding: '.7rem 1rem' }}>
       <span style={{ color: DANGER, fontSize: '.8rem', lineHeight: 1.6 }}>{message}</span>
+    </div>
+  )
+}
+
+/**
+ * Who this athlete may message.
+ *
+ * `athlete_coaches` is not a label on a relationship that already exists, it IS
+ * the relationship: `can_message` reads it, so an athlete with nobody assigned
+ * has an empty contact list and a coach cannot open a thread with them either.
+ *
+ * The database validates both ends (the athlete must be an athlete, the coach
+ * must be active staff) and every refusal arrives here as its own sentence.
+ */
+function AssignedCoaches({ athlete, staff, isDemo }: { athlete: Profile; staff: Profile[]; isDemo: boolean }) {
+  const [assigned, setAssigned] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [outage, setOutage] = useState(false)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    setLoading(true)
+    void fetchCoachAssignments(isDemo).then(rows => {
+      if (!live) return
+      if (rows === null) { setOutage(true); setAssigned([]) }
+      else {
+        setOutage(false)
+        setAssigned(rows.filter(r => r.athlete_id === athlete.id).map(r => r.coach_id))
+      }
+      setLoading(false)
+    })
+    return () => { live = false }
+  }, [athlete.id, isDemo])
+
+  const toggle = async (coachId: string) => {
+    const next = !assigned.includes(coachId)
+    setError(null)
+    setBusyId(coachId)
+    const res = await setCoachAssignment(athlete.id, coachId, next, isDemo)
+    setBusyId(null)
+    if (!res.ok) { setError(res.message); return }
+    setAssigned(list => next ? [...list, coachId] : list.filter(id => id !== coachId))
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--surface-2)', paddingTop: '1.25rem' }}>
+      <p style={{ ...microLabel, marginBottom: '.4rem' }}>Assigned coaches</p>
+      <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, marginBottom: '.75rem' }}>
+        Who this athlete can message. They only see the coaches assigned to them.
+      </p>
+
+      {error && <div style={{ marginBottom: '.75rem' }}><ErrorNote message={error} /></div>}
+
+      {loading ? (
+        <p style={{ color: 'var(--text-4)', fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+      ) : outage ? (
+        <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6 }}>
+          We could not load the assignments. Nothing has been changed.
+        </p>
+      ) : staff.length === 0 ? (
+        <p style={{ color: 'var(--text-4)', fontSize: '.78rem' }}>There are no active coaches to assign yet.</p>
+      ) : (
+        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+          {staff.map(coach => {
+            const on = assigned.includes(coach.id)
+            const busy = busyId === coach.id
+            return (
+              <button
+                key={coach.id}
+                onClick={() => void toggle(coach.id)}
+                disabled={busy}
+                aria-pressed={on}
+                style={{
+                  background: on ? `${ACCENT}22` : 'transparent',
+                  border: `1px solid ${on ? ACCENT : 'var(--border)'}`,
+                  color: on ? 'var(--text)' : 'var(--text-4)',
+                  fontSize: '.62rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+                  padding: '.5rem .8rem', minHeight: '2.5rem', borderRadius: '.25rem',
+                  cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit',
+                  opacity: busy ? 0.6 : 1, whiteSpace: 'nowrap',
+                }}
+              >
+                {on ? '✓ ' : ''}{personName(coach)}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -174,6 +265,16 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
 
   const sorted = useMemo(() => sortPeople(people), [people])
   const pending = useMemo(() => sorted.filter(p => p.status === 'pending'), [sorted])
+
+  // Everybody an athlete could be handed to. The list this panel already loads
+  // is every profile on the site, so the coach picker below needs no fetch of
+  // its own — and the database refuses anyone who is not active staff anyway.
+  const assignableCoaches = useMemo(
+    () => people
+      .filter(p => p.role !== 'athlete' && p.status === 'active')
+      .sort((a, b) => personName(a).localeCompare(personName(b))),
+    [people]
+  )
 
   const filtered = useMemo(() => sorted.filter(p => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
@@ -482,6 +583,11 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
           </p>
         )}
       </div>
+
+      {/* Assigned coaches --------------------------------------------------- */}
+      {selected.role === 'athlete' && (
+        <AssignedCoaches athlete={selected} staff={assignableCoaches} isDemo={isDemo} />
+      )}
 
       {/* Permissions -------------------------------------------------------- */}
       <div style={{ borderTop: '1px solid var(--surface-2)', paddingTop: '1.25rem' }}>

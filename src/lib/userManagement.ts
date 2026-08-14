@@ -95,6 +95,7 @@ export const PERMISSION_CATALOG: Permission[] = [
   { key: 'manage_staff',            label: 'Manage staff',                  description: 'Add and edit coach records, calendars and roster placement.', is_sensitive: true },
   { key: 'manage_permissions',      label: 'Manage permissions',            description: 'Change what other people may do. It is the power to grant everything else.', is_sensitive: true },
   { key: 'manage_content',          label: 'Edit the site',                 description: 'Public copy, programme pages and the media library.', is_sensitive: false },
+  { key: 'manage_channels',         label: 'Manage channels',               description: 'Create group message channels and manage their members', is_sensitive: false },
   { key: 'moderate_testimonials',   label: 'Moderate testimonials',         description: 'Approve, hide and respond to what athletes have written.', is_sensitive: false },
   { key: 'view_analytics',          label: 'See analytics',                 description: 'Bookings, conversion, and where applications are coming from.', is_sensitive: false },
   { key: 'send_marketing',          label: 'Send marketing',                description: 'Newsletters and broadcast email.', is_sensitive: false },

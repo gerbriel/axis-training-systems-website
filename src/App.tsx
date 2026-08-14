@@ -22,6 +22,7 @@ import Rankings from './pages/Rankings'
 import BookPage from './pages/BookPage'
 import ManageBookingPage from './pages/ManageBookingPage'
 import AccountPage from './pages/AccountPage'
+import MessagesPage from './pages/MessagesPage'
 import SignInPage from './pages/auth/SignInPage'
 import InvitePage from './pages/auth/InvitePage'
 import PendingPage from './pages/auth/PendingPage'
@@ -165,6 +166,10 @@ function getRoute() {
   if (path === '/signin' || path === '/login') return { type: 'signin' }
   if (path === '/pending') return { type: 'pending' }
   if (path === '/account') return { type: 'account' }
+  // Before the /admin matchers, like everything else a signed-in athlete
+  // reaches: /admin/<slug> would swallow any sub-path under /admin, which is
+  // why the inbox is its own top-level route rather than /admin/messages.
+  if (path === '/messages') return { type: 'messages' }
   // The token is base64url of 32 bytes — 43 characters. Matched strictly rather
   // than passed through as whatever happened to be in the path.
   const inviteMatch = path.match(/^\/invite\/([A-Za-z0-9_-]{16,400})$/)
@@ -203,6 +208,7 @@ function AppContent() {
   if (route.type === 'signin') return <SignInPage />
   if (route.type === 'pending') return <PendingPage />
   if (route.type === 'account') return <AccountPage />
+  if (route.type === 'messages') return <MessagesPage />
   if (route.type === 'invite') return <InvitePage token={route.token!} />
   if (route.type === 'coach-admin') return <CoachAdmin slug={route.slug!} />
   if (route.type === 'admin') return <AdminPortal />

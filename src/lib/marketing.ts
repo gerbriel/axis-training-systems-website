@@ -1,0 +1,442 @@
+/**
+ * marketing.ts
+ *
+ * The Marketing vertical's data layer:
+ *   - announcements  — the site-wide banner (public read + admin CRUD)
+ *   - broadcasts     — a record that a newsletter/marketing send was made
+ *   - a small marketing-analytics summary (signups by source + conversion)
+ *
+ * Demo mode  →  in-memory stores seeded from the DEMO_* constants below.
+ * Live mode  →  Supabase (migration 028_marketing.sql).
+ *
+ * Mirrors newsletterApi.ts: sanitize before write, dedupe demo vs live on
+ * `supabaseConfigured && !isDemo`, never throw from a public read.
+ */
+
+import { supabase, supabaseConfigured } from './supabase'
+import { sanitize, sanitizeText, safeUrl } from '../utils/sanitize'
+import { fetchNewsletterLeads } from './newsletterApi'
+
+// ── Types ───────────────────────────────────────────────────────────────────
+
+export type AnnouncementKind = 'info' | 'promo' | 'alert'
+
+export interface Announcement {
+  id: string
+  title: string
+  body: string | null
+  kind: AnnouncementKind
+  isActive: boolean
+  startsAt: string | null
+  endsAt: string | null
+  ctaLabel: string | null
+  ctaUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** The fields an admin edits. Everything else is set by the database. */
+export interface AnnouncementInput {
+  title: string
+  body?: string | null
+  kind: AnnouncementKind
+  isActive: boolean
+  startsAt?: string | null
+  endsAt?: string | null
+  ctaLabel?: string | null
+  ctaUrl?: string | null
+}
+
+export type BroadcastAudience = 'newsletter' | 'all'
+
+export interface Broadcast {
+  id: string
+  subject: string
+  body: string | null
+  audience: BroadcastAudience
+  sentAt: string | null
+  sentCount: number
+  createdAt: string
+}
+
+export interface MarketingSummary {
+  totalSignups: number
+  bySource: { source: string; count: number }[]
+  /** Last-30-day signups, for the "recent" headline. */
+  recentSignups: number
+  /** Pageviews over the same 30-day window, when analytics are readable. */
+  pageviews: number | null
+  /** signups / pageviews as a percentage, or null when pageviews is null/0. */
+  conversionRate: number | null
+}
+
+// ── Columns / mapping ────────────────────────────────────────────────────────
+
+// created_by is intentionally absent — 028 does not grant it on select.
+const ANN_COLS =
+  'id, title, body, kind, is_active, starts_at, ends_at, cta_label, cta_url, created_at, updated_at'
+
+function toAnnouncement(row: Record<string, unknown>): Announcement {
+  return {
+    id:        String(row.id),
+    title:     String(row.title ?? ''),
+    body:      row.body == null ? null : String(row.body),
+    kind:      (row.kind as AnnouncementKind) ?? 'info',
+    isActive:  Boolean(row.is_active),
+    startsAt:  row.starts_at == null ? null : String(row.starts_at),
+    endsAt:    row.ends_at   == null ? null : String(row.ends_at),
+    ctaLabel:  row.cta_label == null ? null : String(row.cta_label),
+    ctaUrl:    row.cta_url   == null ? null : String(row.cta_url),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at ?? row.created_at),
+  }
+}
+
+function toBroadcast(row: Record<string, unknown>): Broadcast {
+  return {
+    id:        String(row.id),
+    subject:   String(row.subject ?? ''),
+    body:      row.body == null ? null : String(row.body),
+    audience:  (row.audience as BroadcastAudience) ?? 'newsletter',
+    sentAt:    row.sent_at == null ? null : String(row.sent_at),
+    sentCount: Number(row.sent_count ?? 0),
+    createdAt: String(row.created_at),
+  }
+}
+
+// ── Demo seed ────────────────────────────────────────────────────────────────
+//
+// Local to this module — demoData.ts is not ours to edit. One live announcement
+// (so the banner has something to render in the demo), one scheduled and one
+// expired (so the panel's schedule states are visible without setup).
+
+const DAY = 24 * 60 * 60 * 1000
+const iso = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString()
+
+const DEMO_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'ann-live', title: 'Spring Meet Prep is open',
+    body: 'Eight-week peaking blocks with a coach. A few spots left before the March meet.',
+    kind: 'promo', isActive: true,
+    startsAt: iso(-2 * DAY), endsAt: iso(14 * DAY),
+    ctaLabel: 'See the programs', ctaUrl: '/book',
+    createdAt: iso(-2 * DAY), updatedAt: iso(-2 * DAY),
+  },
+  {
+    id: 'ann-scheduled', title: 'Gym closed for the holiday',
+    body: 'The facility is closed Dec 25. Online coaching continues as normal.',
+    kind: 'alert', isActive: true,
+    startsAt: iso(20 * DAY), endsAt: iso(22 * DAY),
+    ctaLabel: null, ctaUrl: null,
+    createdAt: iso(-5 * DAY), updatedAt: iso(-5 * DAY),
+  },
+  {
+    id: 'ann-expired', title: 'New RPE guide is live',
+    body: 'A free breakdown of autoregulated training. Grab it on the guides page.',
+    kind: 'info', isActive: false,
+    startsAt: iso(-40 * DAY), endsAt: iso(-20 * DAY),
+    ctaLabel: 'Read it', ctaUrl: '/guides',
+    createdAt: iso(-40 * DAY), updatedAt: iso(-20 * DAY),
+  },
+]
+
+const DEMO_BROADCASTS: Broadcast[] = [
+  { id: 'bc01', subject: 'January newsletter — the off-season audit', body: 'What to change before the next block.', audience: 'newsletter', sentAt: iso(-9 * DAY),  sentCount: 214, createdAt: iso(-9 * DAY) },
+  { id: 'bc02', subject: 'Meet-day checklist is back',                  body: null,                                     audience: 'newsletter', sentAt: iso(-30 * DAY), sentCount: 188, createdAt: iso(-30 * DAY) },
+]
+
+let _demoAnnouncements: Announcement[] | null = null
+let _demoBroadcasts:    Broadcast[]    | null = null
+
+function annStore(): Announcement[] {
+  if (!_demoAnnouncements) _demoAnnouncements = DEMO_ANNOUNCEMENTS.map(a => ({ ...a }))
+  return _demoAnnouncements
+}
+function bcStore(): Broadcast[] {
+  if (!_demoBroadcasts) _demoBroadcasts = DEMO_BROADCASTS.map(b => ({ ...b }))
+  return _demoBroadcasts
+}
+
+function useDemo(isDemo: boolean): boolean {
+  return isDemo || !supabaseConfigured
+}
+
+/** True when a row is `is_active` and now() is inside its optional window. */
+export function isLive(a: Announcement, at: number = Date.now()): boolean {
+  if (!a.isActive) return false
+  const s = a.startsAt ? new Date(a.startsAt).getTime() : -Infinity
+  const e = a.endsAt   ? new Date(a.endsAt).getTime()   :  Infinity
+  return s <= at && at <= e
+}
+
+// ── Input cleaning ───────────────────────────────────────────────────────────
+
+/** Throws on invalid input; returns the row shape 028 expects. */
+function cleanAnnouncement(input: AnnouncementInput): Record<string, unknown> {
+  const title = sanitizeText(String(input.title ?? '').trim(), 160)
+  if (!title) throw new Error('An announcement needs a title.')
+
+  const body = input.body ? sanitizeText(String(input.body).trim(), 600) : null
+  const kind: AnnouncementKind =
+    input.kind === 'promo' || input.kind === 'alert' ? input.kind : 'info'
+
+  // safeUrl accepts http(s), mailto and rooted paths and rejects the rest; the
+  // DB check is stricter (http(s) or `^/`), so narrow to that here for a clear
+  // client-side error rather than a raw constraint violation.
+  let ctaUrl: string | null = null
+  if (input.ctaUrl && input.ctaUrl.trim()) {
+    const safe = safeUrl(input.ctaUrl.trim())
+    if (!safe || !/^(https?:\/\/|\/)/i.test(safe)) {
+      throw new Error('The button link must be an https:// URL or a path starting with /.')
+    }
+    ctaUrl = safe
+  }
+  const ctaLabel = input.ctaLabel ? sanitizeText(String(input.ctaLabel).trim(), 60) : null
+
+  const startsAt = normalizeTs(input.startsAt)
+  const endsAt   = normalizeTs(input.endsAt)
+  if (startsAt && endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
+    throw new Error('The end date is before the start date.')
+  }
+
+  return {
+    title,
+    body,
+    kind,
+    is_active:  Boolean(input.isActive),
+    starts_at:  startsAt,
+    ends_at:    endsAt,
+    cta_label:  ctaUrl ? ctaLabel : null,   // a label with no link is dropped
+    cta_url:    ctaUrl,
+  }
+}
+
+function normalizeTs(v: string | null | undefined): string | null {
+  if (!v) return null
+  const t = new Date(v).getTime()
+  return Number.isFinite(t) ? new Date(t).toISOString() : null
+}
+
+// ── Announcements: public read ───────────────────────────────────────────────
+
+/**
+ * The single announcement to render in the site banner right now, or null.
+ * Public — never throws, so a banner failure never blocks a page.
+ */
+export async function fetchActiveAnnouncement(isDemo = false): Promise<Announcement | null> {
+  if (useDemo(isDemo)) {
+    return annStore().filter(a => isLive(a)).sort(byCreatedDesc)[0] ?? null
+  }
+  try {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select(ANN_COLS)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error || !data) return null
+    const live = (data as Record<string, unknown>[]).map(toAnnouncement).filter(a => isLive(a))
+    return live[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+function byCreatedDesc(a: Announcement, b: Announcement): number {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+}
+
+// ── Announcements: admin CRUD ────────────────────────────────────────────────
+
+/** Every announcement, newest first — admin only (RLS). */
+export async function listAnnouncements(isDemo = false): Promise<Announcement[]> {
+  if (useDemo(isDemo)) return annStore().slice().sort(byCreatedDesc)
+
+  const { data, error } = await supabase
+    .from('announcements')
+    .select(ANN_COLS)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(r => toAnnouncement(r as Record<string, unknown>))
+}
+
+export async function createAnnouncement(input: AnnouncementInput, isDemo = false): Promise<Announcement> {
+  const row = cleanAnnouncement(input)
+
+  if (useDemo(isDemo)) {
+    const now = new Date().toISOString()
+    const created: Announcement = toAnnouncement({ ...row, id: 'ann-' + rid(), created_at: now, updated_at: now })
+    annStore().unshift(created)
+    return created
+  }
+
+  const { data, error } = await supabase
+    .from('announcements')
+    .insert([row])
+    .select(ANN_COLS)
+    .single()
+  if (error) throw new Error(error.message)
+  return toAnnouncement(data as Record<string, unknown>)
+}
+
+export async function updateAnnouncement(id: string, input: AnnouncementInput, isDemo = false): Promise<Announcement> {
+  const row = cleanAnnouncement(input)
+
+  if (useDemo(isDemo)) {
+    const store = annStore()
+    const i = store.findIndex(a => a.id === id)
+    if (i === -1) throw new Error('Announcement not found.')
+    const updated = toAnnouncement({ ...row, id, created_at: store[i].createdAt, updated_at: new Date().toISOString() })
+    store[i] = updated
+    return updated
+  }
+
+  const { data, error } = await supabase
+    .from('announcements')
+    .update(row)
+    .eq('id', id)
+    .select(ANN_COLS)
+    .single()
+  if (error) throw new Error(error.message)
+  return toAnnouncement(data as Record<string, unknown>)
+}
+
+/** Flip is_active without touching the rest of the row. */
+export async function setAnnouncementActive(id: string, active: boolean, isDemo = false): Promise<void> {
+  if (useDemo(isDemo)) {
+    const a = annStore().find(x => x.id === id)
+    if (a) { a.isActive = active; a.updatedAt = new Date().toISOString() }
+    return
+  }
+  const { error } = await supabase.from('announcements').update({ is_active: active }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteAnnouncement(id: string, isDemo = false): Promise<void> {
+  if (useDemo(isDemo)) {
+    const store = annStore()
+    const i = store.findIndex(a => a.id === id)
+    if (i !== -1) store.splice(i, 1)
+    return
+  }
+  const { error } = await supabase.from('announcements').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// ── Broadcasts ───────────────────────────────────────────────────────────────
+
+export async function listBroadcasts(isDemo = false): Promise<Broadcast[]> {
+  if (useDemo(isDemo)) return bcStore().slice().sort(byCreatedDescBc)
+
+  const { data, error } = await supabase
+    .from('broadcasts')
+    .select('id, subject, body, audience, sent_at, sent_count, created_at')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(r => toBroadcast(r as Record<string, unknown>))
+}
+
+function byCreatedDescBc(a: Broadcast, b: Broadcast): number {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+}
+
+/**
+ * Record a marketing send. The mailer (Resend) is out of scope, so this writes
+ * the intent and the audience size at send time — the recipient count is read
+ * from the current newsletter list, never supplied by the caller.
+ */
+export async function recordBroadcast(
+  data: { subject: string; body?: string | null; audience?: BroadcastAudience },
+  isDemo = false,
+): Promise<Broadcast> {
+  const subject  = sanitizeText(String(data.subject ?? '').trim(), 160)
+  if (!subject) throw new Error('A broadcast needs a subject.')
+  const body     = data.body ? sanitizeText(String(data.body).trim(), 4000) : null
+  const audience: BroadcastAudience = data.audience === 'all' ? 'all' : 'newsletter'
+
+  // The audience size is the current subscriber count — read it, don't trust it.
+  const leads = await fetchNewsletterLeads(isDemo).catch(() => [])
+  const sentCount = leads.length
+  const sentAt = new Date().toISOString()
+
+  if (useDemo(isDemo)) {
+    const created: Broadcast = {
+      id: 'bc-' + rid(), subject, body, audience,
+      sentAt, sentCount, createdAt: sentAt,
+    }
+    bcStore().unshift(created)
+    return created
+  }
+
+  const { data: inserted, error } = await supabase
+    .from('broadcasts')
+    .insert([{ subject, body, audience, sent_at: sentAt, sent_count: sentCount }])
+    .select('id, subject, body, audience, sent_at, sent_count, created_at')
+    .single()
+  if (error) throw new Error(error.message)
+  return toBroadcast(inserted as Record<string, unknown>)
+}
+
+// ── Marketing analytics summary ──────────────────────────────────────────────
+
+/**
+ * Signups by source + a conversion read. Reuses the newsletter list for the
+ * signup side; reads `pageviews` for the denominator when it is readable
+ * (admins only, RLS) and quietly reports null conversion when it is not.
+ */
+export async function fetchMarketingSummary(isDemo = false): Promise<MarketingSummary> {
+  const leads = await fetchNewsletterLeads(isDemo)
+
+  const counts = new Map<string, number>()
+  for (const l of leads) counts.set(l.source, (counts.get(l.source) ?? 0) + 1)
+  const bySource = Array.from(counts.entries())
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const since = Date.now() - 30 * DAY
+  const recentSignups = leads.filter(l => new Date(l.createdAt).getTime() >= since).length
+
+  let pageviews: number | null = null
+  if (!useDemo(isDemo)) {
+    try {
+      const { count, error } = await supabase
+        .from('pageviews')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', new Date(since).toISOString())
+      if (!error && typeof count === 'number') pageviews = count
+    } catch { /* not readable — leave null */ }
+  } else {
+    // A believable demo denominator so the conversion tile isn't blank.
+    pageviews = 1200 + leads.length * 40
+  }
+
+  const conversionRate =
+    pageviews && pageviews > 0 ? (recentSignups / pageviews) * 100 : null
+
+  return {
+    totalSignups: leads.length,
+    bySource,
+    recentSignups,
+    pageviews,
+    conversionRate,
+  }
+}
+
+// ── misc ─────────────────────────────────────────────────────────────────────
+
+function rid(): string {
+  return Math.random().toString(36).slice(2, 12)
+}
+
+/** Human label for a newsletter source key, shared with the panels. */
+export function sourceLabel(source: string): string {
+  const LABELS: Record<string, string> = {
+    guides_page:     'Guides Page',
+    attempt_planner: 'Attempt Planner',
+    meet_checklist:  'Meet Day Checklist',
+    quiz:            'Training Quiz',
+    rpe_guide:       'RPE Guide',
+    big_three:       'Big Three Guide',
+    audit_worksheet: 'Audit Worksheet',
+  }
+  return LABELS[source] ?? sanitize(source, 60)
+}

@@ -1,0 +1,153 @@
+/* ============================================================
+   Insights — chart palette + primitives
+   ------------------------------------------------------------
+   ONE system for every chart in InsightsPanel / CustomReportsPanel. Colours
+   are CSS variables (never raw hex in a component) so the whole set swaps in
+   one place between the site's two themes. The app toggles `html.light`
+   (see src/lib/useTheme.ts), so the dark values are the default on
+   `.insights-root` and the light values override under `html.light`.
+
+   The categorical hues are the data-viz skill's validated set, re-stepped per
+   surface: they pass every hard gate on the adjacent pairlist against this
+   project's own surfaces (light #f4f4f4 / dark #0d0d0d). Cap categorical
+   encoding at 6 series — a 7th folds into "Other", never a 7th generated hue.
+   Status hues are the skill's fixed status palette (mode-invariant) and are
+   always shipped with a text label, never colour alone.
+   ============================================================ */
+
+.insights-root {
+  /* Categorical — dark surface steps (default) */
+  --viz-1: #3987e5;   /* blue    */
+  --viz-2: #d95926;   /* orange  */
+  --viz-3: #199e70;   /* aqua    */
+  --viz-4: #c98500;   /* yellow  */
+  --viz-5: #d55181;   /* magenta */
+  --viz-6: #9085e9;   /* violet  */
+
+  /* Single-series / magnitude accent — brand indigo, lightened for the dark
+     surface so a lone bar clears contrast on black. */
+  --viz-accent:      #7c86ff;
+  --viz-accent-soft: rgba(124, 134, 255, .20);
+
+  /* Status — fixed, never themed; always paired with a label + glyph. */
+  --viz-good:    #0ca30c;
+  --viz-warn:    #fab219;
+  --viz-bad:     #d03b3b;
+  --viz-info:    #3987e5;
+  --viz-neutral: #898781;
+
+  /* Chart chrome */
+  --viz-grid:  #2c2c2a;
+  --viz-axis:  #383835;
+  --viz-track: rgba(255, 255, 255, .06);
+}
+
+html.light .insights-root {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #4a3aa7;
+
+  --viz-accent:      #272c84;   /* brand indigo reads cleanly on white */
+  --viz-accent-soft: rgba(39, 44, 132, .10);
+
+  --viz-good:    #0ca30c;
+  --viz-warn:    #fab219;
+  --viz-bad:     #d03b3b;
+  --viz-info:    #2a78d6;
+  --viz-neutral: #898781;
+
+  --viz-grid:  #e1e0d9;
+  --viz-axis:  #c3c2b7;
+  --viz-track: rgba(11, 11, 11, .06);
+}
+
+/* ── Layout primitives shared by both insights panels ─────────────────────── */
+
+.ins-tabs {
+  display: flex;
+  gap: .25rem;
+  border-bottom: 1px solid var(--surface-2);
+  margin-bottom: 1.5rem;
+}
+.ins-subtab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-3);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .6rem 1rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.ins-subtab[data-active="true"] { color: var(--text); border-bottom-color: #272c84; }
+@media (hover: hover) {
+  .ins-subtab:not([data-active="true"]):hover { color: var(--text-2); }
+}
+
+.ins-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--surface-2);
+  margin-bottom: 2rem;
+}
+.ins-tile { background: var(--bg); padding: 1.5rem; }
+.ins-tile-label {
+  color: var(--text-3);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: .5rem;
+}
+.ins-tile-value {
+  color: var(--text);
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ins-tile-sub { color: var(--text-3); font-size: .7rem; margin-top: .25rem; }
+
+.ins-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  border-radius: .25rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.ins-card-title {
+  color: var(--text-3);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+/* Legend — identity is text + swatch, never colour alone. */
+.ins-legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin-top: 1rem; }
+.ins-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--text-2);
+  font-size: .7rem;
+}
+.ins-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border: 1px solid rgba(127, 127, 127, .35);
+}
+
+.ins-controls { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; margin-bottom: 1.5rem; }
+.ins-empty { color: var(--text-4); font-size: .8rem; padding: 1rem 0; }
