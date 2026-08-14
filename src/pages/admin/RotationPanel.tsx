@@ -148,7 +148,10 @@ export default function RotationPanel({ isDemo = false }: Props) {
 
   const overdueCount = statuses.filter(s => s.state === 'overdue').length
 
-  if (loading) return <div style={{ padding: '2rem' }}><p style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>Loading rotation…</p></div>
+  // Only the very first load blanks the panel. Post-mutation reloads keep the
+  // existing schedule on screen (statuses is non-empty) and update in place, so
+  // a waive/edit/delete/create doesn't flash the whole panel to a placeholder.
+  if (loading && statuses.length === 0) return <div style={{ padding: '2rem' }}><p style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>Loading rotation…</p></div>
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1000 }}>
@@ -174,7 +177,8 @@ export default function RotationPanel({ isDemo = false }: Props) {
         </p>
         <button
           onClick={openCreate}
-          style={{ background: '#272C84', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.1rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+          disabled={saving}
+          style={{ background: '#272C84', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.1rem', borderRadius: '.2rem', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: saving ? .5 : 1 }}
         >
           + New Cycle
         </button>
@@ -290,6 +294,9 @@ export default function RotationPanel({ isDemo = false }: Props) {
           {upcoming.map(s => {
             const st = STATE_STYLE[s.state]
             const coach = getCoachBySlug(s.cycle.coachSlug)
+            // Also locked while a form save is mid-flight, so a save-completion
+            // closeForm() can't tear down a form opened by a click during it.
+            const rowBusy = busyId === s.cycle.id || saving
             return (
               <div key={s.cycle.id} style={{ background: 'var(--bg)', padding: '1rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{
@@ -322,13 +329,13 @@ export default function RotationPanel({ isDemo = false }: Props) {
                   {s.state !== 'complete' && (
                     <button
                       onClick={() => toggleWaive(s)}
-                      disabled={busyId === s.cycle.id}
+                      disabled={rowBusy}
                       style={{
                         background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)',
                         fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                         padding: '.35rem .75rem', borderRadius: '.2rem', fontFamily: 'inherit',
-                        cursor: busyId === s.cycle.id ? 'not-allowed' : 'pointer',
-                        opacity: busyId === s.cycle.id ? .4 : 1,
+                        cursor: rowBusy ? 'not-allowed' : 'pointer',
+                        opacity: rowBusy ? .4 : 1,
                       }}
                     >
                       {busyId === s.cycle.id ? '…' : s.cycle.waived ? 'Un-waive' : 'Waive'}
@@ -336,24 +343,25 @@ export default function RotationPanel({ isDemo = false }: Props) {
                   )}
                   <button
                     onClick={() => openEdit(s.cycle)}
-                    disabled={busyId === s.cycle.id}
+                    disabled={rowBusy}
                     style={{
                       background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)',
                       fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-                      padding: '.35rem .75rem', borderRadius: '.2rem', fontFamily: 'inherit', cursor: 'pointer',
+                      padding: '.35rem .75rem', borderRadius: '.2rem', fontFamily: 'inherit',
+                      cursor: rowBusy ? 'not-allowed' : 'pointer', opacity: rowBusy ? .5 : 1,
                     }}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => removeCycle(s.cycle)}
-                    disabled={busyId === s.cycle.id}
+                    disabled={rowBusy}
                     style={{
                       background: 'none', border: '1px solid var(--border)', color: 'var(--text-3)',
                       fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
                       padding: '.35rem .75rem', borderRadius: '.2rem', fontFamily: 'inherit',
-                      cursor: busyId === s.cycle.id ? 'not-allowed' : 'pointer',
-                      opacity: busyId === s.cycle.id ? .4 : 1,
+                      cursor: rowBusy ? 'not-allowed' : 'pointer',
+                      opacity: rowBusy ? .4 : 1,
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#c8102e'; e.currentTarget.style.color = '#c8102e' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' }}

@@ -153,8 +153,13 @@ export async function fetchRotation(isDemo: boolean): Promise<RotationCycle[]> {
     .order('due_date', { ascending: true })
 
   if (error) {
-    console.error('[rotation] could not load schedule:', error.message)
-    return generateCycles()
+    // Deliberately NOT a fallback to generateCycles(): once cycles can be
+    // created/edited/deleted, the seeded schedule no longer matches the DB, so
+    // fabricating it on a transient read error would resurrect deleted cycles,
+    // hide created ones, and hand the admin phantom rows whose slug-date ids
+    // 404 against the uuid column the moment they Edit/Delete. An honest throw
+    // lets RotationPanel show its error banner instead of a healthy-looking lie.
+    throw new Error(error.message || 'Could not load the rotation schedule.')
   }
   return (data ?? []).map(r => rowToCycle(r as Record<string, unknown>))
 }
