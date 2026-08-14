@@ -3,11 +3,11 @@ import BlogPanel from './BlogPanel'
 import RotationPanel from './RotationPanel'
 
 /**
- * Blog, with the homepage rotation folded in behind a dropdown.
+ * Blog, with the publishing rotation folded in behind a dropdown.
  *
  * The two used to be separate top-level tabs, but they are the same job seen
- * twice — the posts you write, and which of them cycle on the home page — so
- * this pairs them under one entry and lets the dropdown switch the view.
+ * twice — the posts themselves, and the schedule of whose turn it is to write
+ * one — so this pairs them under one entry and lets the dropdown switch view.
  */
 type View = 'posts' | 'rotation'
 
@@ -27,7 +27,7 @@ export default function BlogWorkspace({ isDemo = false }: { isDemo?: boolean }) 
           style={{ maxWidth: 260, minHeight: '2.5rem' }}
         >
           <option value="posts">Blog posts</option>
-          <option value="rotation">Homepage rotation</option>
+          <option value="rotation">Publishing rotation</option>
         </select>
       </div>
 

@@ -12,6 +12,8 @@
  */
 
 import { supabase, supabaseConfigured } from './supabase'
+import { sanitizeText } from '../utils/sanitize'
+import { COACHES } from '../data/coaches'
 import type { PendingContent } from '../data/pendingContent'
 
 // Must match the roster ordinals seeded in 005_content_rotation.sql — the
@@ -111,6 +113,15 @@ function generateCycles(): RotationCycle[] {
   return out.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 }
 
+// A single persistent demo store so create/edit/delete/waive actually stick for
+// the length of the session (the old code regenerated the schedule on every
+// read, which silently discarded every write). Resets on reload.
+let _demoCycles: RotationCycle[] | null = null
+function getDemoCycles(): RotationCycle[] {
+  if (!_demoCycles) _demoCycles = generateCycles()
+  return _demoCycles
+}
+
 // ── DB mapping ───────────────────────────────────────────────────────────────
 
 function rowToCycle(row: Record<string, unknown>): RotationCycle {
@@ -132,7 +143,9 @@ function useDB(isDemo: boolean): boolean {
 
 /** Every cycle for every coach, oldest due date first. */
 export async function fetchRotation(isDemo: boolean): Promise<RotationCycle[]> {
-  if (!useDB(isDemo)) return generateCycles()
+  if (!useDB(isDemo)) {
+    return [...getDemoCycles()].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  }
 
   const { data, error } = await supabase
     .from('content_rotation')
@@ -212,11 +225,150 @@ export async function waiveCycle(
   note: string | undefined,
   isDemo: boolean,
 ): Promise<void> {
-  if (!useDB(isDemo)) return
+  if (!useDB(isDemo)) {
+    const c = getDemoCycles().find(x => x.id === id)
+    if (c) { c.waived = waived; c.waiveNote = waived ? (note || undefined) : undefined }
+    return
+  }
   const { error } = await supabase
     .from('content_rotation')
     .update({ waived, waive_note: note ?? null })
     .eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// ── Create / edit / delete a cycle (admin) ───────────────────────────────────
+// The `content_rotation` RLS policy is `for all` to the content admin, so these
+// writes reach the same table the seed does. Everything a caller can send is
+// re-checked here so the DB's own guards (due_date > cycle_start, one cycle per
+// coach per due date) are never the first line of defence.
+
+const WAIVE_NOTE_MAX = 500
+
+export interface CycleInput {
+  coachSlug: string
+  cycleStart: string   // YYYY-MM-DD
+  dueDate: string      // YYYY-MM-DD
+  waived?: boolean
+  waiveNote?: string
+}
+
+/** A real calendar date in YYYY-MM-DD form (rejects 2026-13-40 and the like). */
+function isRealDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
+
+/** Throws a human-readable error if the input could not become a valid row. */
+function validateCycle(input: CycleInput): void {
+  if (!COACHES.some(c => c.slug === input.coachSlug)) {
+    throw new Error('Pick a coach for this cycle.')
+  }
+  if (!isRealDate(input.cycleStart) || !isRealDate(input.dueDate)) {
+    throw new Error('Enter valid start and due dates.')
+  }
+  // Mirrors the content_rotation_window_valid check constraint.
+  if (!(input.dueDate > input.cycleStart)) {
+    throw new Error('The due date must come after the cycle start.')
+  }
+}
+
+function cleanNote(waived: boolean | undefined, note: string | undefined): string | undefined {
+  if (!waived) return undefined
+  const t = sanitizeText(note ?? '', WAIVE_NOTE_MAX)
+  return t || undefined
+}
+
+/** Admin: schedule a new cycle. */
+export async function createCycle(input: CycleInput, isDemo: boolean): Promise<RotationCycle> {
+  validateCycle(input)
+  const waived = input.waived === true
+  const waiveNote = cleanNote(waived, input.waiveNote)
+
+  if (!useDB(isDemo)) {
+    const store = getDemoCycles()
+    // Mirror the unique (coach_slug, due_date) constraint.
+    if (store.some(c => c.coachSlug === input.coachSlug && c.dueDate === input.dueDate)) {
+      throw new Error('That coach already has a cycle due on this date.')
+    }
+    const cycle: RotationCycle = {
+      id: `${input.coachSlug}-${input.dueDate}-${store.length}`,
+      coachSlug: input.coachSlug,
+      cycleStart: input.cycleStart,
+      dueDate: input.dueDate,
+      waived,
+      waiveNote,
+    }
+    store.push(cycle)
+    return cycle
+  }
+
+  const { data, error } = await supabase
+    .from('content_rotation')
+    .insert({
+      coach_slug:  input.coachSlug,
+      cycle_start: input.cycleStart,
+      due_date:    input.dueDate,
+      waived,
+      waive_note:  waiveNote ?? null,
+    })
+    .select()
+    .single()
+  if (error) {
+    if (error.code === '23505') throw new Error('That coach already has a cycle due on this date.')
+    throw new Error(error.message)
+  }
+  return rowToCycle(data as Record<string, unknown>)
+}
+
+/** Admin: edit an existing cycle (coach, window, or waive state). */
+export async function updateCycle(id: string, input: CycleInput, isDemo: boolean): Promise<void> {
+  validateCycle(input)
+  const waived = input.waived === true
+  const waiveNote = cleanNote(waived, input.waiveNote)
+
+  if (!useDB(isDemo)) {
+    const store = getDemoCycles()
+    if (store.some(c => c.id !== id && c.coachSlug === input.coachSlug && c.dueDate === input.dueDate)) {
+      throw new Error('That coach already has a cycle due on this date.')
+    }
+    const c = store.find(x => x.id === id)
+    if (c) {
+      c.coachSlug = input.coachSlug
+      c.cycleStart = input.cycleStart
+      c.dueDate = input.dueDate
+      c.waived = waived
+      c.waiveNote = waiveNote
+    }
+    return
+  }
+
+  const { error } = await supabase
+    .from('content_rotation')
+    .update({
+      coach_slug:  input.coachSlug,
+      cycle_start: input.cycleStart,
+      due_date:    input.dueDate,
+      waived,
+      waive_note:  waiveNote ?? null,
+    })
+    .eq('id', id)
+  if (error) {
+    if (error.code === '23505') throw new Error('That coach already has a cycle due on this date.')
+    throw new Error(error.message)
+  }
+}
+
+/** Admin: remove a cycle from the schedule. */
+export async function deleteCycle(id: string, isDemo: boolean): Promise<void> {
+  if (!useDB(isDemo)) {
+    const store = getDemoCycles()
+    const idx = store.findIndex(c => c.id === id)
+    if (idx >= 0) store.splice(idx, 1)
+    return
+  }
+  const { error } = await supabase.from('content_rotation').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 
