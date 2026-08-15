@@ -78,32 +78,108 @@ export const stateOf = (granted: boolean): PermissionState => (granted ? 'allow'
  * `permissions` is the authority and `fetchPermissionCatalog` always prefers
  * it. This copy exists for two cases that would otherwise render an empty
  * editor: demo mode, which has no database at all, and the window between this
- * screen shipping and 014 being applied. A key here that 014 does not define
- * cannot be granted — the foreign key refuses the insert — so the worst this
- * can do is offer a switch that reports a clear failure when flipped.
+ * screen shipping and a migration being applied. A key here that the database
+ * does not define cannot be granted — the foreign key refuses the insert — so
+ * the worst this can do is offer a switch that reports a clear failure when
+ * flipped.
+ *
+ * IT HAD FALLEN A LONG WAY BEHIND, and that is worse than it sounds: this copy
+ * is what draws the editor in demo mode, and it is the ONLY thing drawn if the
+ * catalog fetch fails, so a permission missing from here has no switch on any
+ * screen a person can reach. 016 seeded sixteen and this list matched them;
+ * 022 through 029 added eighteen more and 040 six more. All forty are below,
+ * with the label and description transcribed from the migration that defines
+ * each key, so the fallback and the table say the same words.
+ *
+ * ORDER IS BY AREA, not alphabetical, because this array is also the reading
+ * order of the editor: calendar and bookings, then the people work, then
+ * content, reach, the shop, the free resources, and the settings that decide
+ * how the rest is enforced. `sortCatalog` below applies the same order to the
+ * DATABASE's answer, which arrives sorted by key and would otherwise file
+ * "Manage announcements" between "Manage athletes" and "Manage the blog".
+ *
+ * `is_sensitive` matches the database exactly: the same three 016 flagged, and
+ * nothing added since has joined them. The flag is a rule about the GRANTOR and
+ * not the holder, so an admin may still hand any of the three to a coach.
  */
 export const PERMISSION_CATALOG: Permission[] = [
-  { key: 'view_own_calendar',       label: 'See their own calendar',        description: 'Their own bookings and working hours.', is_sensitive: false },
-  { key: 'view_all_calendars',      label: 'See every calendar',            description: "The whole roster's day, not just their own column.", is_sensitive: false },
-  { key: 'manage_own_availability', label: 'Set their own hours',           description: 'Their weekly schedule, blocks, and time off.', is_sensitive: false },
-  { key: 'manage_bookings_all',     label: 'Manage every booking',          description: "Confirm, reschedule, annotate and cancel on anybody's calendar.", is_sensitive: false },
-  { key: 'manage_services',         label: 'Edit what Axis offers',         description: 'Add, retire and reword services and their durations.', is_sensitive: false },
-  { key: 'manage_pricing',          label: 'Change prices',                 description: 'What a service costs, including per-coach overrides.', is_sensitive: false },
-  { key: 'manage_leads',            label: 'Work the application queue',    description: 'Triage, assign, annotate and close incoming applications.', is_sensitive: false },
-  { key: 'view_lead_contact',       label: 'See applicant contact details', description: 'The email address, phone number and socials on an application. The rest of a lead, lifts and history and goals, is readable without this.', is_sensitive: false },
-  { key: 'manage_athletes',         label: 'Manage athletes',               description: 'Athlete records: profile, history, and adding somebody new.', is_sensitive: false },
-  { key: 'manage_staff',            label: 'Manage staff',                  description: 'Add and edit coach records, calendars and roster placement.', is_sensitive: true },
-  { key: 'manage_permissions',      label: 'Manage permissions',            description: 'Change what other people may do. It is the power to grant everything else.', is_sensitive: true },
-  { key: 'manage_content',          label: 'Edit the site',                 description: 'Public copy, programme pages and the media library.', is_sensitive: false },
-  { key: 'manage_channels',         label: 'Manage channels',               description: 'Create group message channels and manage their members', is_sensitive: false },
-  { key: 'manage_announcements',    label: 'Manage announcements',          description: 'Create, schedule and retire the site-wide announcement banner.', is_sensitive: false },
-  { key: 'moderate_testimonials',   label: 'Moderate testimonials',         description: 'Approve, hide and respond to what athletes have written.', is_sensitive: false },
-  { key: 'view_analytics',          label: 'See analytics',                 description: 'Bookings, conversion, and where applications are coming from.', is_sensitive: false },
-  { key: 'send_marketing',          label: 'Send marketing',                description: 'Newsletters and broadcast email.', is_sensitive: false },
-  { key: 'manage_site_settings',    label: 'Change site settings',          description: 'Booking policy, coach routing, integrations and keys.', is_sensitive: true },
+  // ── Calendar, bookings, and what Axis offers ───────────────────────────
+  { key: 'view_own_calendar',       label: 'See their own calendar',        description: 'Their own bookings and working hours.', is_sensitive: false },                                                                                                                     // 016
+  { key: 'view_all_calendars',      label: 'See every calendar',            description: "The whole roster's day, not just their own column.", is_sensitive: false },                                                                                                        // 016
+  { key: 'manage_own_availability', label: 'Set their own hours',           description: 'Their weekly schedule, blocks, and time off.', is_sensitive: false },                                                                                                              // 016
+  { key: 'manage_bookings_all',     label: 'Manage every booking',          description: "Confirm, reschedule, annotate and cancel on anybody's calendar.", is_sensitive: false },                                                                                           // 016
+  { key: 'manage_services',         label: 'Edit what Axis offers',         description: 'Add, retire and reword services and their durations.', is_sensitive: false },                                                                                                      // 016
+  { key: 'manage_pricing',          label: 'Change prices',                 description: 'What a service costs, including per-coach overrides.', is_sensitive: false },                                                                                                      // 016
+  { key: 'view_timeclock_all',      label: "See everyone's time clock",     description: "Every athlete's gym visits and every coach's work shifts, plus the hours totals, not just their own. Read-only; it grants no power to edit a punch.", is_sensitive: false },        // 022
+
+  // ── Applicants, athletes, and the conversations with them ──────────────
+  { key: 'manage_leads',            label: 'Work the application queue',    description: 'Triage, assign, annotate and close incoming applications.', is_sensitive: false },                                                                                                 // 016
+  { key: 'view_lead_contact',       label: 'See applicant contact details', description: 'The email address, phone number and socials on an application. The rest of a lead, lifts and history and goals, is readable without this.', is_sensitive: false },                  // 016
+  { key: 'manage_athletes',         label: 'Manage athletes',               description: 'Athlete records: profile, history, and adding somebody new.', is_sensitive: false },                                                                                               // 016
+  { key: 'manage_forms',            label: 'Manage intake forms',           description: "Build and edit intake forms, including the general site-wide one and other coaches'. A coach can always manage their own form without this.", is_sensitive: false },                // 024
+  { key: 'view_form_submissions',   label: 'See form submissions',          description: 'Read what athletes have submitted on any intake form. A coach can always see submissions to their own form without this.', is_sensitive: false },                                   // 024
+  { key: 'manage_channels',         label: 'Manage channels',               description: 'Create group message channels and manage their members', is_sensitive: false },                                                                                                    // 023
+
+  // ── The site, the blog, and what reaches the front page ────────────────
+  { key: 'manage_content',          label: 'Edit the site',                 description: 'Public copy, programme pages and the media library.', is_sensitive: false },                                                                                                       // 016
+  { key: 'view_blog',               label: 'See the blog queue',            description: 'Every blog submission, draft and the publishing rotation, in the portal. Read-only: it shows the whole queue and approves nothing.', is_sensitive: false },                         // 040
+  { key: 'manage_blog',             label: 'Manage the blog',               description: "Create, edit, approve, reject and schedule blog content, anyone's, plus the publishing rotation.", is_sensitive: false },                                                           // 040
+  { key: 'moderate_testimonials',   label: 'Moderate testimonials',         description: 'Approve, hide and respond to what athletes have written.', is_sensitive: false },                                                                                                  // 016
+
+  // ── Reach: the numbers, the list, and what goes out ────────────────────
+  { key: 'view_analytics',          label: 'See analytics',                 description: 'Bookings, conversion, and where applications are coming from.', is_sensitive: false },                                                                                              // 016
+  { key: 'view_marketing',          label: 'See marketing data',            description: 'Newsletter leads and signups, broadcast history and the marketing insights. Read-only: it sends nothing.', is_sensitive: false },                                                   // 040
+  { key: 'send_marketing',          label: 'Send marketing',                description: 'Newsletters and broadcast email.', is_sensitive: false },                                                                                                                          // 016
+  { key: 'manage_announcements',    label: 'Manage announcements',          description: 'Create, schedule and retire the site-wide announcement banner.', is_sensitive: false },                                                                                            // 028
+
+  // ── The shop ───────────────────────────────────────────────────────────
+  { key: 'view_store',              label: 'See the storefront',            description: 'The catalog, inventory levels, orders and sales figures. Read-only: it changes no price, no stock and no order.', is_sensitive: false },                                            // 040
+  { key: 'manage_products',         label: 'Manage the merch catalog',      description: 'Add, retire, reprice and reword merchandise and its sizes.', is_sensitive: false },                                                                                                // 025
+  { key: 'manage_categories',       label: 'Manage product categories',     description: 'Create, rename, reorder and hide the groups the shop is sorted into.', is_sensitive: false },                                                                                      // 025
+  { key: 'manage_inventory',        label: 'Manage stock levels',           description: 'Receive, correct and count stock. Every change is written to the audit trail.', is_sensitive: false },                                                                             // 025
+  { key: 'manage_orders',           label: 'Manage orders',                 description: 'See every order, change its status, and mark a records-only order paid.', is_sensitive: false },                                                                                   // 026
+  { key: 'view_sales',              label: 'See sales',                     description: 'Revenue totals, top products and the day-by-day takings. Read-only.', is_sensitive: false },                                                                                       // 026
+  { key: 'manage_expenses',         label: 'Manage expenses',               description: 'Record, edit and remove what the shop spends, and see the monthly totals.', is_sensitive: false },                                                                                 // 026
+
+  // ── The free half of the public site ───────────────────────────────────
+  { key: 'manage_resource_library', label: 'Manage the resource library',   description: 'Create, edit, publish and retire the free resources and tools on the public site.', is_sensitive: false },                                                                         // 040
+  { key: 'manage_calculators',      label: 'Manage the calculators',        description: 'Adjust the numbers inside the public calculators: percentages, tables and rounding.', is_sensitive: false },                                                                       // 040
+
+  // ── Settings: how the business runs ────────────────────────────────────
+  { key: 'manage_scheduling',       label: 'Manage scheduling',             description: 'Booking lead time, how far ahead the calendar opens, buffers and auto-confirm, across the roster.', is_sensitive: false },                                                         // 029
+  { key: 'manage_resources',        label: 'Manage rooms & equipment',      description: 'The rooms and equipment a booking can occupy, and how many of each exist.', is_sensitive: false },                                                                                 // 029
+  { key: 'manage_waitlist',         label: 'Manage the waitlist',           description: 'Whether cancellations auto-offer to the waitlist, how long a hold lasts, and how long the list may grow.', is_sensitive: false },                                                   // 029
+  { key: 'manage_notifications',    label: 'Manage client notifications',   description: 'Which booking emails go out, confirmation, reminders and cancellation, and how far ahead the reminders fire.', is_sensitive: false },                                               // 029
+  { key: 'manage_commission',       label: 'Manage commission',             description: 'The commission rules that pay coaches on bookings and sales.', is_sensitive: false },                                                                                              // 029
+  { key: 'manage_locations',        label: 'Manage locations',              description: 'The studio locations, their addresses, time zones and which one is primary.', is_sensitive: false },                                                                               // 029
+  { key: 'manage_legal',            label: 'Manage legal documents',        description: 'The privacy policy, terms of service and liability waiver shown on the site.', is_sensitive: false },                                                                              // 029
+
+  // ── The three an administrator hands over personally ───────────────────
+  { key: 'manage_staff',            label: 'Manage staff',                  description: 'Add and edit coach records, calendars and roster placement. Admin-only to grant.', is_sensitive: true },                                                                           // 016
+  { key: 'manage_permissions',      label: 'Manage permissions',            description: 'Change what other people may do. Admin-only to grant, because it is the power to grant everything else.', is_sensitive: true },                                                    // 016
+  { key: 'manage_site_settings',    label: 'Change site settings',          description: 'Booking policy, coach routing, integrations and keys. Admin-only to grant, because most of what it configures is how the other rules are enforced.', is_sensitive: true },          // 016
 ]
 
 const ALL_KEYS = PERMISSION_CATALOG.map(p => p.key)
+
+/** Where each key sits in the reading order above. */
+const CATALOG_ORDER = new Map(ALL_KEYS.map((key, i) => [key, i]))
+
+/**
+ * The database's catalogue, in the area order above.
+ *
+ * `permissions` has no sort column, so a `select` comes back ordered by key,
+ * and alphabetical is the one order guaranteed to interleave the shop, the
+ * calendar and the settings. Sorting on the way in costs a single pass and
+ * means the editor reads the same whether it was answered by the table or by
+ * the mirror. A key the mirror has not caught up with sorts to the end rather
+ * than vanishing: an unknown permission is still one somebody may need to
+ * grant, and hiding it is how this list fell behind in the first place.
+ */
+function sortCatalog(rows: Permission[]): Permission[] {
+  const at = (p: Permission) => CATALOG_ORDER.get(p.key) ?? Number.MAX_SAFE_INTEGER
+  return [...rows].sort((a, b) => at(a) - at(b) || a.key.localeCompare(b.key))
+}
 
 /**
  * What each role holds before anyone decides anything. Mirrors the seed rows in
@@ -188,8 +264,10 @@ const DEMO_PEOPLE_SEED: Profile[] = [
   { id: 'demo-lucas',  email: 'lucas@axistrainingsystems.com',  first_name: 'Lucas',  last_name: 'Sison',   display_name: 'Lucas Sison',   avatar_url: null, phone: null,             role: 'coach',   status: 'active',    coach_slug: 'lucas-sison',    created_at: demoIso(300) },
   { id: 'demo-aedan',  email: 'aedan@axistrainingsystems.com',  first_name: 'Aedan',  last_name: 'Nguyen',  display_name: 'Aedan Nguyen',  avatar_url: null, phone: null,             role: 'admin',   status: 'suspended', coach_slug: 'aedan-nguyen',   created_at: demoIso(280) },
   { id: 'demo-kobe',   email: 'kobe.pham@gmail.com',            first_name: 'Kobe',   last_name: 'Pham',    display_name: 'Kobe Pham',     avatar_url: null, phone: '(559) 555-0188', role: 'coach',   status: 'pending',   coach_slug: null,             created_at: demoIso(2) },
-  { id: 'demo-marcus', email: 'marcus.r@gmail.com',             first_name: 'Marcus', last_name: 'Rivera',  display_name: 'Marcus Rivera', avatar_url: null, phone: '(559) 555-0132', role: 'athlete', status: 'pending',   coach_slug: null,             created_at: demoIso(0) },
-  { id: 'demo-bianca', email: 'bianca.reyes@gmail.com',         first_name: 'Bianca', last_name: 'Reyes',   display_name: 'Bianca Reyes',  avatar_url: null, phone: null,             role: 'athlete', status: 'pending',   coach_slug: null,             created_at: demoIso(1) },
+  // Active rather than pending so the demo roster board has cards to drag;
+  // Kobe keeps the approval queue from reading as empty.
+  { id: 'demo-marcus', email: 'marcus.r@gmail.com',             first_name: 'Marcus', last_name: 'Rivera',  display_name: 'Marcus Rivera', avatar_url: null, phone: '(559) 555-0132', role: 'athlete', status: 'active',    coach_slug: null,             created_at: demoIso(0) },
+  { id: 'demo-bianca', email: 'bianca.reyes@gmail.com',         first_name: 'Bianca', last_name: 'Reyes',   display_name: 'Bianca Reyes',  avatar_url: null, phone: null,             role: 'athlete', status: 'active',    coach_slug: null,             created_at: demoIso(1) },
   { id: 'demo-devin',  email: 'devin.cross@gmail.com',          first_name: 'Devin',  last_name: 'Cross',   display_name: 'Devin Cross',   avatar_url: null, phone: '(559) 555-0177', role: 'athlete', status: 'active',    coach_slug: null,             created_at: demoIso(95) },
   { id: 'demo-tyler',  email: 'tyler.vance@gmail.com',          first_name: 'Tyler',  last_name: 'Vance',   display_name: 'Tyler Vance',   avatar_url: null, phone: null,             role: 'athlete', status: 'suspended', coach_slug: null,             created_at: demoIso(210) },
 ]
@@ -265,7 +343,11 @@ export async function fetchPermissionCatalog(isDemo = false): Promise<Permission
 
   const rows = (data ?? []) as unknown as Permission[]
   if (error || rows.length === 0) return PERMISSION_CATALOG.map(p => ({ ...p }))
-  return rows
+  // The two `.order()` calls are the fallback ordering, not the intended one:
+  // with forty keys, alphabetical-within-sensitivity reads as a jumble. The
+  // area order lives in PERMISSION_CATALOG and is applied here so the table's
+  // answer and the mirror's produce the same screen.
+  return sortCatalog(rows)
 }
 
 /** What each role holds, preferring `role_permissions` over the code copy. */
@@ -337,6 +419,16 @@ export interface PermissionRow {
 export interface Viewer {
   id: string | null
   isAdmin: boolean
+  /**
+   * What the VIEWER themselves effectively holds, for the second half of
+   * `can_grant_permission` (016): you may only hand over what you hold.
+   *
+   * Optional, and `undefined` means "not known" rather than "nothing" — an
+   * admin holds everything and never needs the check, and a set that has not
+   * arrived yet must not grey out rows somebody is entitled to use. The rule
+   * is the database's either way; this only says it before the round trip.
+   */
+  holds?: ReadonlySet<string>
 }
 
 /**
@@ -387,6 +479,13 @@ export function buildPermissionRows(
  * give `manage_permissions` to a coach; a coach who already holds it may not
  * pass it on. Reading the flag as a rule about the target — which is the
  * intuitive misreading — would grey out rows an admin is entitled to use.
+ *
+ * The last lock is `can_grant_permission`'s second rule, and until the head
+ * coach existed nobody ever hit it: you may only hand over what you hold
+ * yourself, which is what keeps the set of permissions in circulation closed.
+ * A coach with manage_permissions who has been given the blog and not the shop
+ * now sees the shop rows greyed with the reason, instead of flipping one and
+ * reading "You cannot grant or revoke view_store" after the round trip.
  */
 export function permissionLock(permission: Permission, target: Profile, viewer: Viewer): string | null {
   if (target.role === 'athlete') {
@@ -400,6 +499,9 @@ export function permissionLock(permission: Permission, target: Profile, viewer: 
   }
   if (permission.is_sensitive && !viewer.isAdmin) {
     return 'Only an administrator can hand this one over.'
+  }
+  if (!viewer.isAdmin && viewer.holds && !viewer.holds.has(permission.key)) {
+    return 'You can only pass on a permission you hold yourself. An administrator can grant this one.'
   }
   return null
 }

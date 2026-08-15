@@ -394,6 +394,10 @@ function seedDemo(): DemoState {
   const assignments: CoachAssignment[] = [
     { athlete_id: DEMO_VIEWER_ID, coach_id: 'demo-ronnie', assigned_at: demoIso(4_320) },
     { athlete_id: 'demo-devin', coach_id: 'demo-seth', assigned_at: demoIso(10_080) },
+    // The roster board's demo cards. Their open training blocks are seeded in
+    // trainingApi, so the columns show phases the moment the demo opens.
+    { athlete_id: 'demo-marcus', coach_id: 'demo-lucas', assigned_at: demoIso(7_200) },
+    { athlete_id: 'demo-bianca', coach_id: 'demo-seth', assigned_at: demoIso(5_760) },
   ]
 
   return { conversations, members, messages, assignments }
