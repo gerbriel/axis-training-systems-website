@@ -1,16 +1,18 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  audienceIncludes,
   cleanMessageBody,
   cleanTitle,
   composeConversations,
   MESSAGE_BODY_LIMIT,
   CONVERSATION_TITLE_LIMIT,
 } from '../src/lib/messagingApi.ts'
-import { composePollState, pollRefusal } from '../src/lib/newsletterBroadcast.ts'
+import { composePollState, oneThreadPerNewsletter, pollRefusal } from '../src/lib/newsletterBroadcast.ts'
 import type {
   Conversation,
   ConversationMemberRow,
+  ConversationSummary,
   MessagingContact,
   Poll,
   PollOption,
@@ -292,4 +294,90 @@ test('pollRefusal stops at eight options', () => {
   const eight = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
   assert.equal(pollRefusal('Which day?', eight), null)
   assert.equal(pollRefusal('Which day?', [...eight, 'i']), 'A poll can have at most eight options.')
+})
+
+// ---------------------------------------------------------------------------
+// 6. audienceIncludes — who a newsletter actually reaches
+// ---------------------------------------------------------------------------
+// The client statement of `send_newsletter`'s audience clause (030). It decides
+// the demo fan-out, and a screen that previews "this goes to 14 people" would
+// read the same answer. If this drifts from the SQL, the composer promises one
+// roster and the database delivers another.
+
+test('audienceIncludes: "all" reaches every role', () => {
+  assert.equal(audienceIncludes('all', 'athlete'), true)
+  assert.equal(audienceIncludes('all', 'coach'), true)
+  assert.equal(audienceIncludes('all', 'admin'), true)
+})
+
+test('audienceIncludes: "athletes" reaches athletes and nobody on staff', () => {
+  assert.equal(audienceIncludes('athletes', 'athlete'), true)
+  assert.equal(audienceIncludes('athletes', 'coach'), false)
+  assert.equal(audienceIncludes('athletes', 'admin'), false)
+})
+
+test('audienceIncludes: "staff" is coaches AND admins', () => {
+  // The one that is easy to get wrong. An admin is staff, and a send to the
+  // coaching team that skipped the head coach would go unnoticed for months.
+  assert.equal(audienceIncludes('staff', 'coach'), true)
+  assert.equal(audienceIncludes('staff', 'admin'), true)
+  assert.equal(audienceIncludes('staff', 'athlete'), false)
+})
+
+// ---------------------------------------------------------------------------
+// 7. oneThreadPerNewsletter — the sender's own copies, collapsed
+// ---------------------------------------------------------------------------
+// A recipient holds one broadcast conversation per newsletter. The sender holds
+// one per RECIPIENT, because the fan-out puts them in every room it makes, so
+// their Newsletters tab would otherwise list a send to forty people forty times.
+
+const summary = (id: string, newsletter_id: string | null, last_message_at: string): ConversationSummary => ({
+  id,
+  kind: 'broadcast',
+  title: 'Meet week',
+  created_by: 'sender-1',
+  newsletter_id,
+  last_message_at,
+  last_message_preview: 'Weigh-ins move to Thursday.',
+  last_message_from: 'sender-1',
+  created_at: last_message_at,
+  members: [],
+  unread: false,
+})
+
+test('oneThreadPerNewsletter keeps the first row for each newsletter', () => {
+  const rows = [
+    summary('c1', 'news-1', '2026-08-13T12:00:00Z'),
+    summary('c2', 'news-1', '2026-08-13T12:00:00Z'),
+    summary('c3', 'news-1', '2026-08-13T12:00:00Z'),
+    summary('c4', 'news-2', '2026-08-11T09:00:00Z'),
+  ]
+
+  const kept = oneThreadPerNewsletter(rows)
+  assert.deepEqual(kept.map(s => s.id), ['c1', 'c4'])
+  // Order is the caller's, which is newest first off the server.
+  assert.deepEqual(kept.map(s => s.newsletter_id), ['news-1', 'news-2'])
+})
+
+test('oneThreadPerNewsletter leaves a recipient list alone', () => {
+  const rows = [summary('c1', 'news-1', '2026-08-13T12:00:00Z'), summary('c2', 'news-2', '2026-08-12T12:00:00Z')]
+  assert.deepEqual(oneThreadPerNewsletter(rows).map(s => s.id), ['c1', 'c2'])
+})
+
+test('oneThreadPerNewsletter keeps every broadcast whose newsletter is gone', () => {
+  // `on delete set null`: the newsletter was deleted, the delivery stands. With
+  // no id to group on, collapsing these would hide readable announcements.
+  const rows = [
+    summary('c1', null, '2026-08-13T12:00:00Z'),
+    summary('c2', null, '2026-08-12T12:00:00Z'),
+    summary('c3', 'news-1', '2026-08-11T12:00:00Z'),
+  ]
+  assert.deepEqual(oneThreadPerNewsletter(rows).map(s => s.id), ['c1', 'c2', 'c3'])
+})
+
+test('oneThreadPerNewsletter does not mutate what it was given', () => {
+  const rows = [summary('c1', 'news-1', '2026-08-13T12:00:00Z'), summary('c2', 'news-1', '2026-08-13T12:00:00Z')]
+  const kept = oneThreadPerNewsletter(rows)
+  assert.equal(rows.length, 2)
+  assert.notEqual(kept, rows)
 })

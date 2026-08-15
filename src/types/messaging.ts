@@ -127,6 +127,44 @@ export interface PollState {
   totalVotes: number
 }
 
+/**
+ * One person a newsletter was delivered to, from the `newsletter_recipients`
+ * RPC (033). Sender-tier only, and deliberately narrow: a name, a face, a role,
+ * whether they have opened it, and when it landed.
+ *
+ * `seen` is `not conversation_members.unread`, which is the same boolean the
+ * recipient's own badge reads, so there is no second read model to drift.
+ *
+ * There is no vote on this shape and there must not be one. Delivery is not
+ * anonymous. A poll answer is, and the two meeting in one row would undo that.
+ */
+export interface NewsletterRecipient {
+  id: string
+  display_name: string
+  avatar_url: string | null
+  role: 'athlete' | 'coach' | 'admin'
+  seen: boolean
+  delivered_at: string
+}
+
+/**
+ * A received newsletter as the Newsletters tab renders it: the broadcast
+ * conversation it arrived in, the newsletter behind it, and its poll if it has
+ * one.
+ *
+ * `newsletter` is nullable because the join can legitimately come back empty.
+ * The row is readable through 030's recipient policy, which asks whether the
+ * newsletter is still `sent` and still delivered to you; a deleted newsletter
+ * leaves its conversations behind by design (`on delete set null`). The screen
+ * falls back to `summary.title` and `summary.last_message_preview`, which are
+ * the frozen copies the fan-out wrote, so a thread never renders blank.
+ */
+export interface NewsletterThread {
+  summary: ConversationSummary
+  newsletter: BroadcastNewsletter | null
+  poll: PollState | null
+}
+
 /** One window of history. Older messages load on demand, newest first. */
 export const MESSAGES_PAGE_SIZE = 50
 

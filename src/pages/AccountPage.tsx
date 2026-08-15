@@ -16,11 +16,19 @@ const ACCENT = '#272C84'
 /**
  * The athlete's page: their calls, past and future.
  *
- * Reads `my_bookings` (013) rather than `bookings`. The view exists because RLS
- * is row-level and cannot withhold a COLUMN — a policy that lets a client read
- * their own booking row also hands them `coach_notes`, which is the coach's
- * private assessment of the person reading it. The view is the projection; the
- * policy underneath it is still what decides which rows come back.
+ * Reads `my_bookings()` rather than `bookings`. It was a VIEW from 013 until 034
+ * turned it into a SECURITY DEFINER function, which is a change of shape and not
+ * of behaviour: the database linter flags definer views categorically and cannot
+ * be told that this one was deliberate, so the same body moved into the object
+ * PostgREST expects authorisation to live in.
+ *
+ * Why it is definer at all: RLS is row-level and cannot withhold a COLUMN, and a
+ * booking row carries `coach_notes`, the coach's private assessment of the person
+ * reading it. Coaches and athletes are both the `authenticated` role, so no
+ * column grant can hide it from one and show it to the other either. The function
+ * projects fourteen columns and its own `where client_id = auth.uid()` is the row
+ * restriction. The base table has carried no client-facing SELECT policy since
+ * 017, so this call is the only path to a booking an athlete can reach.
  */
 
 interface MyBooking {
@@ -111,8 +119,8 @@ export default function AccountPage() {
   // Conversations waiting on them, live. Counts threads, not messages.
   const unread = useUnreadCount('account-unread')
 
-  // Guards are UX, not security: the policies on `bookings` and the projection
-  // in `my_bookings` are what actually decide what comes back.
+  // Guards are UX, not security: the WHERE clause inside `my_bookings()` is what
+  // actually decides what comes back.
   useEffect(() => {
     if (authLoading) return
     if (!isSignedIn) { window.location.replace(href('/signin')); return }
@@ -123,8 +131,12 @@ export default function AccountPage() {
   const load = useCallback(async () => {
     if (!supabaseConfigured) { setLoading(false); return }
     setLoading(true)
+    // `.rpc` rather than `.from`, because 034 made it a function. PostgREST
+    // applies `select` and `order` to a set-returning function exactly as it does
+    // to a table, so the column list and the sort below are the same request they
+    // were against the view.
     const { data, error } = await supabase
-      .from('my_bookings')
+      .rpc('my_bookings')
       .select(MY_BOOKING_COLUMNS)
       .order('booked_at', { ascending: false })
 

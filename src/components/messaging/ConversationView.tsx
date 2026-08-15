@@ -220,9 +220,30 @@ export default function ConversationView({
         },
         payload => {
           const incoming = payload.new as unknown as ChatMessage
-          setMessages(previous =>
-            previous.some(message => message.id === incoming.id) ? previous : [...previous, incoming]
-          )
+          setMessages(previous => {
+            // Already here by its real id: nothing to do. This is the common
+            // case for a message I sent, because the send call usually answers
+            // before Realtime does.
+            if (previous.some(message => message.id === incoming.id)) return previous
+
+            // My own echo, arriving first. The optimistic bubble on screen
+            // carries a temporary id, so an id check cannot recognise it and
+            // appending would print the same sentence twice. Match it against
+            // the oldest bubble still in flight with the same body and let the
+            // server row take its place.
+            if (incoming.sender_id !== null && incoming.sender_id === latest.current.meId) {
+              const index = previous.findIndex(
+                message => message.pending && message.body === incoming.body
+              )
+              if (index !== -1) {
+                const next = [...previous]
+                next[index] = incoming
+                return next
+              }
+            }
+
+            return [...previous, incoming]
+          })
           // Someone else wrote while I am looking at the thread: that counts as
           // read, and the list needs the new preview either way.
           if (incoming.sender_id !== latest.current.meId) latest.current.onMarkRead(conversationId)
@@ -622,65 +643,81 @@ export default function ConversationView({
       </div>
 
       {/* ── Composer ───────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          borderTop: '1px solid var(--surface)',
-          padding: '.75rem 1rem',
-          paddingBottom: isMobile ? 'calc(.75rem + env(safe-area-inset-bottom))' : '.75rem',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '.5rem',
-          background: 'var(--bg)',
-        }}
-      >
-        {isBroadcast && (
+      {/*
+        A newsletter is read here only by accident: it has its own tab, and the
+        database refuses a reply to a broadcast either way. Hiding the box is
+        the honest version of that refusal, and it costs one conditional.
+      */}
+      {isBroadcast ? (
+        <div
+          style={{
+            borderTop: '1px solid var(--surface)',
+            padding: '.75rem 1rem',
+            paddingBottom: isMobile ? 'calc(.75rem + env(safe-area-inset-bottom))' : '.75rem',
+            flexShrink: 0,
+            background: 'var(--bg)',
+          }}
+        >
           <p style={{ color: 'var(--text-4)', fontSize: '.68rem', lineHeight: 1.5 }}>
-            Your reply goes back to the sender as a direct message.
+            Newsletters do not take replies.
           </p>
-        )}
-        {sendError && <ErrorLine>{sendError}</ErrorLine>}
-
-        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'flex-end' }}>
-          <textarea
-            ref={textareaRef}
-            className="field"
-            rows={1}
-            maxLength={BODY_LIMIT}
-            value={draft}
-            onChange={event => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="Write a message"
-            aria-label="Write a message"
-            style={{ resize: 'none', maxHeight: COMPOSER_MAX_HEIGHT, overflowY: 'auto', padding: '.6rem .75rem' }}
-          />
-          <button
-            onClick={() => void send()}
-            disabled={!canSend}
-            style={{
-              ...BTN,
-              background: canSend ? ACCENT : 'var(--border)',
-              border: 'none',
-              color: canSend ? '#fff' : 'var(--text-3)',
-              padding: '.7rem 1.1rem',
-              cursor: canSend ? 'pointer' : 'default',
-              flexShrink: 0,
-              minHeight: '2.6rem',
-            }}
-          >
-            {sending ? 'Sending…' : 'Send'}
-          </button>
         </div>
+      ) : (
+        <div
+          style={{
+            borderTop: '1px solid var(--surface)',
+            padding: '.75rem 1rem',
+            paddingBottom: isMobile ? 'calc(.75rem + env(safe-area-inset-bottom))' : '.75rem',
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '.5rem',
+            background: 'var(--bg)',
+          }}
+        >
+          {sendError && <ErrorLine>{sendError}</ErrorLine>}
 
-        {draft.length > COUNTER_FROM && (
-          <p style={{ color: remaining <= 0 ? CRIMSON : 'var(--text-4)', fontSize: '.65rem' }}>
-            {remaining <= 0 ? 'That is the limit for one message.' : `${remaining} characters left.`}
-          </p>
-        )}
-        {!isMobile && (
-          <p style={{ color: 'var(--text-4)', fontSize: '.62rem' }}>Enter sends. Shift and Enter make a new line.</p>
-        )}
-      </div>
+          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'flex-end' }}>
+            <textarea
+              ref={textareaRef}
+              className="field"
+              rows={1}
+              maxLength={BODY_LIMIT}
+              value={draft}
+              onChange={event => setDraft(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Write a message"
+              aria-label="Write a message"
+              style={{ resize: 'none', maxHeight: COMPOSER_MAX_HEIGHT, overflowY: 'auto', padding: '.6rem .75rem' }}
+            />
+            <button
+              onClick={() => void send()}
+              disabled={!canSend}
+              style={{
+                ...BTN,
+                background: canSend ? ACCENT : 'var(--border)',
+                border: 'none',
+                color: canSend ? '#fff' : 'var(--text-3)',
+                padding: '.7rem 1.1rem',
+                cursor: canSend ? 'pointer' : 'default',
+                flexShrink: 0,
+                minHeight: '2.6rem',
+              }}
+            >
+              {sending ? 'Sending…' : 'Send'}
+            </button>
+          </div>
+
+          {draft.length > COUNTER_FROM && (
+            <p style={{ color: remaining <= 0 ? CRIMSON : 'var(--text-4)', fontSize: '.65rem' }}>
+              {remaining <= 0 ? 'That is the limit for one message.' : `${remaining} characters left.`}
+            </p>
+          )}
+          {!isMobile && (
+            <p style={{ color: 'var(--text-4)', fontSize: '.62rem' }}>Enter sends. Shift and Enter make a new line.</p>
+          )}
+        </div>
+      )}
 
       {manageOpen && (
         <ChannelModal

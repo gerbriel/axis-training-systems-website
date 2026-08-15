@@ -12,38 +12,40 @@ import CRMPanel from './admin/CRMPanel'
 import BlogWorkspace from './admin/BlogWorkspace'
 import MeetsPanel from './admin/MeetsPanel'
 import BookingsPanel from './admin/BookingsPanel'
-import AnalyticsPanel from './admin/AnalyticsPanel'
 import TestimonialsPanel from './admin/TestimonialsPanel'
 import ApprovalsPanel from './admin/ApprovalsPanel'
 import InvitationsPanel from './admin/InvitationsPanel'
-import NewsletterPanel from './admin/NewsletterPanel'
-import MessagingWorkspace from '../components/messaging/MessagingWorkspace'
+import MessagesHub from './admin/MessagesHub'      // hosts Inbox / Newsletter
 // ── Wave-1 verticals ──
 import CalendarPanel from './admin/CalendarPanel'
 import TimeClockPanel from './admin/TimeClockPanel'
 import FormsPanel from './admin/FormsPanel'
 import CatalogPanel from './admin/CatalogPanel'   // hosts Products / Categories / Inventory
 import SalesPanel from './admin/SalesPanel'        // hosts Sales / Orders / Expenses
-import InsightsPanel from './admin/InsightsPanel'  // hosts Reports / Custom Reports
-import MarketingPanel from './admin/MarketingPanel'// hosts Announcements / Newsletter / Analytics
+import InsightsPanel from './admin/InsightsPanel'  // hosts Reports / Analytics / Custom Reports / Marketing / Announcements
 import SettingsPanel from './admin/SettingsPanel'  // hosts General + Users + the settings sub-tabs
 import AvailabilityManager from './coach-admin/AvailabilityManager'
+import CoachProfilesManager from './admin/CoachProfilesManager'
 import { COACHES } from '../data/coaches'
 import { useRequireRole } from '../lib/useGuard'
 import { useUnreadCount } from '../lib/useUnreadCount'
 
+// Marketing, Analytics and Newsletter are no longer tabs of their own: the
+// first two are Insights sub-tabs and the newsletter sits beside the inbox
+// under Messages. An old ?tab=marketing bookmark is not a valid tab any more,
+// so useUrlTab drops it back to Clients rather than showing an empty shell.
 type Tab =
   | 'calendar' | 'crm' | 'bookings' | 'messages' | 'timeclock' | 'forms'
   | 'approvals' | 'blog' | 'meets' | 'testimonials'
   | 'catalog' | 'sales'
-  | 'insights' | 'marketing' | 'analytics' | 'newsletter'
+  | 'insights'
   | 'invitations' | 'availability' | 'settings'
 
 const TABS: readonly Tab[] = [
   'calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms',
   'approvals', 'blog', 'meets', 'testimonials',
   'catalog', 'sales',
-  'insights', 'marketing', 'analytics', 'newsletter',
+  'insights',
   'invitations', 'availability', 'settings',
 ]
 
@@ -53,21 +55,23 @@ const TITLES: Record<Tab, string> = {
   approvals: 'Waiting on you', blog: 'Blog',
   meets: 'Meet Listings', testimonials: 'Testimonials',
   catalog: 'Catalog', sales: 'Sales',
-  insights: 'Insights', marketing: 'Marketing', analytics: 'Analytics', newsletter: 'Newsletter',
+  insights: 'Insights',
   invitations: 'Invitations', availability: 'Set Availability', settings: 'Settings',
 }
 
 // The sidebar groups mirror the reference studio's information architecture:
 // the day's work up top, then content to review, the merch store, the
-// grow/reporting surfaces, and setup last. Sub-tabbed areas (Catalog, Sales,
-// Insights, Marketing, Settings) are ONE entry each — the panel behind it hosts
-// its own sub-navigation, so Users/Permissions live inside Settings and
-// Categories/Inventory inside Catalog rather than crowding the rail.
+// grow/reporting surfaces, and setup last. Sub-tabbed areas (Messages, Catalog,
+// Sales, Insights, Settings) are ONE entry each — the panel behind it hosts its
+// own sub-navigation, so Users/Permissions live inside Settings and
+// Categories/Inventory inside Catalog rather than crowding the rail. Grow is a
+// single entry for the same reason: every reporting surface is an Insights
+// sub-tab now.
 const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'Business', tabs: ['calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms'] },
   { label: 'Content',  tabs: ['approvals', 'blog', 'meets', 'testimonials'] },
   { label: 'Store',    tabs: ['catalog', 'sales'] },
-  { label: 'Grow',     tabs: ['insights', 'marketing', 'analytics', 'newsletter'] },
+  { label: 'Grow',     tabs: ['insights'] },
   { label: 'Setup',    tabs: ['invitations', 'availability', 'settings'] },
 ]
 
@@ -243,11 +247,9 @@ export default function AdminPortal() {
           {tab === 'calendar'     && <CalendarPanel isDemo={isDemo} />}
           {tab === 'crm'          && <CRMPanel isDemo={isDemo} />}
           {tab === 'bookings'     && <BookingsPanel isDemo={isDemo} />}
-          {tab === 'messages'     && <MessagingWorkspace isDemo={isDemo} />}
+          {tab === 'messages'     && <MessagesHub isDemo={isDemo} />}
           {tab === 'timeclock'    && <TimeClockPanel isDemo={isDemo} />}
           {tab === 'forms'        && <FormsPanel isDemo={isDemo} />}
-          {tab === 'analytics'    && <AnalyticsPanel isDemo={isDemo} />}
-          {tab === 'newsletter'   && <NewsletterPanel isDemo={isDemo} />}
           {tab === 'approvals'    && <ApprovalsPanel isDemo={isDemo} />}
           {tab === 'invitations'  && <InvitationsPanel isDemo={isDemo} />}
           {tab === 'blog'         && <BlogWorkspace isDemo={isDemo} />}
@@ -256,7 +258,6 @@ export default function AdminPortal() {
           {tab === 'catalog'      && <CatalogPanel isDemo={isDemo} />}
           {tab === 'sales'        && <SalesPanel isDemo={isDemo} />}
           {tab === 'insights'     && <InsightsPanel isDemo={isDemo} />}
-          {tab === 'marketing'    && <MarketingPanel isDemo={isDemo} />}
           {tab === 'settings'     && <SettingsPanel isDemo={isDemo} />}
           {tab === 'availability' && (
             <div>
@@ -286,6 +287,9 @@ export default function AdminPortal() {
                 coach={COACHES.find(c => c.slug === availCoach)!}
                 isDemo={isDemo}
               />
+              {/* Who a coach is on the public site, below when they work.
+                  CoachProfilesManager pads itself too, so it mounts bare. */}
+              <CoachProfilesManager isDemo={isDemo} />
             </div>
           )}
         </main>

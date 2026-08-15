@@ -85,6 +85,7 @@ function AssignedCoaches({ athlete, staff, isDemo }: { athlete: Profile; staff: 
   useEffect(() => {
     let live = true
     setLoading(true)
+    setError(null)
     void fetchCoachAssignments(isDemo).then(rows => {
       if (!live) return
       if (rows === null) { setOutage(true); setAssigned([]) }

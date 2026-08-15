@@ -1,9 +1,67 @@
+import { useState, useEffect } from 'react'
 import { COACHES } from '../data/coaches'
+import { fetchVisibleCoachProfiles, toCoachShape } from '../lib/coachProfiles'
 import { coachHref, applyHref, bookCoachHref } from '../utils/nav'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
+/**
+ * Only what a card actually draws. Both sources map into it, so the static
+ * roster and the database rows render through exactly the same markup.
+ */
+interface RosterEntry {
+  slug: string
+  name: string
+  role?: string | null
+  photo?: string | null
+  ctaBg?: string | null
+  /** Booking runs on coach_routing and the static roster. A coach that exists
+   *  only as a database profile has nowhere for those CTAs to land yet. */
+  bookable: boolean
+}
+
+const STATIC_SLUGS = new Set<string>(COACHES.map(c => c.slug))
+
+/**
+ * The roster the section falls back to.
+ *
+ * The team is the reason most people are on this page, so a blank grid is the
+ * one outcome worth engineering against. The static array paints first and
+ * stays put through a loading state, an outage, or a table that answers with
+ * nothing at all. Database rows replace it only once they actually arrive.
+ */
+const STATIC_ROSTER: RosterEntry[] = COACHES.map(c => ({
+  slug: c.slug, name: c.name, role: c.role, photo: c.photo, ctaBg: c.ctaBg, bookable: true,
+}))
+
 export default function Coaches() {
+  const [roster, setRoster] = useState<RosterEntry[]>(STATIC_ROSTER)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchVisibleCoachProfiles()
+      .then(rows => {
+        // null is an outage: keep the static roster rather than blank the
+        // section. An answered [] is different — 032 seeds the table, so an
+        // empty answer means the studio hid everyone on purpose, and painting
+        // the static five would silently undo that. The fetch already orders
+        // by sort_order.
+        if (cancelled || !rows) return
+        setRoster(rows.map(r => {
+          const c = toCoachShape(r)
+          return {
+            slug: c.slug, name: c.name, role: c.role, photo: c.photo, ctaBg: c.ctaBg,
+            bookable: STATIC_SLUGS.has(c.slug),
+          }
+        }))
+      })
+      .catch(() => { /* keep the static roster */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // Every coach hidden on purpose: no header over an empty grid.
+  if (roster.length === 0) return null
+
   return (
     <section id="coaches" style={{ background: 'var(--bg)', padding: '8rem 1.5rem' }}>
       <div className="max-w-7xl mx-auto">
@@ -22,7 +80,7 @@ export default function Coaches() {
 
         {/* Full-bleed photo card grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          {COACHES.map(c => {
+          {roster.map(c => {
             const photo = c.photo || c.ctaBg
             const [firstName, ...rest] = c.name.split(' ')
             const lastName = rest.join(' ')
@@ -106,33 +164,37 @@ export default function Coaches() {
                     >
                       View Profile
                     </a>
-                    <a
-                      href={bookCoachHref(c.slug)}
-                      style={{
-                        display: 'block', textAlign: 'center',
-                        background: 'transparent',
-                        border: '1px solid rgba(39,44,132,.3)',
-                        color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
-                        padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(39,44,132,.1)'; e.currentTarget.style.borderColor = '#272C84' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(39,44,132,.3)' }}
-                    >
-                      Book a Call
-                    </a>
-                    <a
-                      href={applyHref(c.slug)}
-                      style={{
-                        display: 'block', textAlign: 'center',
-                        background: '#272C84', border: 'none',
-                        color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
-                        padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
-                    >
-                      Choose This Coach
-                    </a>
+                    {c.bookable && (
+                      <a
+                        href={bookCoachHref(c.slug)}
+                        style={{
+                          display: 'block', textAlign: 'center',
+                          background: 'transparent',
+                          border: '1px solid rgba(39,44,132,.3)',
+                          color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                          padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s, border-color .15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(39,44,132,.1)'; e.currentTarget.style.borderColor = '#272C84' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(39,44,132,.3)' }}
+                      >
+                        Book a Call
+                      </a>
+                    )}
+                    {c.bookable && (
+                      <a
+                        href={applyHref(c.slug)}
+                        style={{
+                          display: 'block', textAlign: 'center',
+                          background: '#272C84', border: 'none',
+                          color: '#ffffff', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase',
+                          padding: '.5rem', borderRadius: '.2rem', textDecoration: 'none', transition: 'background .15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#1a1f6b' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
+                      >
+                        Choose This Coach
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

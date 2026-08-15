@@ -1,18 +1,29 @@
-import { useEffect, useState } from 'react'
-import { fetchActiveAnnouncement, type Announcement, type AnnouncementKind } from '../lib/marketing'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchLiveAnnouncements, type Announcement, type AnnouncementKind } from '../lib/marketing'
+import {
+  ANONYMOUS_VIEWER, readFirstSeen, recordFirstSeen, selectAnnouncement,
+  type AnnouncementViewer,
+} from '../lib/announceTargeting'
+import { useAuth } from '../context/AuthContext'
 import { safeUrl } from '../utils/sanitize'
 
 /**
  * The site-wide announcement banner.
  *
- * Mount it near the top of a public page (home, booking). It fetches the one
- * currently-live announcement, renders it, and remembers a dismissal in
- * localStorage keyed BY THE ANNOUNCEMENT ID — so dismissing one banner does not
- * hide the next one the studio publishes.
+ * Mount it near the top of a public page (home, booking). It fetches every
+ * currently-live announcement, picks the one this visitor is targeted by, and
+ * remembers a dismissal in localStorage keyed BY THE ANNOUNCEMENT ID — so
+ * dismissing one banner does not hide the next one the studio publishes.
+ *
+ * Targeting is decided here, in the browser, which makes it PRESENTATION and
+ * not confidentiality: every live row is readable by anyone. It only chooses
+ * which of several banners a given visitor is shown.
  *
  * Renders nothing until it has an announcement to show, and nothing at all when
- * there is none, when the visitor has dismissed it, or when the fetch fails.
- * A banner is never allowed to be the reason a page does not paint.
+ * there is none, when nothing matches, when the visitor has dismissed it, or
+ * when the fetch fails. A banner is never allowed to be the reason a page does
+ * not paint — which is also why a session that is still loading counts as
+ * signed out rather than as something to wait for.
  */
 
 const DISMISS_PREFIX = 'axis_announcement_dismissed_'
@@ -125,23 +136,80 @@ export function AnnouncementView({
   )
 }
 
+// ── Dismissals ───────────────────────────────────────────────────────────────
+
+/**
+ * Every announcement this browser has dismissed. Read once per mount from the
+ * per-id keys the banner has always written, so an older dismissal keeps
+ * working unchanged. Storage that throws (private mode) reads as "none".
+ */
+function readDismissedIds(): string[] {
+  const ids: string[] = []
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith(DISMISS_PREFIX) && localStorage.getItem(key) === '1') {
+        ids.push(key.slice(DISMISS_PREFIX.length))
+      }
+    }
+  } catch { /* ignore */ }
+  return ids
+}
+
 // ── The mountable, self-fetching banner ──────────────────────────────────────
 
-export default function AnnouncementBanner({ isDemo = false }: { isDemo?: boolean }) {
-  const [announcement, setAnnouncement] = useState<Announcement | null>(null)
+export default function AnnouncementBanner({
+  isDemo = false,
+  offsetTop,
+}: {
+  isDemo?: boolean
+  /**
+   * Space to leave above the banner, for a page whose header is fixed and would
+   * otherwise sit on top of it (the marketing navbar). Applied only when there
+   * is something to show, so an empty banner never shifts the page.
+   */
+  offsetTop?: string
+}) {
+  const { profile, session, loading } = useAuth()
+
+  const [items, setItems] = useState<Announcement[] | null>(null)
+  // Dismissing closes the banner for this page view rather than promoting the
+  // next candidate. The id is remembered, so the next page load moves on to it.
   const [dismissed, setDismissed] = useState(false)
+  // Read before recording, so the first visit is not immediately "returning".
+  const [firstSeenAt] = useState<string | null>(() => readFirstSeen())
+  const [dismissedIds] = useState<string[]>(() => readDismissedIds())
+
+  useEffect(() => { recordFirstSeen(new Date()) }, [])
 
   useEffect(() => {
     let live = true
-    fetchActiveAnnouncement(isDemo).then(a => {
-      if (!live) return
-      setAnnouncement(a)
-      if (a) {
-        try { setDismissed(localStorage.getItem(DISMISS_PREFIX + a.id) === '1') } catch { /* ignore */ }
-      }
-    })
+    fetchLiveAnnouncements(isDemo)
+      .then(rows => { if (live) setItems(rows ?? []) })
+      .catch(() => { if (live) setItems([]) })
     return () => { live = false }
   }, [isDemo])
+
+  // While the session is still settling the visitor counts as signed out. The
+  // pick re-runs on its own once the profile lands.
+  const viewer: AnnouncementViewer = useMemo(() => {
+    if (loading) return { ...ANONYMOUS_VIEWER, firstSeenAt }
+    return {
+      userId: profile?.id ?? session?.user.id ?? null,
+      role: profile?.role ?? null,
+      accountCreatedAt: profile?.created_at ?? null,
+      firstSeenAt,
+    }
+  }, [loading, profile, session, firstSeenAt])
+
+  const announcement = useMemo(() => {
+    if (!items || items.length === 0) return null
+    try {
+      return selectAnnouncement(items, viewer, new Date(), dismissedIds)
+    } catch {
+      return null
+    }
+  }, [items, viewer, dismissedIds])
 
   if (!announcement || dismissed) return null
 
@@ -150,5 +218,6 @@ export default function AnnouncementBanner({ isDemo = false }: { isDemo?: boolea
     try { localStorage.setItem(DISMISS_PREFIX + announcement.id, '1') } catch { /* storage full / private mode */ }
   }
 
-  return <AnnouncementView announcement={announcement} onDismiss={dismiss} />
+  const view = <AnnouncementView announcement={announcement} onDismiss={dismiss} />
+  return offsetTop ? <div style={{ paddingTop: offsetTop }}>{view}</div> : view
 }

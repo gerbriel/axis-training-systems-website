@@ -16,6 +16,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 import { sanitize, sanitizeText, safeUrl } from '../utils/sanitize'
 import { fetchNewsletterLeads } from './newsletterApi'
+import { parseAudience, DEFAULT_NEW_ACCOUNT_DAYS, type AudienceTarget } from './announceTargeting'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,14 @@ export interface Announcement {
   endsAt: string | null
   ctaLabel: string | null
   ctaUrl: string | null
+  /**
+   * Who the banner renders for (031). Presentation only: every live row is
+   * readable by everybody, so this decides display and never confidentiality.
+   * Always present, defaulting to `{ type: 'all' }`.
+   */
+  targetAudience: AudienceTarget
+  /** Highest wins when several rows are live at once. Ties break on newest. */
+  priority: number
   createdAt: string
   updatedAt: string
 }
@@ -45,6 +54,10 @@ export interface AnnouncementInput {
   endsAt?: string | null
   ctaLabel?: string | null
   ctaUrl?: string | null
+  /** Omitted means everybody. Normalised on write, see cleanAudience. */
+  targetAudience?: AudienceTarget | null
+  /** Omitted means 0. */
+  priority?: number | null
 }
 
 export type BroadcastAudience = 'newsletter' | 'all'
@@ -73,8 +86,13 @@ export interface MarketingSummary {
 // ── Columns / mapping ────────────────────────────────────────────────────────
 
 // created_by is intentionally absent — 028 does not grant it on select.
+// target_audience and priority arrive with 031, which re-issues that same
+// column grant; without the migration this select fails and the banner is
+// simply absent (fetchLiveAnnouncements answers null rather than throwing).
+// One string literal, not a concatenation: supabase-js infers the row type from
+// the literal text of the select list, and an expression makes it give up.
 const ANN_COLS =
-  'id, title, body, kind, is_active, starts_at, ends_at, cta_label, cta_url, created_at, updated_at'
+  'id, title, body, kind, is_active, starts_at, ends_at, cta_label, cta_url, target_audience, priority, created_at, updated_at'
 
 function toAnnouncement(row: Record<string, unknown>): Announcement {
   return {
@@ -87,6 +105,10 @@ function toAnnouncement(row: Record<string, unknown>): Announcement {
     endsAt:    row.ends_at   == null ? null : String(row.ends_at),
     ctaLabel:  row.cta_label == null ? null : String(row.cta_label),
     ctaUrl:    row.cta_url   == null ? null : String(row.cta_url),
+    // An unparseable or absent audience reads as "everybody", the same
+    // fail-open announceTargeting applies at render time.
+    targetAudience: parseAudience(row.target_audience) ?? { type: 'all' },
+    priority:       cleanPriority(row.priority),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at ?? row.created_at),
   }
@@ -120,6 +142,7 @@ const DEMO_ANNOUNCEMENTS: Announcement[] = [
     kind: 'promo', isActive: true,
     startsAt: iso(-2 * DAY), endsAt: iso(14 * DAY),
     ctaLabel: 'See the programs', ctaUrl: '/book',
+    targetAudience: { type: 'all' }, priority: 10,
     createdAt: iso(-2 * DAY), updatedAt: iso(-2 * DAY),
   },
   {
@@ -128,6 +151,8 @@ const DEMO_ANNOUNCEMENTS: Announcement[] = [
     kind: 'alert', isActive: true,
     startsAt: iso(20 * DAY), endsAt: iso(22 * DAY),
     ctaLabel: null, ctaUrl: null,
+    // Signed-in only, so the demo panel has an audience chip to render.
+    targetAudience: { type: 'authenticated' }, priority: 0,
     createdAt: iso(-5 * DAY), updatedAt: iso(-5 * DAY),
   },
   {
@@ -136,6 +161,7 @@ const DEMO_ANNOUNCEMENTS: Announcement[] = [
     kind: 'info', isActive: false,
     startsAt: iso(-40 * DAY), endsAt: iso(-20 * DAY),
     ctaLabel: 'Read it', ctaUrl: '/guides',
+    targetAudience: { type: 'new_accounts', days: 14 }, priority: 0,
     createdAt: iso(-40 * DAY), updatedAt: iso(-20 * DAY),
   },
 ]
@@ -208,6 +234,8 @@ function cleanAnnouncement(input: AnnouncementInput): Record<string, unknown> {
     ends_at:    endsAt,
     cta_label:  ctaUrl ? ctaLabel : null,   // a label with no link is dropped
     cta_url:    ctaUrl,
+    target_audience: cleanAudience(input.targetAudience),
+    priority:        cleanPriority(input.priority),
   }
 }
 
@@ -217,32 +245,99 @@ function normalizeTs(v: string | null | undefined): string | null {
   return Number.isFinite(t) ? new Date(t).toISOString() : null
 }
 
+/**
+ * The audience, in the shape 031's `announcements_audience_shape` accepts.
+ * Anything unrecognised becomes `{ type: 'all' }` rather than a 23514 the
+ * panel would have to explain: a bad audience is a display bug, not a reason
+ * to refuse somebody's announcement.
+ *
+ * `days` is always written for new_accounts because the check requires it, and
+ * `roles` only where it means something, so no row carries a key the reader
+ * would ignore.
+ */
+function cleanAudience(value: AudienceTarget | null | undefined): Record<string, unknown> {
+  const target = parseAudience(value) ?? { type: 'all' as const }
+  const row: Record<string, unknown> = { type: target.type }
+
+  if ((target.type === 'role' || target.type === 'new_accounts')
+      && target.roles && target.roles.length > 0) {
+    row.roles = target.roles
+  }
+  if (target.type === 'new_accounts') {
+    row.days = target.days ?? DEFAULT_NEW_ACCOUNT_DAYS
+  }
+  return row
+}
+
+/** A whole number, well inside int range so a typo cannot 22003 the insert. */
+function cleanPriority(value: unknown): number {
+  const n = Number(value ?? 0)
+  if (!Number.isFinite(n)) return 0
+  return Math.max(-9999, Math.min(9999, Math.trunc(n)))
+}
+
 // ── Announcements: public read ───────────────────────────────────────────────
 
+/** At most this many live rows reach the client. A banner shows one. */
+const LIVE_LIMIT = 20
+
 /**
- * The single announcement to render in the site banner right now, or null.
- * Public — never throws, so a banner failure never blocks a page.
+ * Every currently-live announcement, best first: priority descending, then
+ * newest. Null means the read failed, which the banner treats exactly like an
+ * empty list.
+ *
+ * Public, and it never throws, so a banner failure never blocks a page.
+ *
+ * The schedule window is re-checked here rather than in the query. RLS already
+ * hides out-of-window rows from an ordinary visitor, but the admin policy does
+ * not, so a signed-in admin would otherwise see tomorrow's banner today. The
+ * fetch limit is generous for the same reason: it is applied before the window
+ * filter, so it has to leave room for the scheduled rows it may pull back.
  */
-export async function fetchActiveAnnouncement(isDemo = false): Promise<Announcement | null> {
+export async function fetchLiveAnnouncements(isDemo = false): Promise<Announcement[] | null> {
   if (useDemo(isDemo)) {
-    return annStore().filter(a => isLive(a)).sort(byCreatedDesc)[0] ?? null
+    return annStore().filter(a => isLive(a)).sort(byPriorityDesc).slice(0, LIVE_LIMIT)
   }
   try {
     const { data, error } = await supabase
       .from('announcements')
       .select(ANN_COLS)
       .eq('is_active', true)
+      .order('priority', { ascending: false })
       .order('created_at', { ascending: false })
+      .limit(LIVE_LIMIT * 3)
     if (error || !data) return null
-    const live = (data as Record<string, unknown>[]).map(toAnnouncement).filter(a => isLive(a))
-    return live[0] ?? null
+    return (data as Record<string, unknown>[])
+      .map(toAnnouncement)
+      .filter(a => isLive(a))
+      .sort(byPriorityDesc)
+      .slice(0, LIVE_LIMIT)
   } catch {
     return null
   }
 }
 
+/**
+ * The single announcement to render in the site banner right now, or null.
+ * Public — never throws, so a banner failure never blocks a page.
+ *
+ * Kept for callers that do not do their own targeting: it is the top of the
+ * live list, so it now respects priority. A caller that knows who the viewer
+ * is should read fetchLiveAnnouncements and pass the list to
+ * selectAnnouncement in announceTargeting.ts instead.
+ */
+export async function fetchActiveAnnouncement(isDemo = false): Promise<Announcement | null> {
+  const live = await fetchLiveAnnouncements(isDemo)
+  return live?.[0] ?? null
+}
+
 function byCreatedDesc(a: Announcement, b: Announcement): number {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+}
+
+function byPriorityDesc(a: Announcement, b: Announcement): number {
+  if (a.priority !== b.priority) return b.priority - a.priority
+  return byCreatedDesc(a, b)
 }
 
 // ── Announcements: admin CRUD ────────────────────────────────────────────────

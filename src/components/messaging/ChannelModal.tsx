@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MessagingContact } from '../../types/messaging'
 import { createChannel, renameChannel, updateChannelMembers } from '../../lib/messagingApi'
 import { ErrorLine, ModalShell, OutageBlock, SolidButton } from './MessagingChrome'
@@ -54,9 +54,44 @@ export default function ChannelModal({
 }: Props) {
   const [title, setTitle] = useState(initialTitle)
   const [query, setQuery] = useState('')
+
+  // Same concurrency rule as the membership baseline below: rename only when
+  // THIS person edited the field. Saving members with an untouched title used
+  // to compare against the mount-time prop and could quietly write a stale
+  // name over a rename someone else made while the modal was open. While the
+  // field is untouched it also tracks a concurrent rename, so what the person
+  // eventually edits is the current name, not a ghost.
+  const titleBaseline = useRef(initialTitle)
+
+  useEffect(() => {
+    if (mode !== 'manage') return
+    if (initialTitle === titleBaseline.current) return
+    setTitle(prev => (prev === titleBaseline.current ? initialTitle : prev))
+    titleBaseline.current = initialTitle
+  }, [mode, initialTitle])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(() => new Set(currentMembers.map(m => m.id)))
+
+  // The membership snapshot the save diff is computed against. `currentMembers`
+  // is a live prop (realtime refreshes it while the modal is open), so diffing
+  // against it would turn a concurrent add by another admin into a silent
+  // removal, and a concurrent leave into a silent re-add. The baseline only
+  // grows via the effect below, which also checks the newcomer so the list
+  // keeps reflecting reality.
+  const baseline = useRef(new Set(currentMembers.map(m => m.id)))
+
+  useEffect(() => {
+    const known = baseline.current
+    const incoming = currentMembers.filter(person => !known.has(person.id))
+    if (incoming.length === 0) return
+    for (const person of incoming) known.add(person.id)
+    setSelected(prev => {
+      const next = new Set(prev)
+      for (const person of incoming) next.add(person.id)
+      return next
+    })
+  }, [currentMembers])
 
   const locked = useMemo(() => new Set(lockedIds), [lockedIds])
 
@@ -106,7 +141,7 @@ export default function ChannelModal({
     }
 
     if (!conversationId) return
-    const current = new Set(currentMembers.map(person => person.id))
+    const current = baseline.current
     const add = [...selected].filter(id => !current.has(id))
     const remove = [...current].filter(id => !selected.has(id))
 
@@ -122,7 +157,7 @@ export default function ChannelModal({
       }
     }
 
-    if (clean !== initialTitle.trim()) {
+    if (clean !== titleBaseline.current.trim()) {
       const result = await renameChannel(conversationId, clean, isDemo)
       if (!result.ok) {
         setSaving(false)

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getCoachBySlug } from '../data/coaches'
 import { href, applyHref, adminHref, bookCoachHref } from '../utils/nav'
 import { supabaseConfigured } from '../lib/supabase'
 import { fetchCoachPageTestimonials } from '../lib/testimonialsApi'
+import { fetchVisibleCoachProfiles } from '../lib/coachProfiles'
+import type { CoachProfileRow } from '../lib/coachProfiles'
 import { SEED_TESTIMONIALS } from '../data/testimonials'
 import type { Testimonial } from '../data/testimonials'
 
@@ -10,11 +12,87 @@ const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 interface Props { slug: string }
 
+/** What this page draws, once the database row and the static entry are merged. */
+interface CoachView {
+  slug: string
+  name: string
+  firstName: string
+  role: string
+  tagline: string
+  bio: string[]
+  coachingPhilosophy: string
+  specialties: string[]
+  services: { name: string; price: string; description: string }[]
+  stats: { label: string; value: string }[]
+  photo?: string | null
+  ctaBg?: string | null
+}
+
 export default function CoachPage({ slug }: Props) {
-  const coach = getCoachBySlug(slug)
+  const staticCoach = getCoachBySlug(slug)
+
+  /**
+   * The admin panel owns this copy now, and the static entry is the fallback.
+   *
+   * The merge is FIELD BY FIELD on purpose. A profile row that leaves the
+   * tagline empty keeps the written one rather than opening a gap, so an admin
+   * editing one line never blanks the rest of the page.
+   *
+   * Hidden means hidden. 032 seeds every static coach into coach_profiles, so
+   * when the visible fetch ANSWERS and this slug is not in the answer, the
+   * studio hid this coach on purpose and the page returns the not-found path
+   * rather than quietly rendering the static copy. Only an outage (null) keeps
+   * the static fallback: an unreachable table is not "no such coach".
+   */
+  const [row, setRow] = useState<CoachProfileRow | null>(null)
+  const [profileChecked, setProfileChecked] = useState(false)
+  const [hiddenByAnswer, setHiddenByAnswer] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchVisibleCoachProfiles()
+      .then(rows => {
+        if (cancelled) return
+        if (rows) {
+          const found = rows.find(r => r.slug === slug) ?? null
+          setRow(found)
+          setHiddenByAnswer(!found)
+        }
+        setProfileChecked(true)
+      })
+      .catch(() => { if (!cancelled) setProfileChecked(true) })
+    return () => { cancelled = true }
+  }, [slug])
+
+  const coach = useMemo<CoachView | null>(() => {
+    if (hiddenByAnswer) return null
+    if (!staticCoach && !row) return null
+    const name = row?.name || staticCoach?.name || ''
+    const dbBio = row?.bio ?? []
+    const dbSpecialties = row?.specialties ?? []
+    const dbServices = row?.services ?? []
+    const dbStats = row?.stats ?? []
+    return {
+      slug,
+      name,
+      firstName: row?.first_name || staticCoach?.firstName || name.split(' ')[0] || '',
+      role: row?.role_title || staticCoach?.role || '',
+      tagline: row?.tagline || staticCoach?.tagline || '',
+      bio: dbBio.length ? dbBio : staticCoach?.bio ?? [],
+      coachingPhilosophy: row?.philosophy || staticCoach?.coachingPhilosophy || '',
+      specialties: dbSpecialties.length ? dbSpecialties : staticCoach?.specialties ?? [],
+      services: dbServices.length ? dbServices : staticCoach?.services ?? [],
+      stats: dbStats.length ? dbStats : staticCoach?.stats ?? [],
+      photo: row?.photo_url || staticCoach?.photo,
+      ctaBg: row?.cta_bg_url || staticCoach?.ctaBg,
+    }
+  }, [slug, row, staticCoach, hiddenByAnswer])
+
+  const hasCoach = coach !== null
 
   // Coaches manage these from their portal now. Seeded from the static data so the
-  // first paint is never empty while the fetch is in flight.
+  // first paint is never empty while the fetch is in flight. Testimonials never
+  // come from the profile row: they have their own table and their own approval.
   const [testimonials, setTestimonials] = useState<Testimonial[]>(() =>
     SEED_TESTIMONIALS
       .filter(t => t.coachSlug === slug && t.showOnCoach)
@@ -22,15 +100,25 @@ export default function CoachPage({ slug }: Props) {
   )
 
   useEffect(() => {
-    if (!coach) return
+    if (!hasCoach) return
     let cancelled = false
     fetchCoachPageTestimonials(slug, !supabaseConfigured)
       .then(rows => { if (!cancelled) setTestimonials(rows) })
       .catch(() => { /* keep the static seed */ })
     return () => { cancelled = true }
-  }, [slug, coach])
+  }, [slug, hasCoach])
 
   if (!coach) {
+    // A profile created in the admin panel has no static entry, so "not found"
+    // is only true once the lookup has actually come back. Answering 404 first
+    // and content second would flash the wrong page at a real coach.
+    if (!profileChecked) {
+      return (
+        <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'var(--text-4)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>Loading</p>
+        </div>
+      )
+    }
     return (
       <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
         <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase' }}>404</p>
@@ -84,7 +172,7 @@ export default function CoachPage({ slug }: Props) {
                 />
               ) : (
                 <div style={{ width: 120, height: 120, borderRadius: '50%', background: 'var(--surface)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '3rem' }}>{coach.firstName[0]}</span>
+                  <span style={{ color: 'var(--text)', fontWeight: 900, fontSize: '3rem' }}>{coach.firstName.charAt(0)}</span>
                 </div>
               )}
             </div>
@@ -119,6 +207,7 @@ export default function CoachPage({ slug }: Props) {
       </section>
 
       {/* ── Stats bar ────────────────────────────────────────────────────── */}
+      {coach.stats.length > 0 && (
       <section style={{ borderBottom: '1px solid var(--surface)', background: 'var(--bg)' }}>
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 2rem', display: 'flex', flexWrap: 'wrap' }}>
           {coach.stats.map((s, i) => (
@@ -129,6 +218,7 @@ export default function CoachPage({ slug }: Props) {
           ))}
         </div>
       </section>
+      )}
 
       {/* ── Bio ──────────────────────────────────────────────────────────── */}
       <section style={{ padding: '5rem 2rem', borderBottom: '1px solid var(--surface)' }}>
@@ -162,6 +252,7 @@ export default function CoachPage({ slug }: Props) {
       </section>
 
       {/* ── Services ─────────────────────────────────────────────────────── */}
+      {coach.services.length > 0 && (
       <section style={{ padding: '5rem 2rem', background: 'var(--bg)', borderBottom: '1px solid var(--surface)' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.35em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Services</p>
@@ -189,6 +280,7 @@ export default function CoachPage({ slug }: Props) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── Testimonials ─────────────────────────────────────────────────── */}
       {testimonials.length > 0 && (

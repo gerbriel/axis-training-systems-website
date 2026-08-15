@@ -4,6 +4,10 @@ import {
   setAnnouncementActive, deleteAnnouncement, isLive,
   type Announcement, type AnnouncementInput, type AnnouncementKind,
 } from '../../lib/marketing'
+import {
+  DEFAULT_NEW_ACCOUNT_DAYS, MAX_NEW_ACCOUNT_DAYS, MIN_NEW_ACCOUNT_DAYS,
+  type AudienceTarget, type AudienceType, type ViewerRole,
+} from '../../lib/announceTargeting'
 import { usePermissions } from '../../lib/usePermissions'
 import { AnnouncementView } from '../../components/AnnouncementBanner'
 import DemoBanner from '../../components/dashboard/DemoBanner'
@@ -43,10 +47,77 @@ const KIND_OPTIONS: { value: AnnouncementKind; label: string }[] = [
   { value: 'alert', label: 'Alert' },
 ]
 
+// ── Audience ─────────────────────────────────────────────────────────────────
+//
+// Targeting is decided in the browser, so it shapes what a visitor is SHOWN and
+// nothing more. Every live announcement stays readable by anyone who asks the
+// API for it, which is why the form says so out loud.
+
+const AUDIENCE_OPTIONS: { value: AudienceType; label: string }[] = [
+  { value: 'all',                 label: 'Everyone' },
+  { value: 'anonymous',           label: 'Signed-out visitors' },
+  { value: 'authenticated',       label: 'Anyone signed in' },
+  { value: 'role',                label: 'Specific roles' },
+  { value: 'new_accounts',        label: 'New accounts' },
+  { value: 'returning',           label: 'Returning visitors' },
+  { value: 'returning_anonymous', label: 'Returning signed-out visitors' },
+]
+
+const ROLE_OPTIONS: { value: ViewerRole; label: string }[] = [
+  { value: 'athlete', label: 'Athletes' },
+  { value: 'coach',   label: 'Coaches' },
+  { value: 'admin',   label: 'Admins' },
+]
+
+const DEFAULT_TARGET: AudienceTarget = { type: 'all' }
+
+/** Roles are meaningful for these two types only; the rest ignore them. */
+function usesRoles(type: AudienceType): boolean {
+  return type === 'role' || type === 'new_accounts'
+}
+
+/** Switching type keeps what the new type can use and drops the rest. */
+function retarget(prev: AudienceTarget, type: AudienceType): AudienceTarget {
+  const next: AudienceTarget = { type }
+  if (usesRoles(type) && prev.roles && prev.roles.length > 0) next.roles = prev.roles
+  if (type === 'new_accounts') next.days = clampInt(prev.days, MIN_NEW_ACCOUNT_DAYS, MAX_NEW_ACCOUNT_DAYS, DEFAULT_NEW_ACCOUNT_DAYS)
+  return next
+}
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.trunc(n)))
+}
+
+function roleLabels(roles: ViewerRole[]): string {
+  return ROLE_OPTIONS.filter(o => roles.includes(o.value)).map(o => o.label).join(', ')
+}
+
+/** The one-line summary shown on a list row. */
+function audienceLabel(target: AudienceTarget | null | undefined): string {
+  const t = target ?? DEFAULT_TARGET
+  const roles = t.roles ?? []
+  switch (t.type) {
+    case 'anonymous':           return 'Signed-out visitors'
+    case 'authenticated':       return 'Anyone signed in'
+    case 'role':                return roles.length > 0 ? roleLabels(roles) : 'No roles picked'
+    case 'new_accounts':        return roles.length > 0
+      ? `New ${roleLabels(roles).toLowerCase()}, ${clampInt(t.days, MIN_NEW_ACCOUNT_DAYS, MAX_NEW_ACCOUNT_DAYS, DEFAULT_NEW_ACCOUNT_DAYS)} days`
+      : `New accounts, ${clampInt(t.days, MIN_NEW_ACCOUNT_DAYS, MAX_NEW_ACCOUNT_DAYS, DEFAULT_NEW_ACCOUNT_DAYS)} days`
+    case 'returning':           return 'Returning visitors'
+    case 'returning_anonymous': return 'Returning signed-out visitors'
+    default:                    return 'Everyone'
+  }
+}
+
 // ── Empty form ───────────────────────────────────────────────────────────────
 
 function blankForm(): AnnouncementInput {
-  return { title: '', body: '', kind: 'info', isActive: false, startsAt: null, endsAt: null, ctaLabel: '', ctaUrl: '' }
+  return {
+    title: '', body: '', kind: 'info', isActive: false, startsAt: null, endsAt: null,
+    ctaLabel: '', ctaUrl: '', targetAudience: { ...DEFAULT_TARGET }, priority: 0,
+  }
 }
 
 function toForm(a: Announcement): AnnouncementInput {
@@ -54,6 +125,8 @@ function toForm(a: Announcement): AnnouncementInput {
     title: a.title, body: a.body ?? '', kind: a.kind, isActive: a.isActive,
     startsAt: a.startsAt, endsAt: a.endsAt,
     ctaLabel: a.ctaLabel ?? '', ctaUrl: a.ctaUrl ?? '',
+    targetAudience: a.targetAudience ?? { ...DEFAULT_TARGET },
+    priority: a.priority ?? 0,
   }
 }
 
@@ -66,6 +139,8 @@ function previewAnnouncement(form: AnnouncementInput): Announcement {
     body: form.body || null, kind: form.kind, isActive: form.isActive,
     startsAt: form.startsAt ?? null, endsAt: form.endsAt ?? null,
     ctaLabel: form.ctaLabel || null, ctaUrl: form.ctaUrl || null,
+    targetAudience: form.targetAudience ?? { ...DEFAULT_TARGET },
+    priority: form.priority ?? 0,
     createdAt: now, updatedAt: now,
   }
 }
@@ -96,6 +171,27 @@ const ghostBtn: React.CSSProperties = {
   background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)',
   fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
   padding: '.5rem 1rem', borderRadius: '.25rem', cursor: 'pointer',
+}
+
+/** A role toggle. Pressed state is carried by aria-pressed, not by colour alone. */
+function pillBtn(on: boolean): React.CSSProperties {
+  return {
+    ...ghostBtn,
+    padding: '.35rem .8rem',
+    background: on ? 'rgba(39,44,132,.12)' : 'none',
+    borderColor: on ? 'rgba(39,44,132,.45)' : 'var(--border)',
+    color: on ? '#272C84' : 'var(--text-2)',
+  }
+}
+
+const hintStyle: React.CSSProperties = {
+  color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.4rem',
+}
+
+const chipStyle: React.CSSProperties = {
+  border: '1px solid var(--border)', color: 'var(--text-3)',
+  fontSize: '.58rem', fontWeight: 700, letterSpacing: '.06em',
+  padding: '.18rem .45rem', borderRadius: '.15rem', whiteSpace: 'nowrap',
 }
 
 // ── Panel ────────────────────────────────────────────────────────────────────
@@ -135,6 +231,22 @@ export default function AnnouncementsPanel({ isDemo = false }: { isDemo?: boolea
   const patch = (p: Partial<AnnouncementInput>) =>
     setEditing(e => (e ? { ...e, form: { ...e.form, ...p } } : e))
 
+  const patchTarget = (t: AudienceTarget) => patch({ targetAudience: t })
+
+  const setAudienceType = (type: AudienceType) =>
+    setEditing(e => (e
+      ? { ...e, form: { ...e.form, targetAudience: retarget(e.form.targetAudience ?? DEFAULT_TARGET, type) } }
+      : e))
+
+  const toggleRole = (role: ViewerRole) =>
+    setEditing(e => {
+      if (!e) return e
+      const t = e.form.targetAudience ?? DEFAULT_TARGET
+      const roles = t.roles ?? []
+      const next = roles.includes(role) ? roles.filter(r => r !== role) : [...roles, role]
+      return { ...e, form: { ...e.form, targetAudience: { ...t, roles: next } } }
+    })
+
   const save = async () => {
     if (!editing) return
     setSaving(true); setFormError(null)
@@ -172,6 +284,8 @@ export default function AnnouncementsPanel({ isDemo = false }: { isDemo?: boolea
   // ── Editing view ──────────────────────────────────────────────────────────
   if (editing) {
     const f = editing.form
+    const target = f.targetAudience ?? DEFAULT_TARGET
+    const roles = target.roles ?? []
     return (
       <div style={{ padding: '2rem', maxWidth: 720 }}>
         {isDemo && <DemoBanner />}
@@ -244,6 +358,69 @@ export default function AnnouncementsPanel({ isDemo = false }: { isDemo?: boolea
                 onChange={e => patch({ ctaUrl: e.target.value })} placeholder="/book or https://…" />
             </div>
           </div>
+
+          {/* Who sees it */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.1rem' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.82rem', fontWeight: 800 }}>Who sees it</p>
+            <p style={{ ...hintStyle, marginBottom: '1rem' }}>
+              This decides who the banner is shown to. It is not a privacy setting. Anyone can read a live
+              announcement, so keep staff-only detail out of it.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Audience</label>
+                <select style={inputStyle} value={target.type}
+                  onChange={e => setAudienceType(e.target.value as AudienceType)}>
+                  {AUDIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Priority</label>
+                <input type="number" min={0} max={999} style={inputStyle} value={f.priority ?? 0}
+                  onChange={e => patch({ priority: clampInt(e.target.value, 0, 999, 0) })} />
+              </div>
+            </div>
+            <p style={hintStyle}>When several announcements are live, the highest number wins.</p>
+
+            {usesRoles(target.type) && (
+              <div style={{ marginTop: '1rem' }}>
+                <label style={labelStyle}>Roles</label>
+                <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+                  {ROLE_OPTIONS.map(o => {
+                    const on = roles.includes(o.value)
+                    return (
+                      <button key={o.value} type="button" aria-pressed={on}
+                        onClick={() => toggleRole(o.value)} style={pillBtn(on)}>
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {target.type === 'role' && roles.length === 0 && (
+                  <p style={{ ...hintStyle, color: '#b4232b' }}>
+                    Pick at least one role. With none picked this announcement shows to nobody.
+                  </p>
+                )}
+                {target.type === 'new_accounts' && (
+                  <p style={hintStyle}>Leave every role off to include all new accounts.</p>
+                )}
+              </div>
+            )}
+
+            {target.type === 'new_accounts' && (
+              <div style={{ marginTop: '1rem', maxWidth: 240 }}>
+                <label style={labelStyle}>Within how many days of signup</label>
+                <input type="number" min={MIN_NEW_ACCOUNT_DAYS} max={MAX_NEW_ACCOUNT_DAYS} style={inputStyle}
+                  value={target.days ?? DEFAULT_NEW_ACCOUNT_DAYS}
+                  onChange={e => patchTarget({ ...target, days: clampInt(e.target.value, MIN_NEW_ACCOUNT_DAYS, MAX_NEW_ACCOUNT_DAYS, DEFAULT_NEW_ACCOUNT_DAYS) })} />
+              </div>
+            )}
+
+            <p style={{ ...hintStyle, marginTop: '1rem' }}>
+              Shows to: <strong style={{ color: 'var(--text-2)', fontWeight: 700 }}>{audienceLabel(target)}</strong>
+            </p>
+          </div>
         </div>
 
         {formError && (
@@ -271,7 +448,8 @@ export default function AnnouncementsPanel({ isDemo = false }: { isDemo?: boolea
         <div style={{ flex: 1 }}>
           <p style={{ color: 'var(--text)', fontSize: '.9rem', fontWeight: 800 }}>Announcements</p>
           <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: '.15rem' }}>
-            The site-wide banner. One live announcement shows at a time — the newest wins.
+            The site-wide banner. One announcement shows at a time. Each visitor sees the highest priority
+            one they match.
           </p>
         </div>
         <button onClick={refresh} style={ghostBtn}>↺ Refresh</button>
@@ -302,6 +480,8 @@ export default function AnnouncementsPanel({ isDemo = false }: { isDemo?: boolea
                     <span style={{ background: c.bg, color: c.text, fontSize: '.55rem', fontWeight: 900, letterSpacing: '.14em', textTransform: 'uppercase', padding: '.2rem .5rem', borderRadius: '.15rem' }}>{s}</span>
                     <span style={{ color: 'var(--text-4)', fontSize: '.55rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' }}>{a.kind}</span>
                     <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.85rem' }}>{a.title}</span>
+                    <span style={chipStyle}>{audienceLabel(a.targetAudience)}</span>
+                    {(a.priority ?? 0) > 0 && <span style={chipStyle}>Priority {a.priority}</span>}
                   </div>
                   {a.body && <p style={{ color: 'var(--text-2)', fontSize: '.78rem', marginBottom: '.35rem' }}>{a.body}</p>}
                   <p style={{ color: 'var(--text-3)', fontSize: '.68rem' }}>

@@ -4,85 +4,20 @@ import {
   type MarketingSummary, type Broadcast, type BroadcastAudience,
 } from '../../lib/marketing'
 import { usePermissions } from '../../lib/usePermissions'
-import NewsletterLeadsPanel from './NewsletterLeadsPanel'
-import AnnouncementsPanel from './AnnouncementsPanel'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 
-// ── Sub-tabs ─────────────────────────────────────────────────────────────────
+/**
+ * Marketing — the reach numbers, as an Insights sub-tab. Signups, where they
+ * came from, and the broadcasts recorded against them.
+ *
+ * This used to be the Marketing panel's Analytics tab. Its two neighbours moved
+ * out rather than in: the signups list lives inside NewsletterPanel and
+ * announcements are their own Insights sub-tab, so neither is mounted here.
+ */
 
-type SubTab = 'analytics' | 'newsletter' | 'announcements'
-
-const SUB_TABS: { key: SubTab; label: string }[] = [
-  { key: 'analytics',     label: 'Analytics' },
-  { key: 'newsletter',    label: 'Newsletter' },
-  { key: 'announcements', label: 'Announcements' },
-]
-
-// Keep the chosen sub-tab in the URL hash so a refresh / back button lands where
-// the studio left off, mirroring how the top-level tabs persist.
-function useHashSubTab(fallback: SubTab): [SubTab, (t: SubTab) => void] {
-  const read = (): SubTab => {
-    const h = window.location.hash.replace(/^#/, '') as SubTab
-    return SUB_TABS.some(t => t.key === h) ? h : fallback
-  }
-  const [tab, setTab] = useState<SubTab>(read)
-  useEffect(() => {
-    const onHash = () => setTab(read())
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  const select = (t: SubTab) => {
-    try { window.location.hash = t } catch { /* ignore */ }
-    setTab(t)
-  }
-  return [tab, select]
-}
-
-// ── Panel ────────────────────────────────────────────────────────────────────
-
-export default function MarketingPanel({ isDemo = false }: { isDemo?: boolean }) {
-  const [tab, setTab] = useHashSubTab('analytics')
-
-  return (
-    <div>
-      {/* Sub-tab bar */}
-      <div style={{ display: 'flex', gap: '.25rem', padding: '0 2rem', borderBottom: '1px solid var(--surface)', flexWrap: 'wrap' }}>
-        {SUB_TABS.map(t => {
-          const active = tab === t.key
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              aria-current={active ? 'page' : undefined}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: active ? 'var(--text)' : 'var(--text-3)',
-                fontSize: '.72rem', fontWeight: active ? 900 : 700,
-                letterSpacing: '.1em', textTransform: 'uppercase',
-                padding: '.9rem .4rem', marginRight: '1rem',
-                borderBottom: `2px solid ${active ? '#272C84' : 'transparent'}`,
-                fontFamily: 'inherit',
-              }}
-            >
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {tab === 'analytics'     && <MarketingAnalytics isDemo={isDemo} />}
-      {tab === 'newsletter'    && <NewsletterLeadsPanel isDemo={isDemo} />}
-      {tab === 'announcements' && <AnnouncementsPanel isDemo={isDemo} />}
-    </div>
-  )
-}
-
-// ── Marketing analytics sub-view ─────────────────────────────────────────────
-
-function MarketingAnalytics({ isDemo }: { isDemo: boolean }) {
+export default function MarketingInsights({ isDemo = false }: { isDemo?: boolean }) {
   const { can, ready } = usePermissions()
-  const canSend = !ready || can('send_marketing') // optimistic until known
+  const canSend = isDemo || !ready || can('send_marketing') // optimistic until known; demo always shows it
 
   const [summary, setSummary]       = useState<MarketingSummary | null>(null)
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])

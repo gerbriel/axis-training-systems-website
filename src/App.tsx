@@ -10,6 +10,7 @@ import Coaches from './components/Coaches'
 import UpcomingMeets from './components/UpcomingMeets'
 import Footer from './components/Footer'
 import PrivacyPolicy from './components/PrivacyPolicy'
+import AnnouncementBanner from './components/AnnouncementBanner'
 import AdminPortal from './pages/AdminPortal'
 import ResetPassword from './pages/ResetPassword'
 import CoachPage from './pages/CoachPage'
@@ -226,7 +227,14 @@ function AppContent() {
   if (route.type === 'guides') return <GuidesPage />
   if (route.type === 'tool') return <ToolPage slug={route.slug!} />
   if (route.type === 'rankings') return <Rankings />
-  if (route.type === 'book') return <BookPage />
+  // The booking page carries its own in-flow header, so the banner simply sits
+  // above it.
+  if (route.type === 'book') return (
+    <>
+      <AnnouncementBanner />
+      <BookPage />
+    </>
+  )
   if (route.type === 'shop') return <ShopPage />
   if (route.type === 'intake') return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '3rem 1.25rem' }}>
@@ -248,6 +256,9 @@ function AppContent() {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      {/* Above the page flow, but clear of the navbar: that bar is fixed, so a
+          banner at y=0 would render underneath it. */}
+      <AnnouncementBanner offsetTop="4rem" />
       <Navbar />
       <Hero />
       <Philosophy />

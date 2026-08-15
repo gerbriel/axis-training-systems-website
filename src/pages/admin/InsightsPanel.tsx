@@ -3,16 +3,41 @@ import './insights.css'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import ReportView from '../../components/insights/ReportView'
 import CustomReportsPanel from './CustomReportsPanel'
+import AnalyticsPanel from './AnalyticsPanel'
+import MarketingInsights from './MarketingInsights'
+import AnnouncementsPanel from './AnnouncementsPanel'
 import { supabaseConfigured } from '../../lib/supabase'
+import { useHashSubTab } from '../../lib/useHashSubTab'
 import type { Bucket, MetricKey, ChartKind } from '../../lib/insights'
 
 /**
- * Insights — the reporting home. A sub-tab strip switches between the standard
- * Reports overview (this file) and the Custom Reports builder. The integrator
- * wires a single "Insights" nav item to this panel; the sub-tabs live here.
+ * Insights — the reporting home, and now every surface that answers "how are we
+ * doing". A sub-tab strip switches between the standard Reports overview (this
+ * file), site Analytics, the Custom Reports builder, Marketing reach, and the
+ * Announcements banner. The integrator wires a single "Insights" nav item to
+ * this panel; the sub-tabs live here.
  */
 
-type Sub = 'reports' | 'custom'
+type Sub = 'reports' | 'analytics' | 'custom' | 'marketing' | 'announcements'
+
+const SUB_TABS: readonly { key: Sub; label: string }[] = [
+  { key: 'reports',       label: 'Reports' },
+  { key: 'analytics',     label: 'Analytics' },
+  { key: 'custom',        label: 'Custom Reports' },
+  { key: 'marketing',     label: 'Marketing' },
+  { key: 'announcements', label: 'Announcements' },
+]
+
+// Module-level so the hash hook does not rebuild its listener every render.
+const SUB_KEYS: readonly Sub[] = SUB_TABS.map(t => t.key)
+
+// AnalyticsPanel, MarketingInsights and AnnouncementsPanel all lay themselves
+// out for a bare tab slot with their own 2rem gutter, which would land 4rem in
+// on top of this panel's padding. The negative margin cancels the outer inset
+// for those subtrees so they sit on the same gridline as the Reports view. The
+// top only cancels the strip's 1.5rem, never more, so the wrapper cannot creep
+// up over the tab buttons and swallow their clicks.
+const UNPAD: React.CSSProperties = { margin: '-1.5rem -2rem -2rem' }
 
 const RANGE_PRESETS = [7, 30, 90] as const
 
@@ -34,7 +59,7 @@ function bucketFor(days: number): Bucket {
 function SubTabs({ sub, onChange }: { sub: Sub; onChange: (s: Sub) => void }) {
   return (
     <div className="ins-tabs" role="tablist" aria-label="Insights sections">
-      {([['reports', 'Reports'], ['custom', 'Custom Reports']] as [Sub, string][]).map(([key, label]) => (
+      {SUB_TABS.map(({ key, label }) => (
         <button key={key} role="tab" aria-selected={sub === key} className="ins-subtab" data-active={sub === key} onClick={() => onChange(key)}>
           {label}
         </button>
@@ -74,12 +99,17 @@ function Reports({ isDemo }: { isDemo: boolean }) {
 }
 
 export default function InsightsPanel({ isDemo = false }: { isDemo?: boolean }) {
-  const [sub, setSub] = useState<Sub>('reports')
+  // insights-root is required here: it defines the --viz-* chart variables.
+  const [sub, setSub] = useHashSubTab(SUB_KEYS, 'reports')
 
   return (
     <div className="insights-root" style={{ padding: '2rem' }}>
       <SubTabs sub={sub} onChange={setSub} />
-      {sub === 'reports' ? <Reports isDemo={isDemo} /> : <CustomReportsPanel isDemo={isDemo} embedded />}
+      {sub === 'reports'       && <Reports isDemo={isDemo} />}
+      {sub === 'analytics'     && <div style={UNPAD}><AnalyticsPanel isDemo={isDemo} /></div>}
+      {sub === 'custom'        && <CustomReportsPanel isDemo={isDemo} embedded />}
+      {sub === 'marketing'     && <div style={UNPAD}><MarketingInsights isDemo={isDemo} /></div>}
+      {sub === 'announcements' && <div style={UNPAD}><AnnouncementsPanel isDemo={isDemo} /></div>}
     </div>
   )
 }

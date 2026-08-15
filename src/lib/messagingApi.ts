@@ -1,12 +1,14 @@
 import { supabase, supabaseConfigured } from './supabase.ts'
 import { MESSAGES_PAGE_SIZE } from '../types/messaging.ts'
 import type {
+  BroadcastNewsletter,
   ChatMessage,
   CoachAssignment,
   Conversation,
   ConversationMemberRow,
   ConversationSummary,
   MessagingContact,
+  NewsletterRecipient,
   WriteResult,
 } from '../types/messaging.ts'
 
@@ -29,9 +31,17 @@ import type {
  * `messages` IS written directly, and alone in that. An optimistic send needs
  * the inserted row back in one round trip, and the INSERT policy already says
  * exactly the right thing: you are the sender, you are active, you are in the
- * conversation. A refusal arrives as `42501` and means one thing in practice —
- * you were removed, or your account was suspended — so it gets its own sentence
- * instead of the generic one.
+ * conversation, and since 033 the room is not a broadcast. A refusal arrives as
+ * `42501` and means one of three things in practice: you were removed, your
+ * account was suspended, or you typed into a newsletter. All three get a
+ * sentence instead of the generic one.
+ *
+ * ONLY THREE COLUMNS EVER LEAVE HERE ON AN INSERT. 033 narrowed the grant on
+ * `messages` to (conversation_id, sender_id, body), so `id` and `created_at` are
+ * the database's to write and a client that supplies either is refused with
+ * "permission denied for table messages" before RLS is even consulted. Adding a
+ * fourth key to the insert below is therefore not a small change, it is an
+ * outage.
  *
  * PROFILES ARE NOT JOINABLE. An athlete cannot read any other `profiles` row,
  * not even their coach's, so a PostgREST embed from a conversation to its
@@ -66,6 +76,22 @@ export const CONVERSATION_TITLE_LIMIT = 200
 
 /** The newest conversations only. The inbox does not paginate; history does. */
 const CONVERSATION_LIST_LIMIT = 100
+
+/**
+ * Received newsletters, newest first. A recipient holds exactly one broadcast
+ * conversation per newsletter, so this window counts newsletters, and a
+ * hundred of them is an archive nobody scrolls.
+ */
+const RECEIVED_BROADCAST_LIMIT = 100
+
+/**
+ * The raw window over a sender's OWN fan-out copies, which arrive in blocks of
+ * one-per-recipient sharing a single send-time timestamp. This only has to be
+ * deep enough that `oneThreadPerNewsletter` finds at least one copy of each
+ * recent send; at this studio's roster size it covers years of newsletters,
+ * and older sends remain fully visible in the Newsletter panel's Sent list.
+ */
+const SENT_BROADCAST_RAW_LIMIT = 400
 
 /**
  * Demo mode and "no credentials configured" are the same situation from a
@@ -287,8 +313,10 @@ interface DemoState {
  *
  * Between them they cover every rendering branch the workspace has: a two-party
  * thread titled by the other person, a named channel with a roster and a kind
- * pill, and a broadcast that shows a subject and still takes a reply. The
- * newsletter arrives unread so the badge is not a paragraph nobody sees.
+ * pill, and a broadcast that shows a subject and takes no reply at all. The
+ * newsletter arrives unread so the badge is not a paragraph nobody sees, and it
+ * is filtered out of the inbox by `fetchConversations` the way a live one is:
+ * it belongs to the Newsletters tab now.
  */
 function seedDemo(): DemoState {
   const dm = 'demo-conv-dm'
@@ -358,7 +386,7 @@ function seedDemo(): DemoState {
       id: 'demo-msg-8',
       conversation_id: broadcast,
       sender_id: 'demo-ronnie',
-      body: 'This is where meet dates, schedule changes and programme notes will land. Reply here and it comes straight back to me as a normal message.',
+      body: 'This is where meet dates, schedule changes and programme notes will land. These do not take replies. If you need something, message your coach directly.',
       created_at: demoIso(2_880),
     },
   ]
@@ -401,18 +429,48 @@ function demoRollup(state: DemoState, message: ChatMessage) {
 }
 
 /**
- * The demo half of a newsletter send: one broadcast conversation per contact,
- * each carrying the body as its first message, exactly as `send_newsletter`
- * does server-side. Lives here rather than in the newsletter module so both
- * halves of demo mode read from one store and the sent newsletter actually
- * shows up in the inbox.
+ * Who a given audience actually reaches.
+ *
+ * The client half of `send_newsletter`'s audience clause (030), stated once so
+ * the demo and any future screen that wants to say "this will go to 14 people"
+ * cannot disagree with the database about what "staff" means. Pure, and tested.
+ *
+ * `staff` is coaches AND admins, which is the one that would be easy to get
+ * wrong: an admin is staff, and a send addressed to the coaching team that
+ * quietly skipped the head coach would be a bug nobody noticed for months.
  */
-export function deliverDemoBroadcast(newsletterId: string, subject: string, body: string): number {
+export function audienceIncludes(
+  audience: BroadcastNewsletter['audience'],
+  role: MessagingContact['role'],
+): boolean {
+  if (audience === 'all') return true
+  if (audience === 'athletes') return role === 'athlete'
+  return role === 'coach' || role === 'admin'
+}
+
+/**
+ * The demo half of a newsletter send: one broadcast conversation per recipient
+ * IN THE AUDIENCE, each carrying the body as its first message, exactly as
+ * `send_newsletter` does server-side. Lives here rather than in the newsletter
+ * module so both halves of demo mode read from one store and the sent
+ * newsletter actually shows up in the inbox.
+ *
+ * The audience filter is not decoration. Without it the demo fans every send
+ * out to all four contacts, so "Athletes" and "Coaches and admins" pick
+ * differently in the composer and deliver identically, and the recipient list
+ * the panel then shows is a straight lie about what the audience column does.
+ */
+export function deliverDemoBroadcast(
+  newsletterId: string,
+  subject: string,
+  body: string,
+  audience: BroadcastNewsletter['audience'] = 'all',
+): number {
   const state = demoStore()
   const stamp = new Date().toISOString()
   let sent = 0
 
-  for (const contact of DEMO_CONTACTS) {
+  for (const contact of DEMO_CONTACTS.filter(c => audienceIncludes(audience, c.role))) {
     const conversationId = demoId('demo-conv')
     state.conversations.unshift({
       id: conversationId,
@@ -442,45 +500,107 @@ export function deliverDemoBroadcast(newsletterId: string, subject: string, body
   return sent
 }
 
+/**
+ * The demo answer to "who did this go to, and have they opened it".
+ *
+ * Two halves, and the first one is the honest one. If the demo viewer actually
+ * SENT this newsletter, the rows are read back out of the store exactly as the
+ * `newsletter_recipients` RPC reads them out of the database: every broadcast
+ * conversation carrying that newsletter id, the member who is not the sender,
+ * `seen` as the inverse of their unread flag. Send in the composer, expand the
+ * row, and the two agree, audience and all.
+ *
+ * The fallback covers the newsletter seeded as already sent, which the demo
+ * viewer RECEIVED rather than wrote. There is no sender's-eye view of it in the
+ * store, only the viewer's own copy, and a list containing the single word
+ * "You" under a row that says four recipients reads as a bug. So the audience
+ * is projected onto the contact roster instead, with alternating seen states so
+ * both pills are on screen.
+ *
+ * Which is also why the loop looks only at conversations the viewer created:
+ * this call is sender-tier, and answering it from the recipient's half of the
+ * store would be answering a different question.
+ */
+export function demoNewsletterRecipients(
+  newsletterId: string,
+  audience: BroadcastNewsletter['audience'] = 'all',
+): NewsletterRecipient[] {
+  const state = demoStore()
+  const byId = new Map([DEMO_SELF, ...DEMO_CONTACTS].map(c => [c.id, c]))
+
+  const delivered: NewsletterRecipient[] = []
+  for (const conversation of state.conversations) {
+    if (conversation.newsletter_id !== newsletterId || conversation.kind !== 'broadcast') continue
+    if (conversation.created_by !== DEMO_VIEWER_ID) continue
+    for (const row of state.members) {
+      if (row.conversation_id !== conversation.id) continue
+      if (row.profile_id === conversation.created_by) continue
+      const contact = byId.get(row.profile_id)
+      delivered.push({
+        id: row.profile_id,
+        display_name: contact?.display_name ?? 'Former member',
+        avatar_url: contact?.avatar_url ?? null,
+        role: contact?.role ?? 'athlete',
+        seen: !row.unread,
+        delivered_at: conversation.created_at,
+      })
+    }
+  }
+
+  if (delivered.length > 0) {
+    return delivered.sort((a, b) => a.display_name.localeCompare(b.display_name))
+  }
+
+  return DEMO_CONTACTS.filter(c => audienceIncludes(audience, c.role))
+    .map((contact, index) => ({
+      id: contact.id,
+      display_name: contact.display_name,
+      avatar_url: contact.avatar_url,
+      role: contact.role,
+      seen: index % 2 === 0,
+      delivered_at: demoIso(2_880),
+    }))
+    .sort((a, b) => a.display_name.localeCompare(b.display_name))
+}
+
 // ---------------------------------------------------------------------------
 // Reading
 // ---------------------------------------------------------------------------
 
 /**
- * The inbox, newest conversation first.
+ * The three-query stitch both lists are built from.
  *
  * Three queries, deliberately. The conversations themselves are scoped by RLS
- * with no filter of ours (a member sees theirs and nobody else's). The
- * membership rows come back for those ids only, which is both the roster and
- * the viewer's unread flag. The profile projection is a definer RPC because
- * `profiles` is not readable across the roster and never will be.
+ * with one filter of ours, the kind (a member sees their own rows and nobody
+ * else's regardless). The membership rows come back for those ids only, which
+ * is both the roster and the viewer's unread flag. The profile projection is a
+ * definer RPC because `profiles` is not readable across the roster and never
+ * will be.
  *
  * `null` from any of the three is an outage: half an inbox with nameless rows
  * in it is worse than a "we could not load your conversations" line.
  */
-export async function fetchConversations(isDemo = false): Promise<ConversationSummary[] | null> {
-  if (offline(isDemo)) {
-    const state = demoStore()
-    const conversations = [...state.conversations].sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
-    return composeConversations(
-      conversations.map(c => ({ ...c })),
-      state.members.map(m => ({ ...m })),
-      [DEMO_SELF, ...DEMO_CONTACTS],
-      DEMO_VIEWER_ID,
-    )
-  }
-
+async function fetchConversationList(limit: number): Promise<ConversationSummary[] | null> {
   const me = await currentUserId()
   if (!me) return null
 
   const { data: conversationRows, error } = await supabase
     .from('conversations')
     .select(CONVERSATION_COLUMNS)
+    .neq('kind', 'broadcast')
     .order('last_message_at', { ascending: false })
-    .limit(CONVERSATION_LIST_LIMIT)
+    .limit(limit)
 
   if (error) return null
   const conversations = (conversationRows ?? []) as unknown as Conversation[]
+  return stitchSummaries(conversations, me)
+}
+
+/** The members-and-profiles join shared by every conversation list. */
+async function stitchSummaries(
+  conversations: Conversation[],
+  me: string,
+): Promise<ConversationSummary[] | null> {
   if (conversations.length === 0) return []
 
   const ids = conversations.map(c => c.id)
@@ -497,6 +617,88 @@ export async function fetchConversations(isDemo = false): Promise<ConversationSu
     (profileResult.data ?? []) as unknown as MessagingContact[],
     me,
   )
+}
+
+/** The same stitch over the demo store, split on the same boundary. */
+function demoConversationList(broadcasts: boolean): ConversationSummary[] {
+  const state = demoStore()
+  const conversations = state.conversations
+    .filter(c => (c.kind === 'broadcast') === broadcasts)
+    .sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
+
+  return composeConversations(
+    conversations.map(c => ({ ...c })),
+    state.members.map(m => ({ ...m })),
+    [DEMO_SELF, ...DEMO_CONTACTS],
+    DEMO_VIEWER_ID,
+  )
+}
+
+/**
+ * The inbox, newest conversation first. DMs and channels only.
+ *
+ * Broadcasts are excluded here and returned by `fetchBroadcastSummaries`
+ * instead, because a newsletter is no longer a conversation you can answer
+ * (033) and a thread with no composer in it does not belong in a list whose
+ * whole promise is that you can reply. They keep their own membership rows, so
+ * the unread badge still counts them: `fetchUnreadConversationCount` asks
+ * `conversation_members` and is deliberately not filtered by kind.
+ */
+export async function fetchConversations(isDemo = false): Promise<ConversationSummary[] | null> {
+  if (offline(isDemo)) return demoConversationList(false)
+  return fetchConversationList(CONVERSATION_LIST_LIMIT)
+}
+
+/**
+ * The other half: newsletters delivered to the viewer, newest first.
+ *
+ * Conversations only. Joining them to the newsletters and polls behind them is
+ * `newsletterBroadcast.fetchNewsletterThreads`, which is where every other
+ * newsletter read already lives. This module knows about rooms; that one knows
+ * what was in them.
+ *
+ * Fetched as TWO windows, not one. A sender is a member of every fan-out copy
+ * their send created, and those copies all share one send-time timestamp, so a
+ * single flat newest-first window would be spent entirely on the latest send:
+ * one newsletter to fifty people would evict every newsletter this person had
+ * ever RECEIVED, along with the unread flags behind the header badge. Split by
+ * `created_by`, the received window holds one row per newsletter by
+ * construction, and the sent window only has to be deep enough that
+ * `oneThreadPerNewsletter` finds one surviving copy of each recent send.
+ * The null check on created_by keeps newsletters from a since-deleted sender
+ * in the received pile rather than silently dropped.
+ */
+export async function fetchBroadcastSummaries(isDemo = false): Promise<ConversationSummary[] | null> {
+  if (offline(isDemo)) return demoConversationList(true)
+
+  const me = await currentUserId()
+  if (!me) return null
+
+  const [receivedResult, sentResult] = await Promise.all([
+    supabase.from('conversations').select(CONVERSATION_COLUMNS)
+      .eq('kind', 'broadcast')
+      .or(`created_by.is.null,created_by.neq.${me}`)
+      .order('last_message_at', { ascending: false })
+      .limit(RECEIVED_BROADCAST_LIMIT),
+    supabase.from('conversations').select(CONVERSATION_COLUMNS)
+      .eq('kind', 'broadcast')
+      .eq('created_by', me)
+      .order('last_message_at', { ascending: false })
+      .limit(SENT_BROADCAST_RAW_LIMIT),
+  ])
+
+  if (receivedResult.error || sentResult.error) return null
+
+  const byId = new Map<string, Conversation>()
+  for (const row of [
+    ...((receivedResult.data ?? []) as unknown as Conversation[]),
+    ...((sentResult.data ?? []) as unknown as Conversation[]),
+  ]) {
+    byId.set(row.id, row)
+  }
+  const merged = [...byId.values()].sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
+
+  return stitchSummaries(merged, me)
 }
 
 /**
@@ -610,6 +812,16 @@ export async function fetchCoachAssignments(isDemo = false): Promise<CoachAssign
  * `.select().single()` is not decoration. Without it an RLS refusal can come
  * back as a successful request that inserted nothing, and the person would
  * watch their message sit there looking sent.
+ *
+ * Three columns and no more. 033 narrowed the INSERT grant to exactly these,
+ * so `id` and `created_at` come from the defaults and are read back out of the
+ * row this returns. See the header.
+ *
+ * The signature deliberately does not learn about broadcasts. A newsletter has
+ * no composer to type into, so the only ways to reach this with one are a stale
+ * tab and a REST client, and both are answered by the policy. Screens that know
+ * they are rendering a newsletter say so themselves rather than round-tripping
+ * to be told.
  */
 export async function sendMessage(
   conversationId: string,
@@ -622,8 +834,14 @@ export async function sendMessage(
   if (offline(isDemo)) {
     await beat()
     const state = demoStore()
-    if (!state.conversations.some(c => c.id === conversationId)) {
+    const conversation = state.conversations.find(c => c.id === conversationId)
+    if (!conversation) {
       return { ok: false, message: 'That conversation is no longer in your inbox.' }
+    }
+    // What 033's fourth WITH CHECK clause does, done locally. A demo that let a
+    // newsletter be answered would be teaching the wrong thing about the app.
+    if (conversation.kind === 'broadcast') {
+      return { ok: false, message: 'Newsletters do not take replies.' }
     }
     const message: ChatMessage = {
       id: demoId('demo-msg'),
@@ -861,9 +1079,13 @@ export async function markConversationRead(conversationId: string, isDemo = fals
 /**
  * Assign an athlete to a coach, or take the assignment away.
  *
- * This is the table that decides who an athlete may message at all, so it is
- * gated on `manage_athletes` at the database and the trigger refuses a pairing
- * that is not an active athlete and an active staff member.
+ * This is the table that decides who an athlete may message at all, so 033
+ * gates the write on `manage_staff`, which only an admin can hand out, and the
+ * trigger refuses a pairing that is not an active athlete and an active staff
+ * member. It was `manage_athletes` until 033 and that was a hole: every coach
+ * holds `manage_athletes` by role default (016), so any coach could assign
+ * themselves any athlete and message them. Reading the board is still
+ * `manage_athletes`, which is what the People panel's matrix needs.
  *
  * `.select()` on both halves, for the usual reason: an RLS refusal comes back
  * as zero rows rather than an error, and a screen that reads that as success
@@ -904,7 +1126,7 @@ export async function setCoachAssignment(
       return { ok: false, message: writeMessage(error, 'Could not save that coach assignment.') }
     }
     if (!data || data.length === 0) {
-      return { ok: false, message: 'That assignment was not saved. Your account may not have permission to manage athletes.' }
+      return { ok: false, message: 'That assignment was not saved. Changing who coaches an athlete needs an admin, or the manage staff permission.' }
     }
     return { ok: true }
   }
@@ -918,7 +1140,7 @@ export async function setCoachAssignment(
 
   if (error) return { ok: false, message: writeMessage(error, 'Could not remove that coach assignment.') }
   if (!data || data.length === 0) {
-    return { ok: false, message: 'That assignment was not removed. Your account may not have permission to manage athletes.' }
+    return { ok: false, message: 'That assignment was not removed. Changing who coaches an athlete needs an admin, or the manage staff permission.' }
   }
   return { ok: true }
 }

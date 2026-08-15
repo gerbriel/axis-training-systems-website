@@ -4,8 +4,11 @@ import { usePermissions } from '../../lib/usePermissions'
 import {
   fetchNewsletters, saveNewsletterDraft, deleteNewsletterDraft,
   saveNewsletterPoll, sendNewsletter, fetchPollForNewsletter,
+  fetchNewsletterRecipients, fetchPollStateForNewsletter,
 } from '../../lib/newsletterBroadcast'
-import type { BroadcastNewsletter } from '../../types/messaging'
+import type { BroadcastNewsletter, NewsletterRecipient, PollState } from '../../types/messaging'
+import PollWidget from '../../components/messaging/PollWidget'
+import { ROLE_LABEL } from '../../components/messaging/messagingUi'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import NewsletterLeadsPanel from './NewsletterLeadsPanel'
 
@@ -13,10 +16,13 @@ import NewsletterLeadsPanel from './NewsletterLeadsPanel'
  * Write a newsletter, attach a poll, send it.
  *
  * Delivery is IN-APP. A send fans the newsletter out as one private broadcast
- * conversation per recipient, which is the point: a reply is an ordinary
- * message back to the person who sent it, not a no-reply address. Nothing here
- * sends email, and the "Email signups" list at the bottom is a separate,
- * older thing kept in the same room because that is where people look for it.
+ * conversation per recipient, which is the point: everybody gets their own
+ * copy with their own unread flag rather than a line on a mailing list. A
+ * newsletter is an announcement and takes no replies, so the question a sender
+ * actually has afterwards is who has read it. That is what opening a sent row
+ * answers. Nothing here sends email, and the "Email signups" list at the bottom
+ * is a separate, older thing kept in the same room because that is where people
+ * look for it.
  *
  * Two writes, not one. The draft saves first because the poll RPC needs a
  * newsletter id to hang options off, so a poll is always the second step
@@ -55,6 +61,27 @@ const BADGE_LOOKUP_LIMIT = 40
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+/** The sub-heading inside an opened row. Same family as a section label, one step quieter. */
+const DETAIL_LABEL: React.CSSProperties = {
+  color: 'var(--text-4)', fontSize: '.6rem', fontWeight: 900,
+  letterSpacing: '.25em', textTransform: 'uppercase',
+}
+
+/**
+ * What one opened row knows. Kept per newsletter rather than for the open one
+ * only, so closing a row and opening it again costs nothing.
+ *
+ * `outage` is about the RECIPIENTS. A poll that fails to load comes back as
+ * `null`, which renders the same as a newsletter that never had one, and that
+ * is the right trade: the list of who received it is the reason the row opens.
+ */
+type SentDetail = {
+  loading: boolean
+  outage: boolean
+  recipients: NewsletterRecipient[]
+  poll: PollState | null
+}
+
 function Chip({ children, tone = 'accent' }: { children: React.ReactNode; tone?: 'accent' | 'quiet' }) {
   const color = tone === 'accent' ? ACCENT : 'var(--text-4)'
   return (
@@ -65,18 +92,21 @@ function Chip({ children, tone = 'accent' }: { children: React.ReactNode; tone?:
 }
 
 function SmallButton({
-  children, onClick, disabled = false, danger = false,
+  children, onClick, disabled = false, danger = false, expanded,
 }: {
   children: React.ReactNode
   onClick: () => void
   disabled?: boolean
   danger?: boolean
+  /** Set only on the buttons that open something, which is where the attribute belongs. */
+  expanded?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-expanded={expanded}
       style={{
         background: 'none',
         border: `1px solid ${danger ? 'rgba(200,16,46,.45)' : 'var(--surface-2)'}`,
@@ -114,7 +144,13 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
 
+  // One sent row open at a time. Two recipient lists side by side answer a
+  // question nobody asked and cost two reads to do it.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [details, setDetails] = useState<Record<string, SentDetail>>({})
+
   const composerRef = useRef<HTMLElement | null>(null)
+  const editNonceRef = useRef(0)
 
   const allowed = isDemo || isAdmin || can('send_marketing')
 
@@ -142,6 +178,36 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
 
   useEffect(() => { if (allowed) void load() }, [allowed, load])
 
+  /**
+   * Who got one newsletter, and how its poll landed. Two reads, asked together.
+   *
+   * The recipients RPC is the only place delivery and seen state are gathered
+   * back up after a fan-out, and the poll comes back as a finished aggregate,
+   * so neither call can tell anybody who voted for what.
+   */
+  const loadDetail = useCallback(async (id: string) => {
+    setDetails(prev => ({
+      ...prev,
+      [id]: { loading: true, outage: false, recipients: prev[id]?.recipients ?? [], poll: prev[id]?.poll ?? null },
+    }))
+
+    const [people, poll] = await Promise.all([
+      fetchNewsletterRecipients(id, isDemo),
+      fetchPollStateForNewsletter(id, isDemo),
+    ])
+
+    setDetails(prev => ({
+      ...prev,
+      [id]: { loading: false, outage: people === null, recipients: people ?? [], poll },
+    }))
+  }, [isDemo])
+
+  // The detail behind a sent row costs reads, so it waits until somebody opens
+  // that row and then stays put for the rest of the session.
+  useEffect(() => {
+    if (expandedId && !details[expandedId]) void loadDetail(expandedId)
+  }, [expandedId, details, loadDetail])
+
   const clearComposer = () => {
     setDraftId(null)
     setSubject('')
@@ -160,7 +226,11 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
     setAudience(n.audience)
     composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
+    // Two quick Edit clicks race their poll fetches; only the latest click may
+    // write into the composer, or draft A's poll lands on draft B.
+    const nonce = ++editNonceRef.current
     const poll = await fetchPollForNewsletter(n.id, isDemo)
+    if (nonce !== editNonceRef.current) return
     if (poll) {
       const options = [...poll.options]
       while (options.length < 2) options.push('')
@@ -216,7 +286,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
     setFeedback(null)
 
     const ok = window.confirm(
-      `Send "${n.subject}" to ${AUDIENCE_PHRASE[n.audience]}? Each person gets it as a private message, so replies come back to you. This cannot be undone.`
+      `Send "${n.subject}" to ${AUDIENCE_PHRASE[n.audience]}? Each person gets their own copy under Newsletters in Messages. Newsletters do not take replies. This cannot be undone.`
     )
     if (!ok) return
 
@@ -285,8 +355,9 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
           Newsletter
         </h2>
         <p style={{ color: 'var(--text-3)', fontSize: '.82rem', lineHeight: 1.65, marginBottom: '1.5rem', maxWidth: 560 }}>
-          This goes out inside the app, not by email. Everyone you pick gets it as a private
-          message from you, so anything they write back lands in your inbox.
+          This goes out inside the app, not by email. Everyone you pick gets their own copy
+          under Newsletters in Messages. Newsletters do not take replies, so open a sent one
+          below to see who has read it.
         </p>
 
         {feedback && (
@@ -486,25 +557,155 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
           <p style={{ color: 'var(--text-4)', fontSize: '.875rem' }}>Nothing has gone out yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-            {sent.map(n => (
-              <div key={n.id} style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '.9rem 1.1rem' }}>
-                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.25rem' }}>
-                  <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.85rem' }}>{n.subject}</span>
-                  <Chip>{AUDIENCE_LABEL[n.audience]}</Chip>
-                  {hasPoll[n.id] && <Chip tone="quiet">Poll</Chip>}
+            {sent.map(n => {
+              const open = expandedId === n.id
+              return (
+                <div key={n.id} style={{ background: 'var(--surface)', border: `1px solid ${open ? ACCENT : 'var(--surface-2)'}`, borderRadius: '.25rem', padding: '.9rem 1.1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.25rem' }}>
+                        <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.85rem' }}>{n.subject}</span>
+                        <Chip>{AUDIENCE_LABEL[n.audience]}</Chip>
+                        {hasPoll[n.id] && <Chip tone="quiet">Poll</Chip>}
+                      </div>
+                      <p style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>
+                        {n.recipient_count} {n.recipient_count === 1 ? 'recipient' : 'recipients'}
+                        {n.sent_at ? ` · sent ${fmtDate(n.sent_at)}` : ''}
+                      </p>
+                    </div>
+
+                    <SmallButton onClick={() => setExpandedId(prev => (prev === n.id ? null : n.id))} expanded={open}>
+                      {open ? 'Hide' : 'View'}
+                    </SmallButton>
+                  </div>
+
+                  {open && (
+                    <SentDetailView
+                      newsletter={n}
+                      detail={details[n.id]}
+                      onRefresh={() => void loadDetail(n.id)}
+                    />
+                  )}
                 </div>
-                <p style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>
-                  {n.recipient_count} {n.recipient_count === 1 ? 'recipient' : 'recipients'}
-                  {n.sent_at ? ` · sent ${fmtDate(n.sent_at)}` : ''}
-                </p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
 
       {/* ── Email signups (the older, separate list) ──────────────────────── */}
       <EmailSignups isDemo={isDemo} />
+    </div>
+  )
+}
+
+/** Whether one person has opened their copy. Not whether they liked it. */
+function SeenPill({ seen }: { seen: boolean }) {
+  const c = seen ? '#22c55e' : '#eab308'
+  return (
+    <span style={{ background: `${c}18`, border: `1px solid ${c}`, color: c, fontSize: '.55rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.2rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
+      {seen ? 'Seen' : 'Unread'}
+    </span>
+  )
+}
+
+/**
+ * One sent newsletter, opened up: what went out, who got it, how the poll landed.
+ *
+ * The recipient list is the whole reason this exists. A send fans out into one
+ * conversation per person, so "has Maria read it" is otherwise a question you
+ * answer by scrolling forty conversations. `newsletter_recipients` gathers them
+ * back into one list, and it carries delivery and seen state and NOTHING else.
+ *
+ * The poll below it is deliberately `disabled`. A sender is not a recipient of
+ * their own newsletter and has no ballot to cast, and the tallies are the same
+ * definer aggregate everybody else reads, so this is a results board rather
+ * than a poll anybody can push.
+ */
+function SentDetailView({
+  newsletter, detail, onRefresh,
+}: {
+  newsletter: BroadcastNewsletter
+  detail: SentDetail | undefined
+  onRefresh: () => void
+}) {
+  const pending = !detail || detail.loading
+  const seenCount = detail ? detail.recipients.filter(p => p.seen).length : 0
+
+  return (
+    <div style={{ borderTop: '1px solid var(--surface-2)', marginTop: '.9rem', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
+      {/* ── What went out ─────────────────────────────────────────────────── */}
+      <div>
+        <p style={{ ...DETAIL_LABEL, marginBottom: '.5rem' }}>What went out</p>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface-2)', borderRadius: '.25rem .25rem .25rem 0', padding: '.85rem 1rem', maxWidth: 560 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {newsletter.body}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '.55rem' }}>
+          <Chip>{AUDIENCE_LABEL[newsletter.audience]}</Chip>
+          <span style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>
+            {newsletter.sent_at ? `Sent ${fmtDate(newsletter.sent_at)}` : 'Sent'} to {newsletter.recipient_count}{' '}
+            {newsletter.recipient_count === 1 ? 'person' : 'people'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Who got it ────────────────────────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '.5rem' }}>
+          <p style={DETAIL_LABEL}>Sent to</p>
+          <button type="button" onClick={onRefresh} disabled={pending}
+            style={{ background: 'none', border: 'none', color: pending ? 'var(--text-dim)' : 'var(--text-4)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: pending ? 'default' : 'pointer', fontFamily: 'inherit', padding: 0 }}>
+            Refresh
+          </button>
+        </div>
+
+        {!detail || detail.loading ? (
+          <p style={{ color: 'var(--text-4)', fontSize: '.75rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading…</p>
+        ) : detail.outage ? (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.25rem', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text)', fontSize: '.85rem', fontWeight: 700, marginBottom: '.3rem' }}>We could not load recipients.</p>
+            <p style={{ color: 'var(--text-3)', fontSize: '.8rem', marginBottom: '1rem' }}>That is on our side. The newsletter went out either way.</p>
+            <button type="button" onClick={onRefresh}
+              style={{ background: 'none', border: 'none', borderBottom: '1px solid var(--text)', color: 'var(--text)', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '0 0 .25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Try again
+            </button>
+          </div>
+        ) : detail.recipients.length === 0 ? (
+          <p style={{ color: 'var(--text-4)', fontSize: '.82rem' }}>Nobody received this one.</p>
+        ) : (
+          <>
+            <p style={{ color: 'var(--text-4)', fontSize: '.72rem', marginBottom: '.5rem' }}>
+              {seenCount} of {detail.recipients.length} opened it.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '.35rem' }}>
+              {detail.recipients.map(person => (
+                <div key={person.id} style={{ background: 'var(--bg)', border: '1px solid var(--surface-2)', borderRadius: '.2rem', padding: '.5rem .7rem', display: 'flex', gap: '.75rem', alignItems: 'center' }}>
+                  <span style={{ flex: 1, minWidth: 0, color: 'var(--text-2)', fontSize: '.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {person.display_name}
+                  </span>
+                  <span style={{ color: 'var(--text-4)', fontSize: '.62rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', flexShrink: 0 }}>
+                    {ROLE_LABEL[person.role]}
+                  </span>
+                  <SeenPill seen={person.seen} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── How the poll landed ───────────────────────────────────────────── */}
+      {detail?.poll && (
+        <div>
+          <p style={{ ...DETAIL_LABEL, marginBottom: '.5rem' }}>Results</p>
+          <PollWidget state={detail.poll} onVote={() => {}} disabled />
+          <p style={{ color: 'var(--text-4)', fontSize: '.7rem', marginTop: '.5rem', lineHeight: 1.5 }}>
+            Counts only. Nobody, you included, can see who picked what.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
