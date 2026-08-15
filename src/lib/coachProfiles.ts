@@ -453,9 +453,12 @@ function cleanBlock(raw: unknown, limit: number): string {
  */
 const URL_SHAPE = /^(https?:\/\/|\/[^/])/i
 
-function cleanUrl(raw: unknown): { ok: true; value: string | null } | { ok: false } {
+function cleanUrl(raw: unknown, allowBlob = false): { ok: true; value: string | null } | { ok: false } {
   const text = cleanLine(raw, 2000)
   if (!text) return { ok: true, value: null }
+  // Demo uploads are object URLs. They never reach the live table (this branch
+  // opens only on the offline path), so 032's shape check is not in play.
+  if (allowBlob && text.startsWith('blob:')) return { ok: true, value: text }
   if (!URL_SHAPE.test(text)) return { ok: false }
   return { ok: true, value: text }
 }
@@ -477,7 +480,7 @@ function has(input: CoachProfileInput, key: keyof CoachProfileRow): boolean {
  * their own bio must not send a `sort_order` they never touched: 032's guard
  * raises on a CHANGE to that column, so the safest payload is the smallest one.
  */
-function cleanProfile(input: CoachProfileInput): { ok: true; payload: Payload } | { ok: false; message: string } {
+function cleanProfile(input: CoachProfileInput, allowBlob = false): { ok: true; payload: Payload } | { ok: false; message: string } {
   const payload: Payload = {}
 
   const slug = cleanLine(input.slug, 80).toLowerCase()
@@ -541,7 +544,7 @@ function cleanProfile(input: CoachProfileInput): { ok: true; payload: Payload } 
   ]
   for (const [key, column, label] of urls) {
     if (!has(input, key)) continue
-    const url = cleanUrl(input[key])
+    const url = cleanUrl(input[key], allowBlob)
     if (!url.ok) {
       return { ok: false, message: `${label} must start with https:// or with a single /.` }
     }
@@ -578,7 +581,7 @@ export async function saveCoachProfile(
   input: CoachProfileInput,
   isDemo = false,
 ): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
-  const cleaned = cleanProfile(input)
+  const cleaned = cleanProfile(input, offline(isDemo))
   if (!cleaned.ok) return cleaned
 
   const payload = cleaned.payload

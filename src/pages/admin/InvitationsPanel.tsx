@@ -5,6 +5,8 @@ import {
 } from '../../lib/invitations'
 import type { Invitation, InvitationState } from '../../lib/invitations'
 import type { UserRole } from '../../lib/account'
+import { fetchCoachDirectory } from '../../lib/coachRoster'
+import type { CoachDirectoryEntry } from '../../lib/coachRoster'
 import { COACHES } from '../../data/coaches'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 
@@ -45,6 +47,9 @@ export default function InvitationsPanel({ isDemo = false }: { isDemo?: boolean 
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(!isDemo)
   const [outage, setOutage] = useState(false)
+  // null until it answers, and null again if it cannot: the select falls back
+  // to the bundled five rather than losing the ability to invite anyone.
+  const [directory, setDirectory] = useState<CoachDirectoryEntry[] | null>(null)
 
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -69,6 +74,14 @@ export default function InvitationsPanel({ isDemo = false }: { isDemo?: boolean 
 
   useEffect(() => { void load() }, [load])
 
+  // Which calendars exist and who is on them. Refetched after an invitation is
+  // issued, because issuing one is exactly what takes a calendar off the list.
+  const loadDirectory = useCallback(async () => {
+    setDirectory(await fetchCoachDirectory(isDemo))
+  }, [isDemo])
+
+  useEffect(() => { void loadDirectory() }, [loadDirectory])
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (sending || isDemo) return
@@ -91,6 +104,7 @@ export default function InvitationsPanel({ isDemo = false }: { isDemo?: boolean 
     setIssued({ link: res.link, emailed: res.emailed })
     setEmail(''); setFirstName(''); setNote(''); setCoachSlug('')
     await load()
+    await loadDirectory()
   }
 
   const doRevoke = async (id: number) => {
@@ -105,6 +119,42 @@ export default function InvitationsPanel({ isDemo = false }: { isDemo?: boolean 
   // a role picker a coach cannot use would produce a refusal after the fact.
   const canInviteStaff = isAdmin
   const takenSlugs = new Set(invitations.filter(i => invitationState(i) === 'pending' && i.coach_slug).map(i => i.coach_slug))
+
+  /**
+   * The calendars somebody can be invited to.
+   *
+   * A calendar is claimable when it exists in `coach_routing`, nobody's profile
+   * holds its slug, and no live invitation is out for it. That is the same set
+   * the trigger on `invitations` will accept, so the select cannot offer a
+   * choice the database is about to refuse.
+   *
+   * Anything else is still listed, disabled, with the reason. A calendar that
+   * silently vanishes reads as a bug; one that says "already taken" reads as an
+   * answer. Without the directory this falls back to the bundled five and the
+   * pending-invitation check alone, which is what it did before there was any
+   * way to add a coach.
+   */
+  const calendarOptions: { slug: string; label: string; disabled: boolean }[] =
+    directory
+      ? directory
+          .filter(entry => entry.hasRouting)
+          .map(entry => {
+            const invited = entry.invitation?.state === 'pending'
+            const claimed = !!entry.account
+            return {
+              slug: entry.slug,
+              label: entry.name
+                + (claimed ? ' — already taken' : invited ? ' — already invited' : ''),
+              disabled: claimed || invited,
+            }
+          })
+      : COACHES.map(c => ({
+          slug: c.slug,
+          label: `${c.name}${takenSlugs.has(c.slug) ? ' — already invited' : ''}`,
+          disabled: takenSlugs.has(c.slug),
+        }))
+
+  const nothingClaimable = calendarOptions.every(o => o.disabled)
 
   return (
     <div className="dash-pad" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', maxWidth: 760 }}>
@@ -185,14 +235,16 @@ export default function InvitationsPanel({ isDemo = false }: { isDemo?: boolean 
               <select id="inv-slug" className="field" value={coachSlug} required disabled={isDemo}
                 onChange={e => setCoachSlug(e.target.value)}>
                 <option value="">Choose a coach profile…</option>
-                {COACHES.map(c => (
-                  <option key={c.slug} value={c.slug} disabled={takenSlugs.has(c.slug)}>
-                    {c.name}{takenSlugs.has(c.slug) ? ' — already invited' : ''}
+                {calendarOptions.map(o => (
+                  <option key={o.slug} value={o.slug} disabled={o.disabled}>
+                    {o.label}
                   </option>
                 ))}
               </select>
               <p style={{ color: 'var(--text-4)', fontSize: '.7rem', marginTop: '.4rem', lineHeight: 1.5 }}>
-                The calendar, schedule and bookings they take over. One person per calendar.
+                {nothingClaimable
+                  ? 'Every calendar already has somebody on it. Add a coach under Settings, Users, and they will appear here.'
+                  : 'The calendar, schedule and bookings they take over. One person per calendar.'}
               </p>
             </div>
           )}

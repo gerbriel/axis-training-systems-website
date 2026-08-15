@@ -14,10 +14,15 @@ export interface BlogPost {
 }
 
 export interface BlogSection {
-  type: 'heading' | 'subheading' | 'paragraph' | 'list' | 'callout' | 'week' | 'divider'
-  text?: string
+  type: 'heading' | 'subheading' | 'paragraph' | 'list' | 'callout' | 'week' | 'divider' | 'image'
+  text?: string    // body text, and the caption on an image section
   items?: string[]
   label?: string   // for callout label or week label
+  // Image sections. `url` is whatever the editor uploaded or pasted, so every
+  // renderer runs it through safeUrl before it reaches an `src` — the section
+  // JSON is stored as an opaque blob and is never URL-checked on write.
+  url?: string
+  alt?: string
 }
 
 export const POSTS: BlogPost[] = [

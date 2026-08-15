@@ -158,6 +158,9 @@ export async function importSiteContent(): Promise<ImportResult> {
         // The reader (BlogPostPage.parseContent) JSON.parses this back into the
         // section array, so the rich structure round-trips intact.
         content: JSON.stringify(p.content),
+        // Without this the import silently drops the hero: the DB copy wins
+        // over the static entry and pendingToPost reads cover_image (035).
+        cover_image: p.coverImage ?? null,
       }))
 
     result.blog.skipped = POSTS.length - rows.length

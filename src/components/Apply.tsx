@@ -1,7 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { sanitize, sanitizeShort, sanitizeEmail, isValidEmail } from '../utils/sanitize'
 import { supabase } from '../lib/supabase'
 import { useBotTrap } from '../lib/botTrap'
+import { fetchCoachRoster } from '../lib/coachRoster'
+import { COACHES } from '../data/coaches'
+
+/**
+ * The coach pills, and why they are NAMES.
+ *
+ * `leads.coach_pref` stores the name, not the slug: `current_coach_name()`
+ * matches it against `coach_routing.coach_name` to decide whose lead this is,
+ * and the coach portal filters its own leads on the same string. Provisioning
+ * writes the routing row and the public profile from one typed name, so a coach
+ * added from the admin routes exactly like the five that ship with the app. A
+ * label that does not match a routing row is not a broken form, it is a lead
+ * nobody is assigned, which is what "No Preference" already is.
+ */
+const STATIC_COACH_NAMES = COACHES.map(c => c.name)
+
+const NO_PREFERENCE = 'No Preference'
 
 // ── Sanitization field map ─────────────────────────────────────────────────
 const SHORT_FIELDS = new Set([
@@ -121,8 +138,13 @@ function ScaleRow({ group, value, onChange }: { group: string; value: string; on
 }
 
 // ── Step components ────────────────────────────────────────────────────────
-function Step1({ data, set, lockedCoach }: { data: FormData; set: (k: keyof FormData, v: string) => void; lockedCoach?: string }) {
-  const COACHES = ['Ronnie Vallejo', 'Seth Burman', 'Lucas Sison', 'Kobe Pham', 'Aedan Nguyen', 'No Preference']
+function Step1({ data, set, lockedCoach, coachNames }: {
+  data: FormData
+  set: (k: keyof FormData, v: string) => void
+  lockedCoach?: string
+  coachNames: string[]
+}) {
+  const choices = [...coachNames, NO_PREFERENCE]
   return (
     <div className="flex flex-col gap-5">
       <div className="grid sm:grid-cols-2 gap-5">
@@ -149,7 +171,7 @@ function Step1({ data, set, lockedCoach }: { data: FormData; set: (k: keyof Form
           </div>
         ) : (
           <div className="flex flex-wrap gap-2 mt-1">
-            {COACHES.map(c => (
+            {choices.map(c => (
               <Pill key={c} label={c} checked={data.coachPref === c} onClick={() => set('coachPref', c)} />
             ))}
           </div>
@@ -299,8 +321,11 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
   const [step, setStep] = useState(1)
   const [data, setData] = useState<FormData>(() => ({
     ...INITIAL,
-    coachPref: preselectedCoach ?? 'No Preference',
+    coachPref: preselectedCoach ?? NO_PREFERENCE,
   }))
+  // The five paint first so the pills are never a blank row, and the roster
+  // replaces them once it lands. An outage or an empty answer keeps the five.
+  const [coachNames, setCoachNames] = useState<string[]>(STATIC_COACH_NAMES)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
@@ -311,6 +336,17 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, boolean>>>({})
   const [privacyConsent, setPrivacyConsent] = useState(false)
   const [consentError, setConsentError] = useState(false)
+
+  useEffect(() => {
+    let live = true
+    fetchCoachRoster()
+      .then(list => {
+        if (!live || list.length === 0) return
+        setCoachNames(list.map(c => c.name))
+      })
+      .catch(() => { /* keep the five */ })
+    return () => { live = false }
+  }, [])
 
   const set = (k: keyof FormData, v: string) => {
     const clean = k === 'email'
@@ -488,7 +524,7 @@ export default function Apply({ preselectedCoach }: { preselectedCoach?: string 
                   order); a bot that fills every field trips it. Bare input by
                   design — see botTrap.ts. */}
               <input {...bot.fieldProps} />
-              {step === 1 && <Step1 {...stepProps} lockedCoach={preselectedCoach} />}
+              {step === 1 && <Step1 {...stepProps} lockedCoach={preselectedCoach} coachNames={coachNames} />}
               {step === 2 && <Step2 {...stepProps} toggleDay={toggleDay} />}
               {step === 3 && <Step3 {...stepProps} />}
               {step === 4 && <Step4 {...stepProps} />}

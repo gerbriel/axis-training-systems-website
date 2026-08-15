@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import DemoBanner from '../../components/dashboard/DemoBanner'
-import type { Coach } from '../../data/coaches'
+import PhotoUpload from '../../components/dashboard/PhotoUpload'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import type { Testimonial } from '../../data/testimonials'
 import { isAllowedPhotoUrl, ALLOWED_PHOTO_HOSTS } from '../../data/testimonials'
 import {
@@ -60,7 +61,7 @@ function placement(t: Testimonial): { label: string; color: string } {
 const EMPTY = { quote: '', athlete: '', result: '', photo: '', onCoach: true, onMain: false }
 
 interface Props {
-  coach: Coach
+  coach: CoachDisplay
   isDemo?: boolean
 }
 
@@ -117,7 +118,7 @@ export default function TestimonialsManager({ coach, isDemo = false }: Props) {
     if (!canSave) return
 
     if (!isAllowedPhotoUrl(form.photo)) {
-      setError(`Photo must be an https link from: ${ALLOWED_PHOTO_HOSTS.join(', ')}`)
+      setError(`That photo link is not allowed. Upload the photo here, or paste an https link from: ${ALLOWED_PHOTO_HOSTS.join(', ')}`)
       return
     }
 
@@ -232,20 +233,15 @@ export default function TestimonialsManager({ coach, isDemo = false }: Props) {
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>Athlete Photo URL <span style={{ color: 'var(--text-2)', fontWeight: 400 }}>(optional)</span></label>
-            <input
-              style={inputStyle}
-              maxLength={1000}
-              placeholder="https://static.wixstatic.com/…"
-              value={form.photo}
-              onChange={e => setForm(f => ({ ...f, photo: e.target.value }))}
-            />
-            <p style={{ color: 'var(--text-3)', fontSize: '.65rem', marginTop: '.35rem', lineHeight: 1.5 }}>
-              Must be hosted on {ALLOWED_PHOTO_HOSTS.join(', ')} — other hosts are blocked by the site's
-              security policy. Leave blank to show the athlete's initial instead.
-            </p>
-          </div>
+          <PhotoUpload
+            value={form.photo}
+            onChange={url => setForm(f => ({ ...f, photo: url }))}
+            folder="testimonials"
+            label="Athlete photo"
+            shape="circle"
+            hint={`Optional. Upload one, or paste a link hosted on ${ALLOWED_PHOTO_HOSTS.join(', ')}. Other hosts are blocked by the site's security policy. Leave it blank to show the athlete's initial instead.`}
+            isDemo={isDemo}
+          />
 
           {/* ── Page assignment ─────────────────────────────────────────── */}
           <div style={{ borderTop: '1px solid var(--surface)', paddingTop: '1.25rem' }}>

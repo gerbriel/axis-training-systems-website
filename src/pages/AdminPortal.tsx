@@ -26,7 +26,10 @@ import InsightsPanel from './admin/InsightsPanel'  // hosts Reports / Analytics 
 import SettingsPanel from './admin/SettingsPanel'  // hosts General + Users + the settings sub-tabs
 import AvailabilityManager from './coach-admin/AvailabilityManager'
 import CoachProfilesManager from './admin/CoachProfilesManager'
-import { COACHES } from '../data/coaches'
+import { COACHES, getCoachBySlug } from '../data/coaches'
+import { fetchCoachRoster } from '../lib/coachRoster'
+import type { RosterCoach } from '../lib/coachRoster'
+import type { CoachDisplay } from '../lib/coachProfiles'
 import { useRequireRole } from '../lib/useGuard'
 import { useUnreadCount } from '../lib/useUnreadCount'
 
@@ -75,6 +78,36 @@ const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'Setup',    tabs: ['invitations', 'availability', 'settings'] },
 ]
 
+/**
+ * The roster the availability picker starts with.
+ *
+ * The bundled five, so the row of buttons paints on the first frame exactly as
+ * it always has. The database answer replaces it a moment later and adds
+ * anybody provisioned since.
+ */
+const STATIC_ROSTER: RosterCoach[] = COACHES.map(c => ({
+  slug: c.slug, name: c.name, firstName: c.firstName, roleTitle: c.role,
+  photo: c.photo ?? null, email: c.email, bookable: true, source: 'static' as const,
+}))
+
+/**
+ * A roster row as the shape AvailabilityManager takes.
+ *
+ * The static entry when there is one, so the five keep their full copy, and
+ * otherwise the little the roster knows. The panel and the two it hosts read
+ * `slug` and nothing else, which is why the thin version is enough.
+ */
+function asDisplay(c: RosterCoach): CoachDisplay {
+  const staticCoach = getCoachBySlug(c.slug)
+  if (staticCoach) return staticCoach
+  return {
+    slug: c.slug, name: c.name, firstName: c.firstName,
+    email: c.email ?? '', photo: c.photo ?? undefined,
+    role: c.roleTitle ?? '', tagline: '', bio: [], coachingPhilosophy: '',
+    specialties: [], services: [], stats: [], testimonials: [],
+  }
+}
+
 function Nav({ tab, counts, unread, onSelect, onSignOut, signOutLabel }: {
   tab: Tab
   counts: PendingCounts
@@ -120,7 +153,8 @@ export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useUrlTab(TABS, 'crm')
-  const [availCoach, setAvailCoach] = useState(COACHES[0].slug)
+  const [availCoach, setAvailCoach] = useState<string>(COACHES[0].slug)
+  const [roster, setRoster] = useState<RosterCoach[]>(STATIC_ROSTER)
   const [isDemo, setIsDemo] = useState(demoParamActive)
   const [counts, setCounts] = useState<PendingCounts>(ZERO_PENDING)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -137,6 +171,17 @@ export default function AdminPortal() {
   }, [])
 
   useDemoParamSync(setIsDemo)
+
+  // Every coach, bookable or not: setting somebody's hours is how a new coach
+  // BECOMES bookable, so the one picker that must not be filtered is this one.
+  // An empty answer keeps the bundled five rather than blanking the row.
+  useEffect(() => {
+    let live = true
+    fetchCoachRoster(isDemo, { includeHidden: true })
+      .then(list => { if (live && list.length > 0) setRoster(list) })
+      .catch(() => { /* keep the static roster */ })
+    return () => { live = false }
+  }, [isDemo])
 
   // A signed-in athlete or coach reaching /admin is sent where they belong.
   // RLS already returns them nothing here; this is what turns that into a
@@ -265,7 +310,7 @@ export default function AdminPortal() {
                   wrapper here would double the inset to 4rem. Only the coach
                   picker needs its own gutter. */}
               <div className="dash-pad" style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', paddingBottom: 0 }}>
-                {COACHES.map(c => (
+                {roster.map(c => (
                   <button
                     key={c.slug}
                     onClick={() => setAvailCoach(c.slug)}
@@ -282,9 +327,13 @@ export default function AdminPortal() {
                   </button>
                 ))}
               </div>
+              {/* No non-null assertion: the roster is loaded, not compiled in,
+                  and a coach hidden between two renders would have crashed the
+                  whole tab. Falling back to the first row keeps the panel on
+                  screen instead. */}
               <AvailabilityManager
                 key={availCoach}
-                coach={COACHES.find(c => c.slug === availCoach)!}
+                coach={asDisplay(roster.find(c => c.slug === availCoach) ?? roster[0] ?? STATIC_ROSTER[0])}
                 isDemo={isDemo}
               />
               {/* Who a coach is on the public site, below when they work.

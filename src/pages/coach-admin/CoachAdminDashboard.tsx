@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { CSSProperties } from 'react'
 import type { Lead, LeadStatus } from '../../types/database'
-import type { Coach } from '../../data/coaches'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { supabase } from '../../lib/supabase'
 import { DEMO_LEADS } from '../../data/demoData'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
@@ -45,7 +45,7 @@ function EmailLink({ email, style }: { email: string; style?: CSSProperties }) {
 }
 
 interface Props {
-  coach: Coach
+  coach: CoachDisplay
   isDemo?: boolean
 }
 

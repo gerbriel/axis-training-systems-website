@@ -1,16 +1,25 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { Coach } from '../../data/coaches'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { href } from '../../utils/nav'
 import ForgotPasswordForm from '../../components/dashboard/ForgotPasswordForm'
 import { coachLoginScope } from '../../lib/auth'
 import { authMessage } from '../../lib/account'
-import { isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining } from '../../utils/sanitize'
+import {
+  isRateLimited, recordFailedAttempt, clearRateLimit, formatLockRemaining,
+  sanitizeEmail, isValidEmail,
+} from '../../utils/sanitize'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
 interface Props {
-  coach: Coach
+  /**
+   * Who the portal is for. `email` is a PREFILL and nothing more — the five
+   * bundled coaches carry theirs, a coach provisioned from the admin has none
+   * yet, and neither answer decides anything. What may be opened is
+   * `profiles.coach_slug`, checked by the caller and by every policy since 002.
+   */
+  coach: CoachDisplay
   onDemo: () => void
   sessionMismatch?: boolean
   onSignOut?: () => void
@@ -18,10 +27,13 @@ interface Props {
 
 export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSignOut }: Props) {
   const rlScope = coachLoginScope(coach.slug)
+  const [email, setEmail] = useState(coach.email)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(sessionMismatch
-    ? `This portal is for ${coach.name} only. Please sign in with ${coach.email}.`
+    ? coach.email
+      ? `This portal is for ${coach.name} only. Please sign in with ${coach.email}.`
+      : `This portal is for ${coach.name} only. Please sign in with their account.`
     : ''
   )
   const [lockRemaining, setLockRemaining] = useState(0)
@@ -42,13 +54,27 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isBlocked) return
+    const typed = sanitizeEmail(email)
+
+    /**
+     * A malformed address is not a failed attempt.
+     *
+     * The field was read-only for exactly one reason: it used to be editable
+     * over a CLIENT-SIDE comparison against the static entry, so a typo burned
+     * a lockout attempt against a check that never reached Supabase and three
+     * fat-fingered emails locked a coach out for 15 minutes. The field is back
+     * because a coach who is not in the bundle has no fixed address to fix it
+     * to — and the trap is gone with it: every attempt that is counted is one
+     * the auth server actually refused.
+     */
+    if (!typed || !isValidEmail(typed)) {
+      setError('Enter the email address for your account.')
+      return
+    }
+
     setLoading(true)
     setError('')
-    // The address is fixed to this coach — the field is read-only below. It used
-    // to be editable, and a typo in it burned a lockout attempt against a check
-    // that never reached Supabase, so three fat-fingered emails could lock a
-    // coach out of their own portal for 15 minutes.
-    const { error: err } = await supabase.auth.signInWithPassword({ email: coach.email, password })
+    const { error: err } = await supabase.auth.signInWithPassword({ email: typed, password })
     if (err) {
       const result = recordFailedAttempt(rlScope)
       if (result.blocked) {
@@ -88,15 +114,22 @@ export default function CoachAdminLogin({ coach, onDemo, sessionMismatch, onSign
         )}
 
         {forgot ? (
-          <ForgotPasswordForm defaultEmail={coach.email} lockEmail onBack={() => setForgot(false)} />
+          /* A bundled coach has one valid address and it stays locked. A coach
+             provisioned from the admin types theirs, and gets to correct it. */
+          <ForgotPasswordForm
+            defaultEmail={coach.email || email}
+            lockEmail={!!coach.email}
+            onBack={() => setForgot(false)}
+          />
         ) : (
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label className="field-label">Email</label>
+            <label className="field-label" htmlFor="coach-email">Email</label>
             <input
-              type="email" className="field" value={coach.email} readOnly
+              id="coach-email" type="email" className="field" maxLength={254}
+              value={email} onChange={e => setEmail(e.target.value)} required
+              placeholder="you@axistrainingsystems.com"
               autoComplete="username"
-              style={{ color: 'var(--text-3)', cursor: 'not-allowed' }}
             />
           </div>
           <div>

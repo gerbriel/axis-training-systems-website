@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
 import { BOOKING_STAFF_COLUMNS } from '../../types/database'
 import type { CoachSchedule, CoachAvailabilityBlock, Booking } from '../../types/database'
-import type { Coach } from '../../data/coaches'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { fmtTime, fmtDate } from '../../lib/availability'
 import { demoGetSchedules, demoAddSchedule, demoRemoveSchedule, demoGetBlocks, demoAddBlock, demoRemoveBlock } from '../../lib/demoAvailabilityStore'
 import { DEMO_BOOKINGS } from '../../data/demoData'
@@ -58,7 +58,7 @@ function ErrorBanner({ text, onDismiss }: { text: string; onDismiss: () => void 
   )
 }
 
-export default function AvailabilityManager({ coach, isDemo = false }: { coach: Coach; isDemo?: boolean }) {
+export default function AvailabilityManager({ coach, isDemo = false }: { coach: CoachDisplay; isDemo?: boolean }) {
   const useDemoStore = isDemo || !supabaseConfigured
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const [schedules, setSchedules] = useState<CoachSchedule[]>(() => useDemoStore ? demoGetSchedules(coach.slug) : [])

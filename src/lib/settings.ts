@@ -16,6 +16,7 @@
 
 import { supabase, supabaseConfigured } from './supabase'
 import { COACHES } from '../data/coaches'
+import { fetchCoachRoster } from './coachRoster'
 import { DEMO_SERVICES } from './services'
 import { sanitize, sanitizeStrict, clampInt } from '../utils/sanitize'
 
@@ -76,15 +77,25 @@ function scheduleStore(): SchedulingRow[] {
 export async function fetchScheduling(isDemo = false): Promise<SchedulingRow[]> {
   if (offline(isDemo)) return scheduleStore().map(r => ({ ...r }))
 
-  const { data, error } = await supabase
-    .from('coach_public_settings')
-    .select('coach_slug,min_lead_minutes,max_advance_days,buffer_minutes,auto_confirm')
-  if (error) return []
+  const [settings, roster] = await Promise.all([
+    supabase
+      .from('coach_public_settings')
+      .select('coach_slug,min_lead_minutes,max_advance_days,buffer_minutes,auto_confirm'),
+    fetchCoachRoster(isDemo, { includeHidden: true }).catch(() => []),
+  ])
+  if (settings.error) return []
 
-  const bySlug = new Map((data ?? []).map((r) => [(r as { coach_slug: string }).coach_slug, r as Partial<SchedulingRow>]))
+  const bySlug = new Map((settings.data ?? []).map((r) => [(r as { coach_slug: string }).coach_slug, r as Partial<SchedulingRow>]))
   // Driven by the roster, not the table: a coach with no settings row yet still
-  // appears, with the DDL defaults, so the panel can create one by saving.
-  return COACHES.map(c => {
+  // appears, with the DDL defaults, so the panel can create one by saving. The
+  // roster is the DATABASE's roster now, not the bundled five, or a coach
+  // provisioned from the admin would have no way to be given booking rules. It
+  // falls back to the five when the read answers with nothing.
+  const list = roster.length > 0
+    ? roster.map(c => ({ slug: c.slug, name: c.name }))
+    : COACHES.map(c => ({ slug: c.slug as string, name: c.name }))
+
+  return list.map(c => {
     const s = bySlug.get(c.slug)
     return {
       coach_slug: c.slug,

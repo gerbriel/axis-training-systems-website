@@ -5,9 +5,14 @@ import {
   fetchPeople, updateStatus, updateRole, hasPermission,
   roleChangeRefusal, statusChangeRefusal, countActiveAdmins,
   sortPeople, matchesSearch, personName, personInitials, waitingFor, fmtDate,
-  ROLE_LABELS, STATUS_LABELS, STATUS_COLORS, ROLE_COLORS,
+  ROLE_LABELS, STATUS_LABELS, STATUS_COLORS, ROLE_COLORS, COACH_SLUG_PATTERN,
 } from '../../lib/userManagement'
 import { fetchCoachAssignments, setCoachAssignment } from '../../lib/messagingApi'
+import { fetchCoachDirectory, provisionCoach } from '../../lib/coachRoster'
+import type { CoachDirectoryEntry } from '../../lib/coachRoster'
+import { sendInvitation, revokeInvitation } from '../../lib/invitations'
+import { usePermissions } from '../../lib/usePermissions'
+import { DEFAULT_TIME_ZONE } from '../../lib/availability'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import { COACHES } from '../../data/coaches'
@@ -22,6 +27,88 @@ const STATUSES: ProfileStatus[] = ['pending', 'active', 'suspended']
 
 /** Which button is armed. Two taps for anything that changes what a person can do. */
 type Armed = { id: string; action: 'approve' | 'decline' | 'suspend' | 'reinstate' } | null
+
+// ── Adding a coach ───────────────────────────────────────────────────────────
+
+/** `provision_coach` (036) enforces the same shape. This is the sign in front of it. */
+const SLUG_MAX = 64
+
+/** Deliberately loose. The address is checked for real by the invitation, not here. */
+const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+const slugify = (name: string) =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+/**
+ * Zones for the new-coach form. `Intl.supportedValuesOf` is the real list on
+ * every engine we support; the short list is a fallback so an older browser
+ * still gets a working select rather than an empty one. A coach changes this
+ * later from their own calendar screen, so the default is what matters most.
+ */
+const FALLBACK_ZONES = [
+  'America/Los_Angeles', 'America/Denver', 'America/Phoenix', 'America/Chicago',
+  'America/New_York', 'America/Anchorage', 'Pacific/Honolulu', 'UTC',
+]
+
+function timeZoneOptions(): string[] {
+  const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf
+  if (typeof supported === 'function') {
+    try {
+      const zones = supported('timeZone')
+      if (zones.length > 0) return zones
+    } catch {
+      // Older engine. Fall through to the static list.
+    }
+  }
+  return FALLBACK_ZONES
+}
+
+const ZONES = timeZoneOptions()
+
+interface CoachDraft {
+  name: string
+  firstName: string
+  email: string
+  slug: string
+  roleTitle: string
+  timeZone: string
+}
+
+const blankCoach = (): CoachDraft => ({
+  name: '', firstName: '', email: '', slug: '', roleTitle: '', timeZone: DEFAULT_TIME_ZONE,
+})
+
+/**
+ * What is still missing before this coach is a working coach.
+ *
+ * Four registries have to agree before somebody can be booked, routed a lead,
+ * found on the website and signed in: `coach_routing`, `coach_public_settings`,
+ * `coach_profiles` and a `profiles` row carrying the slug. `provision_coach`
+ * creates the first three in one go, so a gap here means either an older coach
+ * who predates it or a piece somebody removed by hand. Each chip says which.
+ */
+function wiringGaps(entry: CoachDirectoryEntry): { label: string; hint: string }[] {
+  const gaps: { label: string; hint: string }[] = []
+  if (!entry.hasPublicProfile) {
+    gaps.push({
+      label: 'No public profile',
+      hint: 'Their page starts hidden. Fill out their profile under Set Availability, then show it.',
+    })
+  }
+  if (!entry.hasBookingSettings) {
+    gaps.push({
+      label: 'Not bookable',
+      hint: 'Booking turns everyone away until this coach has booking settings. A coach added here gets them automatically.',
+    })
+  }
+  if (!entry.hasRouting) {
+    gaps.push({
+      label: 'No lead routing',
+      hint: 'New leads and booking notices will not reach them until they are on the routing list.',
+    })
+  }
+  return gaps
+}
 
 const microLabel: React.CSSProperties = {
   color: 'var(--text)', fontSize: '.6rem', fontWeight: 900,
@@ -220,6 +307,31 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   // the editor from the one person who needs it.
   const [canManagePermissions, setCanManagePermissions] = useState(true)
 
+  // ── Coaches ────────────────────────────────────────────────────────────────
+  // A separate registry from the one above. `profiles` says who has an account;
+  // the coach directory says who has a CALENDAR, and the two only meet once an
+  // invitation is claimed. Everything in this block is about that gap.
+  const { can } = usePermissions()
+  const canManageCoaches = isDemo || isAdmin || can('manage_staff')
+
+  const [coaches, setCoaches] = useState<CoachDirectoryEntry[]>([])
+  const [coachesLoading, setCoachesLoading] = useState(true)
+  const [coachesOutage, setCoachesOutage] = useState(false)
+  const [coachError, setCoachError] = useState<string | null>(null)
+
+  const [armedInvite, setArmedInvite] = useState<string | null>(null)   // slug
+  const [armedRevoke, setArmedRevoke] = useState<number | null>(null)   // invitation id
+  const [coachBusy, setCoachBusy] = useState<string | null>(null)       // slug being written
+  const [issued, setIssued] = useState<{ slug: string; link: string; emailed: boolean } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState<CoachDraft>(blankCoach)
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [provisioning, setProvisioning] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [added, setAdded] = useState<{ slug: string; name: string; email: string } | null>(null)
+
   const load = useCallback(async () => {
     setLoading(true)
     const rows = await fetchPeople(isDemo)
@@ -229,6 +341,17 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   }, [isDemo])
 
   useEffect(() => { void load() }, [load])
+
+  const loadCoaches = useCallback(async () => {
+    if (!canManageCoaches) return
+    setCoachesLoading(true)
+    const rows = await fetchCoachDirectory(isDemo)
+    if (rows === null) { setCoachesOutage(true); setCoaches([]) }
+    else { setCoachesOutage(false); setCoaches(rows) }
+    setCoachesLoading(false)
+  }, [isDemo, canManageCoaches])
+
+  useEffect(() => { void loadCoaches() }, [loadCoaches])
 
   useEffect(() => {
     let live = true
@@ -336,6 +459,96 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   const roleDirty = !!selected && (roleDraft !== selected.role || (roleDraft === 'athlete' ? false : slugDraft.trim().toLowerCase() !== (selected.coach_slug ?? '')))
 
   /**
+   * The invitation is what turns a calendar into a person.
+   *
+   * `provision_coach` builds the routing, the booking settings and the hidden
+   * public page, and none of that lets anybody sign in. Only a claimed
+   * invitation writes `profiles.coach_slug`, which is the column every database
+   * policy actually reads. So this is the second half of adding a coach, and
+   * the row says "Not claimed" until it happens.
+   */
+  const sendInvite = async (target: { slug: string; name: string; email: string }) => {
+    if (isDemo || coachBusy) return
+    setCoachError(null)
+    setArmedInvite(null)
+    setAdded(null)
+    setCoachBusy(target.slug)
+
+    const res = await sendInvitation({
+      email: target.email,
+      role: 'coach',
+      coachSlug: target.slug,
+      firstName: target.name.trim().split(/\s+/)[0] || undefined,
+    })
+
+    setCoachBusy(null)
+    if (!res.ok) { setCoachError(res.message); return }
+
+    setIssued({ slug: target.slug, link: res.link, emailed: res.emailed })
+    setCopied(false)
+    await loadCoaches()
+  }
+
+  const revokeInvite = async (slug: string, invitationId: number) => {
+    if (isDemo || !profile || coachBusy) return
+    setCoachError(null)
+    setArmedRevoke(null)
+    setCoachBusy(slug)
+
+    const ok = await revokeInvitation(invitationId, profile.id)
+    setCoachBusy(null)
+    if (!ok) { setCoachError('Could not revoke that invitation.'); return }
+
+    if (issued?.slug === slug) setIssued(null)
+    await loadCoaches()
+  }
+
+  /**
+   * Every refusal here is also a refusal in the database. `provision_coach`
+   * checks the slug shape, the collisions and the email itself, and this only
+   * exists so somebody reads a sentence before a round trip rather than after.
+   */
+  const addCoach = async () => {
+    if (provisioning) return
+
+    const name = draft.name.trim()
+    const email = draft.email.trim().toLowerCase()
+    const slug = draft.slug.trim().toLowerCase()
+
+    if (!name) { setAddError('A name is required.'); return }
+    if (!EMAIL_SHAPE.test(email)) { setAddError('That does not look like an email address.'); return }
+    if (!COACH_SLUG_PATTERN.test(slug) || slug.length > SLUG_MAX) {
+      setAddError(`The link name needs lowercase letters, numbers and dashes, and no more than ${SLUG_MAX} characters.`)
+      return
+    }
+    const clash = coaches.find(c => c.slug === slug)
+    if (clash) { setAddError(`That link name already belongs to ${clash.name}. Pick another one.`); return }
+
+    setProvisioning(true)
+    setAddError(null)
+
+    const res = await provisionCoach({
+      slug,
+      name,
+      firstName: draft.firstName.trim() || undefined,
+      email,
+      roleTitle: draft.roleTitle.trim() || undefined,
+      timeZone: draft.timeZone,
+    }, isDemo)
+
+    setProvisioning(false)
+    if (!res.ok) { setAddError(res.message); return }
+
+    setAdding(false)
+    setDraft(blankCoach())
+    setSlugTouched(false)
+    setIssued(null)
+    setCoachError(null)
+    setAdded({ slug, name, email })
+    await loadCoaches()
+  }
+
+  /**
    * Two-tap confirm, shared by the queue and the drawer. Nothing that changes
    * what a person can do happens on a single tap — including Approve, which is
    * not destructive but is the moment a stranger becomes a member.
@@ -437,6 +650,346 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
                   )}
             </div>
           ))}
+        </div>
+      )}
+    </section>
+  )
+
+  // ── Coaches ────────────────────────────────────────────────────────────────
+
+  /**
+   * The link, once. Only the SHA-256 of a token reaches the database, so there
+   * is no query that produces this value later. Same block, same warning, as
+   * the invitations panel, because it is the same one-shot secret.
+   */
+  const issuedBlock = (link: string, emailed: boolean) => (
+    <div style={{ background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.35)', borderRadius: '.25rem', padding: '1rem' }}>
+      <p style={{ color: '#22c55e', fontSize: '.82rem', fontWeight: 700, marginBottom: '.5rem' }}>
+        {emailed ? 'Invitation sent.' : 'Invitation created, but the email did not go out.'}
+      </p>
+      <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, marginBottom: '.75rem' }}>
+        {emailed
+          ? 'They can also use this link. It is shown once and cannot be retrieved later. Sending a new invitation replaces it.'
+          : 'Send them this link yourself. It is shown once and cannot be retrieved later.'}
+      </p>
+      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <code style={{ flex: 1, minWidth: 200, background: 'var(--bg)', border: '1px solid var(--surface-2)', borderRadius: '.2rem', padding: '.5rem .6rem', color: 'var(--text-2)', fontSize: '.72rem', wordBreak: 'break-all' }}>
+          {link}
+        </code>
+        <button
+          onClick={() => { void navigator.clipboard?.writeText(link).then(() => setCopied(true)) }}
+          style={{ background: ACCENT, border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.62rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+        <button
+          onClick={() => setIssued(null)}
+          style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.6rem 1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  )
+
+  const hintLine: React.CSSProperties = {
+    color: 'var(--text-4)', fontSize: '.7rem', marginTop: '.4rem', lineHeight: 1.55,
+  }
+
+  const addForm = (
+    <div style={{ background: 'var(--surface)', border: `1px solid ${ACCENT}55`, borderLeft: `3px solid ${ACCENT}`, borderRadius: '.25rem', padding: '1.1rem', marginBottom: '.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div>
+        <p style={{ ...microLabel, marginBottom: '.4rem' }}>New coach</p>
+        <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, maxWidth: 520 }}>
+          This creates their calendar, their booking settings and a public page. It does not create a login:
+          invite them once they are on the list.
+        </p>
+      </div>
+
+      {addError && <ErrorNote message={addError} />}
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className="field-label" htmlFor="um-coach-name">Name *</label>
+          <input
+            id="um-coach-name" className="field" maxLength={120} value={draft.name}
+            placeholder="Ronnie Vallejo"
+            onChange={e => {
+              const next = e.target.value
+              setAddError(null)
+              setDraft(d => ({ ...d, name: next, slug: slugTouched ? d.slug : slugify(next) }))
+            }}
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="um-coach-first">First name</label>
+          <input
+            id="um-coach-first" className="field" maxLength={80} value={draft.firstName}
+            placeholder="Ronnie"
+            onChange={e => setDraft(d => ({ ...d, firstName: e.target.value }))}
+          />
+          <p style={hintLine}>Used in lines like &ldquo;Work With Ronnie&rdquo;.</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className="field-label" htmlFor="um-coach-email">Email *</label>
+          <input
+            id="um-coach-email" className="field" type="email" maxLength={254} value={draft.email}
+            placeholder="ronnie@axistrainingsystems.com"
+            onChange={e => { setAddError(null); setDraft(d => ({ ...d, email: e.target.value })) }}
+          />
+          <p style={hintLine}>Where leads and booking notices go, and the address their invitation is sent to.</p>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="um-coach-slug">Link name *</label>
+          <input
+            id="um-coach-slug" className="field" maxLength={SLUG_MAX} value={draft.slug}
+            placeholder="ronnie-vallejo"
+            onChange={e => {
+              setAddError(null)
+              setSlugTouched(true)
+              setDraft(d => ({ ...d, slug: slugify(e.target.value) }))
+            }}
+          />
+          <p style={hintLine}>
+            The public address and the booking routing both point at this, for example /coaches/ronnie-vallejo.
+            Lowercase letters, numbers and dashes. It cannot be changed later.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className="field-label" htmlFor="um-coach-title">Role title</label>
+          <input
+            id="um-coach-title" className="field" maxLength={120} value={draft.roleTitle}
+            placeholder="Strength Coach"
+            onChange={e => setDraft(d => ({ ...d, roleTitle: e.target.value }))}
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="um-coach-tz">Time zone</label>
+          <select
+            id="um-coach-tz" className="field" value={draft.timeZone}
+            onChange={e => setDraft(d => ({ ...d, timeZone: e.target.value }))}
+          >
+            {ZONES.map(z => <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>)}
+          </select>
+          <p style={hintLine}>They set their own hours after claiming their account. This only says which clock those hours are read in.</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => void addCoach()}
+          disabled={provisioning}
+          style={{ background: provisioning ? 'var(--border-mid)' : ACCENT, border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '.7rem 1.4rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: provisioning ? 'default' : 'pointer', fontFamily: 'inherit' }}
+        >
+          {provisioning ? 'Adding…' : 'Add coach'}
+        </button>
+        <button
+          onClick={() => { setAdding(false); setAddError(null) }}
+          style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.7rem 1.2rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+
+  /** Provisioning and inviting are two halves of one job, so the second half is offered on the spot. */
+  const addedBlock = added && (
+    <div style={{ background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.35)', borderRadius: '.25rem', padding: '1rem', marginBottom: '.75rem' }}>
+      <p style={{ color: '#22c55e', fontSize: '.82rem', fontWeight: 700, marginBottom: '.5rem' }}>
+        {added.name} is on the roster.
+      </p>
+      <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6, marginBottom: '.85rem', maxWidth: 540 }}>
+        Their page starts hidden. Fill out their profile under Set Availability, then show it.
+        They set their own hours after claiming their account.
+      </p>
+      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Send their invitation now?</span>
+        <button
+          onClick={() => void sendInvite(added)}
+          disabled={isDemo || coachBusy === added.slug}
+          style={{ background: isDemo ? 'var(--surface-2)' : ACCENT, border: 'none', color: isDemo ? 'var(--text-4)' : '#ffffff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: isDemo ? 'default' : 'pointer', fontFamily: 'inherit', opacity: coachBusy === added.slug ? 0.6 : 1 }}
+        >
+          {coachBusy === added.slug ? 'Sending…' : 'Send invitation'}
+        </button>
+        <button
+          onClick={() => setAdded(null)}
+          style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Not now
+        </button>
+      </div>
+    </div>
+  )
+
+  const coachRow = (entry: CoachDirectoryEntry) => {
+    const invite = entry.invitation && entry.invitation.state === 'pending' ? entry.invitation : null
+    const gaps = wiringGaps(entry)
+    const busy = coachBusy === entry.slug
+    const email = entry.account?.email ?? entry.email
+
+    const actions = isDemo || entry.account ? null
+      : invite ? (
+        armedRevoke === invite.id ? (
+          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Cancel their invitation?</span>
+            <button
+              onClick={() => void revokeInvite(entry.slug, invite.id)}
+              disabled={busy}
+              style={{ background: DANGER, border: 'none', color: '#ffffff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}
+            >
+              {busy ? 'Revoking…' : 'Revoke'}
+            </button>
+            <button
+              onClick={() => setArmedRevoke(null)}
+              style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Keep
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setArmedInvite(null); setArmedRevoke(invite.id) }}
+            style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+          >
+            Revoke invite
+          </button>
+        )
+      ) : email ? (
+        armedInvite === entry.slug ? (
+          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Email {entry.name} a way in?</span>
+            <button
+              onClick={() => void sendInvite({ slug: entry.slug, name: entry.name, email })}
+              disabled={busy}
+              style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}
+            >
+              {busy ? 'Sending…' : 'Send invitation'}
+            </button>
+            <button
+              onClick={() => setArmedInvite(null)}
+              style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setArmedRevoke(null); setArmedInvite(entry.slug) }}
+            style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1.2rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+          >
+            Send invite
+          </button>
+        )
+      ) : null
+
+    return (
+      <div
+        key={entry.slug}
+        style={{
+          background: 'var(--surface)', border: '1px solid var(--surface-2)',
+          borderRadius: '.25rem', padding: '.9rem 1.1rem',
+          display: 'flex', flexDirection: 'column', gap: '.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.25rem' }}>
+              <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.88rem' }}>{entry.name}</span>
+              {entry.account
+                ? <Badge text={STATUS_LABELS[entry.account.status]} color={STATUS_COLORS[entry.account.status]} />
+                : <Badge text="Not claimed" color="var(--text-4)" />}
+              {gaps.map(g => <Badge key={g.label} text={g.label} color={PENDING} />)}
+            </div>
+            <p style={{ color: 'var(--text-4)', fontSize: '.72rem', wordBreak: 'break-all' }}>
+              <span style={{ fontFamily: 'monospace' }}>/{entry.slug}</span>
+              {' · '}{email ?? 'no email on file'}
+              {invite ? ` · invited, expires ${fmtDate(invite.expires_at)}` : ''}
+            </p>
+          </div>
+          {actions}
+        </div>
+
+        {gaps.map(g => (
+          <p key={g.label} style={{ color: 'var(--text-4)', fontSize: '.7rem', lineHeight: 1.55 }}>
+            {g.label}. {g.hint}
+          </p>
+        ))}
+
+        {!entry.account && !invite && !email && (
+          <p style={{ color: 'var(--text-4)', fontSize: '.7rem', lineHeight: 1.55 }}>
+            There is no address to invite them at. Add one on the routing list under Settings, General.
+          </p>
+        )}
+
+        {issued?.slug === entry.slug && issuedBlock(issued.link, issued.emailed)}
+      </div>
+    )
+  }
+
+  const coachSection = !canManageCoaches ? null : (
+    <section style={{ marginBottom: '2.25rem' }}>
+      <p style={{ ...microLabel, marginBottom: '.4rem' }}>Roster</p>
+      <h2 style={{ ...heading, marginBottom: '.6rem' }}>Coaches</h2>
+      <p style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.1rem', maxWidth: 560 }}>
+        A calendar and an account are two different things. This is the calendar side: who exists as a coach,
+        what is still missing from their setup, and whether they have claimed a login yet.
+      </p>
+
+      {coachError && <div style={{ marginBottom: '1rem' }}><ErrorNote message={coachError} /></div>}
+
+      {isDemo && (
+        <p style={{ color: 'var(--text-4)', fontSize: '.72rem', lineHeight: 1.55, marginBottom: '1rem' }}>
+          Invitations are read only in the demo. Adding a coach works here against the sample roster.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        {!adding && (
+          <button
+            onClick={() => {
+              setAdding(true); setAddError(null); setAdded(null)
+              setSlugTouched(false); setDraft(blankCoach())
+            }}
+            style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: isMobile ? '.6rem 1.2rem' : '.5rem 1.2rem', minHeight: '2.5rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            + Add coach
+          </button>
+        )}
+        <button
+          onClick={() => void loadCoaches()}
+          style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.62rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: isMobile ? '.55rem .875rem' : '.35rem .875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          ↺ Refresh
+        </button>
+      </div>
+
+      {adding && addForm}
+      {addedBlock}
+
+      {coachesLoading ? (
+        <p style={{ color: 'var(--text-4)', fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase' }}>Loading coaches…</p>
+      ) : coachesOutage ? (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.5rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text)', fontSize: '.875rem', fontWeight: 700, marginBottom: '.3rem' }}>Couldn&rsquo;t load the coaches.</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.82rem', marginBottom: '1rem' }}>That&rsquo;s on our side. Nobody has been added, invited or removed.</p>
+          <button onClick={() => void loadCoaches()} style={{ background: 'none', border: 'none', borderBottom: '1px solid var(--text)', color: 'var(--text)', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.15em', textTransform: 'uppercase', padding: '0 0 .25rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+            Try again
+          </button>
+        </div>
+      ) : coaches.length === 0 ? (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '1.5rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>Nobody is on the coaching roster yet.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+          {coaches.map(coachRow)}
         </div>
       )}
     </section>
@@ -744,12 +1297,14 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
         {isMobile || !selected ? (
           <div style={{ maxWidth: 860 }}>
             {queue}
+            {coachSection}
             {directory}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr min(400px, 42vw)', gap: '1.5rem', alignItems: 'start' }}>
             <div style={{ minWidth: 0 }}>
               {queue}
+              {coachSection}
               {directory}
             </div>
             {/* Sticky so the person under review stays put while the directory

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { COACHES } from '../data/coaches'
-import type { Coach } from '../data/coaches'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { COACHES, getCoachBySlug } from '../data/coaches'
+import { fetchCoachRoster } from '../lib/coachRoster'
+import type { RosterCoach } from '../lib/coachRoster'
 import {
   fetchOpenSlots, slotsByDate, fmtDate, fmtTimeInZone, fmtDateInZone, tzLabel,
   fmtDuration, fmtMoney, browserTimeZone,
@@ -40,6 +41,30 @@ const STEPS: [Step, string][] = [
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 const ACCENT = '#272C84'
+
+/**
+ * Who can be booked before the roster answers.
+ *
+ * The bundled five, every one of them wired for booking since 009. The page
+ * paints this on the first frame and replaces it the moment the database
+ * answers, which is what keeps a deep link from a coach page resolving without
+ * a flash of the picker, and what keeps the picker from ever being empty.
+ */
+const STATIC_BOOKABLE: RosterCoach[] = COACHES.map(c => ({
+  slug: c.slug, name: c.name, firstName: c.firstName, roleTitle: c.role,
+  photo: c.photo ?? null, email: c.email, bookable: true, source: 'static' as const,
+}))
+
+/**
+ * The card image.
+ *
+ * `photo || ctaBg` is what this was, and the CTA background only ever mattered
+ * for a bundled coach whose headshot was missing. The roster carries one photo,
+ * so the second choice is read off the static entry when there is one.
+ */
+function cardImage(c: RosterCoach): string | undefined {
+  return c.photo ?? getCoachBySlug(c.slug)?.ctaBg
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared bits
@@ -143,7 +168,7 @@ function StepIndicator({ step }: { step: Step }) {
  */
 function SummaryRail({ service, coach, slot, viewerZone }: {
   service: BookingService | null
-  coach: Coach | null
+  coach: RosterCoach | null
   slot: TimeSlot | null
   viewerZone: string
 }) {
@@ -300,7 +325,11 @@ function ServicePicker({ services, loading, failure, selected, onSelect, onRetry
 // Step 2 — coach
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CoachPicker({ onSelect, onBack }: { onSelect: (c: Coach) => void; onBack: () => void }) {
+function CoachPicker({ coaches, onSelect, onBack }: {
+  coaches: RosterCoach[]
+  onSelect: (c: RosterCoach) => void
+  onBack: () => void
+}) {
   return (
     <div>
       <BackButton onClick={onBack} />
@@ -308,29 +337,36 @@ function CoachPicker({ onSelect, onBack }: { onSelect: (c: Coach) => void; onBac
       <Title>Choose your coach</Title>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 1, background: 'var(--surface-2)' }}>
-        {COACHES.map(c => (
-          <button
-            key={c.slug}
-            onClick={() => onSelect(c)}
-            style={{ background: 'var(--bg)', border: 'none', cursor: 'pointer', padding: 0, position: 'relative', aspectRatio: '3/4', overflow: 'hidden', display: 'block', textAlign: 'left' }}
-            onMouseEnter={e => { const img = e.currentTarget.querySelector('img'); if (img) img.style.transform = 'scale(1.05)' }}
-            onMouseLeave={e => { const img = e.currentTarget.querySelector('img'); if (img) img.style.transform = 'scale(1)' }}
-          >
-            <img
-              src={c.photo || c.ctaBg}
-              alt={c.name}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', filter: 'grayscale(20%) brightness(0.7)', transition: 'transform .4s ease' }}
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.9) 100%)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1.25rem 1rem' }}>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '.65rem', fontWeight: 700 }}>{c.firstName}</p>
-              <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1 }}>
-                {c.name.split(' ').slice(1).join(' ')}
-              </p>
-              <p style={{ color: 'rgba(255,255,255,.75)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.3rem' }}>{c.role}</p>
-            </div>
-          </button>
-        ))}
+        {coaches.map(c => {
+          const image = cardImage(c)
+          return (
+            <button
+              key={c.slug}
+              onClick={() => onSelect(c)}
+              style={{ background: 'var(--bg)', border: 'none', cursor: 'pointer', padding: 0, position: 'relative', aspectRatio: '3/4', overflow: 'hidden', display: 'block', textAlign: 'left' }}
+              onMouseEnter={e => { const img = e.currentTarget.querySelector('img'); if (img) img.style.transform = 'scale(1.05)' }}
+              onMouseLeave={e => { const img = e.currentTarget.querySelector('img'); if (img) img.style.transform = 'scale(1)' }}
+            >
+              {/* A coach who has not put a photo up yet gets the plate rather
+                  than a broken image icon on a card the size of a postcard. */}
+              {image && (
+                <img
+                  src={image}
+                  alt={c.name}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', filter: 'grayscale(20%) brightness(0.7)', transition: 'transform .4s ease' }}
+                />
+              )}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.9) 100%)' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1.25rem 1rem' }}>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '.65rem', fontWeight: 700 }}>{c.firstName}</p>
+                <p style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1 }}>
+                  {c.name.split(' ').slice(1).join(' ')}
+                </p>
+                <p style={{ color: 'rgba(255,255,255,.75)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginTop: '.3rem' }}>{c.roleTitle}</p>
+              </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -341,7 +377,7 @@ function CoachPicker({ onSelect, onBack }: { onSelect: (c: Coach) => void; onBac
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SlotPicker({ coach, service, notice, onSelect, onBack }: {
-  coach: Coach
+  coach: RosterCoach
   service: BookingService | null
   notice: string | null
   onSelect: (slot: TimeSlot) => void
@@ -584,7 +620,7 @@ function SlotPicker({ coach, service, notice, onSelect, onBack }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BookingForm({ coach, service, slot, onBack, onDone, onSlotTaken }: {
-  coach: Coach
+  coach: RosterCoach
   service: BookingService | null
   slot: TimeSlot
   onBack: () => void
@@ -715,7 +751,7 @@ function BookingForm({ coach, service, slot, onBack, onDone, onSlotTaken }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BookingConfirmation({ coach, service, slot, result }: {
-  coach: Coach
+  coach: RosterCoach
   service: BookingService | null
   slot: TimeSlot
   result: BookingCreateSuccess
@@ -887,14 +923,21 @@ export default function BookPage() {
   // state, not a reaction to something changing, and doing it in an effect
   // renders the wrong step first and then corrects it.
   const params = new URLSearchParams(window.location.search)
-  const preselectedCoach = (() => {
-    const slug = params.get('coach')
-    return slug ? COACHES.find(c => c.slug === slug) ?? null : null
-  })()
+  const coachSlugParam = params.get('coach')
   const serviceSlugParam = params.get('service')
 
   const [step, setStep]       = useState<Step>('service')
-  const [coach, setCoach]     = useState<Coach | null>(preselectedCoach)
+  // The five resolve here, synchronously, as they always have. A provisioned
+  // coach cannot: nothing about them is in the bundle, so their link is
+  // resolved against the roster below and `deepLinked` catches up with it.
+  const [coach, setCoach]     = useState<RosterCoach | null>(
+    () => (coachSlugParam ? STATIC_BOOKABLE.find(c => c.slug === coachSlugParam) ?? null : null),
+  )
+  const [deepLinked, setDeepLinked] = useState(!!coach)
+  const [roster, setRoster] = useState<RosterCoach[]>(STATIC_BOOKABLE)
+  /** Set the instant somebody picks from the grid, so a late deep link cannot
+   *  overrule a choice already made. A ref, not state: nothing renders it. */
+  const pickedRef = useRef(false)
   const [service, setService] = useState<BookingService | null>(null)
   const [slot, setSlot]       = useState<TimeSlot | null>(null)
   const [result, setResult]   = useState<BookingCreateSuccess | null>(null)
@@ -910,6 +953,38 @@ export default function BookPage() {
   useEffect(() => { trackBookingEvent('booking_page_view') }, [])
 
   /**
+   * Who is bookable, from the database.
+   *
+   * Filtered on `bookable`, which is "has a `coach_public_settings` row" and is
+   * the same switch `booking-availability` and `booking-create` answer 404 on.
+   * Listing a coach the server would refuse is worse than not listing them: the
+   * visitor picks a face and lands on an error they cannot act on.
+   *
+   * An empty or failed answer keeps the bundled five. The roster is the whole
+   * page; it does not get to be blank because a table was slow.
+   */
+  useEffect(() => {
+    let live = true
+    fetchCoachRoster()
+      .then(list => {
+        if (!live) return
+        const bookable = list.filter(c => c.bookable)
+        if (bookable.length === 0) return
+        setRoster(bookable)
+        // A link to a coach who is not in the bundle resolves here, once, and
+        // never over the top of somebody the visitor has already chosen in the
+        // moment the roster took to arrive.
+        if (!coachSlugParam || pickedRef.current) return
+        const hit = bookable.find(c => c.slug === coachSlugParam)
+        if (!hit) return
+        setCoach(hit)
+        setDeepLinked(true)
+      })
+      .catch(() => { /* keep the bundled five */ })
+    return () => { live = false }
+  }, [coachSlugParam])
+
+  /**
    * The catalog is per-coach, so it can only be loaded once a coach is known.
    * With a coach deep-linked we can load it immediately; without one we load
    * the first coach's menu to render step 1, then reload for whoever is
@@ -917,7 +992,7 @@ export default function BookPage() {
    * coach who has turned something off is caught on reload before any of it
    * reaches booking-create, which validates the pairing itself.
    */
-  const catalogCoach = coach ?? COACHES[0]
+  const catalogCoach = coach ?? roster[0] ?? STATIC_BOOKABLE[0]
 
   useEffect(() => {
     let live = true
@@ -952,15 +1027,16 @@ export default function BookPage() {
     setSlot(null)
     trackBookingEvent('service_selected', { coachSlug: coach?.slug, serviceId: s.id })
     // A deep-linked coach means the coach step is already answered.
-    setStep(preselectedCoach ? 'slot' : 'coach')
+    setStep(deepLinked ? 'slot' : 'coach')
   }
 
   const skipService = () => {
     setService(null)
-    setStep(preselectedCoach ? 'slot' : 'coach')
+    setStep(deepLinked ? 'slot' : 'coach')
   }
 
-  const selectCoach = (c: Coach) => {
+  const selectCoach = (c: RosterCoach) => {
+    pickedRef.current = true
     setCoach(c)
     setSlot(null)
     trackBookingEvent('coach_selected', { coachSlug: c.slug, serviceId: service?.id })
@@ -1011,7 +1087,7 @@ export default function BookPage() {
                   />
                 )}
                 {step === 'coach' && (
-                  <CoachPicker onSelect={selectCoach} onBack={() => setStep('service')} />
+                  <CoachPicker coaches={roster} onSelect={selectCoach} onBack={() => setStep('service')} />
                 )}
                 {step === 'slot' && coach && (
                   <SlotPicker
@@ -1019,7 +1095,7 @@ export default function BookPage() {
                     service={service}
                     notice={slotNotice}
                     onSelect={selectSlot}
-                    onBack={() => setStep(preselectedCoach ? 'service' : 'coach')}
+                    onBack={() => setStep(deepLinked ? 'service' : 'coach')}
                   />
                 )}
                 {step === 'form' && coach && slot && (

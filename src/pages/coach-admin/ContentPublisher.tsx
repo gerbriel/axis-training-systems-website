@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import DemoBanner from '../../components/dashboard/DemoBanner'
-import type { Coach } from '../../data/coaches'
+import PhotoUpload from '../../components/dashboard/PhotoUpload'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { fetchMyContent, submitContent, removeContent, updateContent } from '../../lib/contentApi'
 import type { PendingContent } from '../../data/pendingContent'
 import { isRateLimited, recordFailedAttempt, formatLockRemaining } from '../../utils/sanitize'
@@ -15,14 +16,28 @@ import {
 
 // ── Section editor types ─────────────────────────────────────────────────────
 
-type SectionType = 'paragraph' | 'heading' | 'subheading' | 'list' | 'callout' | 'week' | 'divider'
+type SectionType = 'paragraph' | 'heading' | 'subheading' | 'list' | 'callout' | 'week' | 'divider' | 'image'
+
+/** One list for the row select and the add buttons, so the two can never drift. */
+const SECTION_TYPES: { type: SectionType; label: string }[] = [
+  { type: 'paragraph',  label: '+ Paragraph'  },
+  { type: 'heading',    label: '+ Heading'    },
+  { type: 'subheading', label: '+ Subheading' },
+  { type: 'list',       label: '+ List'       },
+  { type: 'callout',    label: '+ Callout'    },
+  { type: 'week',       label: '+ Week Block' },
+  { type: 'divider',    label: '+ Divider'    },
+  { type: 'image',      label: '+ Image'      },
+]
 
 interface EditorSection {
   _id:   string
   type:  SectionType
-  text?: string
+  text?: string   // body text, and the caption on an image section
   items?: string  // newline-separated items for list/week
   label?: string  // week label
+  url?: string    // image source
+  alt?: string    // image alt text
 }
 
 function uid() { return Math.random().toString(36).slice(2, 12) }
@@ -53,10 +68,15 @@ function deserializeSections(raw: string | undefined): EditorSection[] {
   if (trimmed.startsWith('[')) {
     try {
       const parsed = JSON.parse(trimmed) as Array<{
-        type: SectionType; text?: string; items?: string[]; label?: string
+        type: SectionType; text?: string; items?: string[]; label?: string; url?: string; alt?: string
       }>
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Spread first, then normalize: naming only the keys this editor knew
+        // about meant reopening a post silently deleted everything else in it —
+        // an image section came back as an empty row, and saving made that
+        // permanent. Anything a later section type adds now survives too.
         return parsed.map(s => ({
+          ...s,
           _id:   uid(),
           type:  s.type,
           text:  s.text ?? '',
@@ -130,7 +150,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 interface Props {
-  coach: Coach
+  coach: CoachDisplay
   isDemo?: boolean
 }
 
@@ -173,6 +193,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   const [blogSubtitle, setBlogSubtitle] = useState(restored.current?.blog.subtitle ?? '')
   const [blogTags,     setBlogTags]     = useState(restored.current?.blog.tags ?? '')
   const [blogSummary,  setBlogSummary]  = useState(restored.current?.blog.summary ?? '')
+  const [blogCover,    setBlogCover]    = useState(restored.current?.blog.coverImage ?? '')
   const [blogSections, setBlogSections] = useState<EditorSection[]>(
     restored.current?.blog.sections.length ? restored.current.blog.sections : [blankSection()]
   )
@@ -207,10 +228,10 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   const currentDraft = useCallback((): ContentDraft<EditorSection> => ({
     contentType,
     editingId,
-    blog: { title: blogTitle, subtitle: blogSubtitle, tags: blogTags, summary: blogSummary, sections: blogSections },
+    blog: { title: blogTitle, subtitle: blogSubtitle, tags: blogTags, summary: blogSummary, coverImage: blogCover, sections: blogSections },
     meet: { name: meetName, date: meetDate, location: meetLocation, federation, type: meetType, note: meetNote },
     savedAt: new Date().toISOString(),
-  }), [contentType, editingId, blogTitle, blogSubtitle, blogTags, blogSummary, blogSections,
+  }), [contentType, editingId, blogTitle, blogSubtitle, blogTags, blogSummary, blogCover, blogSections,
        meetName, meetDate, meetLocation, federation, meetType, meetNote])
 
   /**
@@ -310,7 +331,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   }, [cycles, items, coach.slug])
 
   function resetBlogForm() {
-    setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary('')
+    setBlogTitle(''); setBlogSubtitle(''); setBlogTags(''); setBlogSummary(''); setBlogCover('')
     setBlogSections([blankSection()])
   }
   function resetMeetForm() {
@@ -355,6 +376,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
       setBlogSubtitle(item.subtitle ?? '')
       setBlogTags(item.tags ?? '')
       setBlogSummary(item.summary ?? '')
+      setBlogCover(item.coverImage ?? '')
       setBlogSections(deserializeSections(item.content))
     } else {
       setMeetName(item.meetName ?? '')
@@ -398,15 +420,21 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
   }
 
   function submitBlog() {
-    const hasContent = blogSections.some(s => s.type === 'divider' || (s.type === 'list' || s.type === 'week' ? (s.items ?? '').trim() : (s.text ?? '').trim()))
+    // An image section counts as content on its own — a photo with no caption is
+    // still something to publish.
+    const hasContent = blogSections.some(s => s.type === 'divider'
+      || (s.type === 'list' || s.type === 'week' ? (s.items ?? '').trim()
+        : s.type === 'image' ? (s.url ?? '').trim()
+        : (s.text ?? '').trim()))
     if (!blogTitle.trim() || !blogSummary.trim() || !hasContent) return
 
     const fields = {
-      title:    blogTitle.trim(),
-      subtitle: blogSubtitle.trim(),
-      tags:     blogTags.trim(),
-      summary:  blogSummary.trim(),
-      content:  serializeSections(blogSections),
+      title:      blogTitle.trim(),
+      subtitle:   blogSubtitle.trim(),
+      tags:       blogTags.trim(),
+      summary:    blogSummary.trim(),
+      coverImage: blogCover.trim(),
+      content:    serializeSections(blogSections),
     }
     const id = editingId
 
@@ -599,6 +627,17 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
               />
             </div>
             <div>
+              <PhotoUpload
+                value={blogCover}
+                onChange={setBlogCover}
+                folder="blog"
+                label="Cover image"
+                shape="wide"
+                isDemo={isDemo}
+                hint="The banner behind your post title. Leave it empty for a plain header."
+              />
+            </div>
+            <div>
               <label style={labelStyle}>Content <span style={{ color: 'var(--text)' }}>*</span></label>
 
               {/* ── Section List ── */}
@@ -613,7 +652,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                           onChange={e => updateSection(sec._id, { type: e.target.value as SectionType })}
                           style={{ ...inputStyle, width: 'auto', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .5rem', appearance: 'none', cursor: 'pointer', flex: 'none' }}
                         >
-                          {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(t => (
+                          {SECTION_TYPES.map(({ type: t }) => (
                             <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
                           ))}
                         </select>
@@ -658,6 +697,29 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
                           <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder={'Squat: 4×5 @ RPE 8\nBench: 5×4 @ RPE 8\nDeadlift: 4×3 @ RPE 8.5'} value={sec.items ?? ''} onChange={e => updateSection(sec._id, { items: e.target.value })} maxLength={2000} />
                         </div>
                       )}
+
+                      {/* Image — photo + alt text + caption */}
+                      {sec.type === 'image' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+                          <PhotoUpload
+                            value={sec.url ?? ''}
+                            onChange={url => updateSection(sec._id, { url })}
+                            folder="blog"
+                            label="Image"
+                            shape="wide"
+                            isDemo={isDemo}
+                            hint="Upload a photo, or paste the URL of one already online."
+                          />
+                          <div>
+                            <label style={labelStyle}>Alt text</label>
+                            <input style={inputStyle} placeholder="What the photo shows, for screen readers" value={sec.alt ?? ''} onChange={e => updateSection(sec._id, { alt: e.target.value })} maxLength={200} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Caption <span style={{ color: 'var(--text-2)', fontWeight: 400 }}>(optional)</span></label>
+                            <input style={inputStyle} placeholder="Shown under the image" value={sec.text ?? ''} onChange={e => updateSection(sec._id, { text: e.target.value })} maxLength={300} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -665,15 +727,7 @@ export default function ContentPublisher({ coach, isDemo = false }: Props) {
 
               {/* ── Add Section Buttons ── */}
               <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
-                {[
-                  { type: 'paragraph'  as SectionType, label: '+ Paragraph' },
-                  { type: 'heading'    as SectionType, label: '+ Heading'   },
-                  { type: 'subheading' as SectionType, label: '+ Subheading'},
-                  { type: 'list'       as SectionType, label: '+ List'      },
-                  { type: 'callout'    as SectionType, label: '+ Callout'   },
-                  { type: 'week'       as SectionType, label: '+ Week Block'},
-                  { type: 'divider'    as SectionType, label: '+ Divider'   },
-                ].map(({ type, label }) => (
+                {SECTION_TYPES.map(({ type, label }) => (
                   <button key={type} onClick={() => addSection(type)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.35rem .75rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.color = 'var(--chalk)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}

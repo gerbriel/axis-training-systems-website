@@ -32,18 +32,35 @@ export interface Testimonial {
   reviewedAt?: string
 }
 
-/** Athlete photos must come from a host allowed by the CSP img-src in index.html. */
+/**
+ * Athlete photos must come from a host the CSP `img-src` allows, and that list
+ * lives in TWO files that have to agree: the meta tag in `index.html` and the
+ * header in `vercel.json`. This array is the client-side mirror. A host added
+ * here and not there produces a photo the editor accepts and the browser
+ * refuses to paint.
+ *
+ * `supabase.co` covers our own Storage bucket: an uploaded photo comes back as
+ * `https://<project-ref>.supabase.co/storage/v1/object/public/site-media/...`,
+ * which is a subdomain and matched by the `endsWith` arm below.
+ */
 export const ALLOWED_PHOTO_HOSTS = [
   'static.wixstatic.com',
   'i.imgur.com',
   'googleusercontent.com',
   'fbcdn.net',
+  'supabase.co',
 ]
 
 export function isAllowedPhotoUrl(url: string): boolean {
-  if (!url.trim()) return true // optional — empty is fine
+  if (!url.trim()) return true // optional, empty is fine
   try {
     const { protocol, hostname } = new URL(url)
+    // A demo-mode upload never leaves the browser: `mediaUpload.ts` answers
+    // `URL.createObjectURL(file)`, the CSP allows `blob:`, and a blob URL has no
+    // hostname to check against the list. It is same-origin by construction and
+    // it never reaches the database, because `safeUrl()` drops every scheme but
+    // http, https and mailto on the live write path.
+    if (protocol === 'blob:') return true
     if (protocol !== 'https:') return false
     return ALLOWED_PHOTO_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`))
   } catch {

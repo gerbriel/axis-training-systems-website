@@ -3,7 +3,8 @@ import { fetchAllTestimonials, reviewTestimonial, deleteTestimonial, createTesti
 import type { Testimonial, MainStatus } from '../../data/testimonials'
 import { sanitizeText } from '../../utils/sanitize'
 import DemoBanner from '../../components/dashboard/DemoBanner'
-import { COACHES } from '../../data/coaches'
+import PhotoUpload from '../../components/dashboard/PhotoUpload'
+import { fetchCoachRoster, type RosterCoach } from '../../lib/coachRoster'
 
 /**
  * Head-coach view of every coach's testimonials.
@@ -49,6 +50,25 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
   const [actionError, setActionError] = useState('')
   const [rejectMode, setRejectMode]   = useState<Record<string, boolean>>({})
   const [rejectNotes, setRejectNotes] = useState<Record<string, string>>({})
+  const [roster, setRoster]           = useState<RosterCoach[]>([])
+
+  // Both coach pickers below follow the live roster, so a coach added from the
+  // portal can be filtered and credited here without a code change.
+  // fetchCoachRoster falls back to the static five on its own if the database
+  // does not answer, so an empty list here only means it has not landed yet.
+  const loadRoster = useCallback(async () => {
+    try {
+      const list = await fetchCoachRoster(isDemo, { includeHidden: true })
+      setRoster(list)
+      // The form seeds its coach before the roster lands. Backfill only an
+      // EMPTY selection; replacing one the person already made would move a
+      // testimonial to another coach under their cursor.
+      setForm(f => f.coachSlug ? f : { ...f, coachSlug: list[0]?.slug ?? '', coachName: list[0]?.name ?? '' })
+    }
+    catch { /* leave the pickers on what they already have */ }
+  }, [isDemo])
+
+  useEffect(() => { void loadRoster() }, [loadRoster])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -86,12 +106,14 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
   // The head coach can author or fix any coach's testimonial here. "Feature on
   // homepage" does the approval in the same step (create → request → approve),
   // so this panel is a full CRUD surface and not just a review queue.
+  // coachName rides along so an edit keeps the name it was saved with even if
+  // the roster has not landed yet, or if that coach has since left it.
   type FormState = {
-    coachSlug: string; athlete: string; result: string; quote: string
+    coachSlug: string; coachName: string; athlete: string; result: string; quote: string
     photo: string; showOnCoach: boolean; featureHome: boolean
   }
   const BLANK: FormState = {
-    coachSlug: COACHES[0].slug, athlete: '', result: '', quote: '',
+    coachSlug: '', coachName: '', athlete: '', result: '', quote: '',
     photo: '', showOnCoach: true, featureHome: false,
   }
   const [editingId, setEditingId] = useState<string | null>(null) // null when adding
@@ -99,11 +121,17 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
   const [form, setForm]           = useState<FormState>(BLANK)
   const [saving, setSaving]       = useState(false)
 
-  const openCreate = () => { setEditingId(null); setForm(BLANK); setFormOpen(true); setActionError('') }
+  // A new one starts on the first coach in the roster, the way it used to start
+  // on the first coach in the static array.
+  const openCreate = () => {
+    setEditingId(null)
+    setForm({ ...BLANK, coachSlug: roster[0]?.slug ?? '', coachName: roster[0]?.name ?? '' })
+    setFormOpen(true); setActionError('')
+  }
   const openEdit = (t: Testimonial) => {
     setEditingId(t.id)
     setForm({
-      coachSlug: t.coachSlug, athlete: t.athlete, result: t.result ?? '',
+      coachSlug: t.coachSlug, coachName: t.coachName, athlete: t.athlete, result: t.result ?? '',
       quote: t.quote, photo: t.photo ?? '', showOnCoach: t.showOnCoach,
       featureHome: t.mainStatus === 'approved' || t.mainStatus === 'pending',
     })
@@ -116,8 +144,12 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
       setActionError('Athlete name and quote are both required.')
       return
     }
-    const coach = COACHES.find(c => c.slug === form.coachSlug)
-    const coachName = coach?.name ?? form.coachSlug
+    if (!form.coachSlug) {
+      setActionError('Pick the coach this testimonial belongs to.')
+      return
+    }
+    const coach = roster.find(c => c.slug === form.coachSlug)
+    const coachName = coach?.name ?? (form.coachName || form.coachSlug)
     const input = {
       coachSlug: form.coachSlug, coachName,
       quote: form.quote, athlete: form.athlete, result: form.result,
@@ -179,7 +211,7 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
           style={{ ...inp, width: 'auto', fontSize: '.65rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.45rem .7rem', appearance: 'none', cursor: 'pointer' }}
         >
           <option value="all">All coaches</option>
-          {COACHES.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+          {roster.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
         </select>
 
         <button
@@ -205,7 +237,12 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
             <label style={{ display: 'block' }}>
               <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Coach</span>
               <select value={form.coachSlug} onChange={e => setForm(f => ({ ...f, coachSlug: e.target.value }))} style={{ ...inp, appearance: 'none', cursor: 'pointer' }}>
-                {COACHES.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                {roster.length === 0 && <option value="">Loading coaches…</option>}
+                {roster.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                {/* A testimonial saved against a coach who is no longer on the roster keeps its own row rather than silently changing hands. */}
+                {form.coachSlug !== '' && !roster.some(c => c.slug === form.coachSlug) && (
+                  <option value={form.coachSlug}>{form.coachName || form.coachSlug}</option>
+                )}
               </select>
             </label>
             <div style={{ display: 'flex', gap: '.85rem', flexWrap: 'wrap' }}>
@@ -222,10 +259,15 @@ export default function TestimonialsPanel({ isDemo = false }: { isDemo?: boolean
               <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Quote</span>
               <textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} maxLength={1500} value={form.quote} onChange={e => setForm(f => ({ ...f, quote: e.target.value }))} placeholder="What the athlete said…" />
             </label>
-            <label style={{ display: 'block' }}>
-              <span style={{ color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', display: 'block', marginBottom: '.35rem' }}>Photo URL <span style={{ textTransform: 'none', fontWeight: 400 }}>(optional)</span></span>
-              <input style={inp} maxLength={1000} value={form.photo} onChange={e => setForm(f => ({ ...f, photo: e.target.value }))} placeholder="https://…" />
-            </label>
+            <PhotoUpload
+              value={form.photo}
+              onChange={url => setForm(f => ({ ...f, photo: url }))}
+              folder="testimonials"
+              label="Athlete photo"
+              shape="circle"
+              hint="Optional. With no photo the card shows the athlete's initial."
+              isDemo={isDemo}
+            />
             <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', color: 'var(--text-2)', fontSize: '.8rem' }}>
                 <input type="checkbox" checked={form.showOnCoach} onChange={e => setForm(f => ({ ...f, showOnCoach: e.target.checked }))} />

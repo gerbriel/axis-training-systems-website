@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getPostBySlug, BlogSection } from '../data/blog'
 import type { BlogPost } from '../data/blog'
 import { href } from '../utils/nav'
+import { safeUrl } from '../utils/sanitize'
 import { fetchApprovedPosts } from '../lib/contentApi'
 import { supabaseConfigured } from '../lib/supabase'
 import type { PendingContent } from '../data/pendingContent'
@@ -30,6 +31,9 @@ function pendingToPost(p: PendingContent): BlogPost {
     coachSlug: p.coachSlug,
     coachName: p.coachName,
     tags: (p.tags ?? '').split(',').map(t => t.trim()).filter(Boolean),
+    // The hero image. Until now only the static post could have one, so a post
+    // written in the admin panel lost its banner the moment it was published.
+    coverImage: p.coverImage,
     summary: p.summary ?? '',
     content: parseContent(p.content),
   }
@@ -86,6 +90,28 @@ function renderSection(s: BlogSection, i: number) {
           {s.text}
         </blockquote>
       )
+    case 'image': {
+      // safeUrl, not the raw value: the section JSON is stored as an opaque blob
+      // (contentApi caps it but does not parse it), so this string has never been
+      // checked before it reaches an `src`.
+      const src = safeUrl(s.url)
+      if (!src) return null
+      return (
+        <figure key={i} style={{ margin: '2rem 0' }}>
+          <img
+            src={src}
+            alt={s.alt ?? ''}
+            loading="lazy"
+            style={{ display: 'block', maxWidth: '100%', height: 'auto', borderRadius: '.25rem', border: '1px solid var(--border)' }}
+          />
+          {s.text && (
+            <figcaption style={{ color: 'var(--text-3)', fontSize: '.75rem', lineHeight: 1.6, marginTop: '.6rem' }}>
+              {s.text}
+            </figcaption>
+          )}
+        </figure>
+      )
+    }
     case 'divider':
       return <div key={i} style={{ height: 1, background: 'var(--surface)', margin: '2.5rem 0' }} />
     default:
@@ -138,6 +164,10 @@ export default function BlogPostPage({ slug }: Props) {
     )
   }
 
+  // A cover now arrives from the database as well as from the static post, so
+  // the scheme is checked once here rather than trusted at the `src`.
+  const cover = safeUrl(post.coverImage)
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       {/* Mini nav */}
@@ -158,9 +188,9 @@ export default function BlogPostPage({ slug }: Props) {
 
       {/* Hero */}
       <section style={{ padding: '5rem 2rem 3rem', borderBottom: '1px solid var(--surface)', position: 'relative', overflow: 'hidden' }}>
-        {post.coverImage && (
+        {cover && (
           <>
-            <img src={post.coverImage} alt="" aria-hidden="true"
+            <img src={cover} alt="" aria-hidden="true"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', filter: 'grayscale(60%) brightness(0.2)', pointerEvents: 'none' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.92))', pointerEvents: 'none' }} />

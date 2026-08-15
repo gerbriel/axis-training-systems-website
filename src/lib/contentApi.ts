@@ -12,7 +12,7 @@
 
 import { supabase, supabaseConfigured } from './supabase'
 import type { PendingContent, ContentStatus } from '../data/pendingContent'
-import { sanitizeText } from '../utils/sanitize'
+import { sanitizeText, safeUrl } from '../utils/sanitize'
 import { DEMO_CONTENT } from '../data/demoData'
 import { POSTS } from '../data/blog'
 
@@ -80,6 +80,10 @@ function rowToContent(row: Record<string, unknown>): PendingContent {
     subtitle:      str(row.subtitle, 300),
     tags:          str(row.tags, 200),
     summary:       str(row.summary, 1000),
+    // safeUrl rather than str: this one is rendered as an `src`, and sanitizeText
+    // would happily mangle a legitimate query string (`?on…=` matches its event-
+    // handler strip) while letting a `javascript:` scheme through.
+    coverImage:    safeUrl(row.cover_image),
     content:       str(row.content, 8000),
     // Meet
     meetName:      str(row.meet_name, 200),
@@ -105,6 +109,7 @@ function rowToContent(row: Record<string, unknown>): PendingContent {
  */
 const FIELD_MAX = {
   slug: 120, title: 200, subtitle: 300, tags: 200, summary: 1000, content: 8000,
+  coverImage: 1000,
   meetName: 200, meetDate: 100, meetLocation: 200, federation: 50, meetNote: 300,
   rejectionNote: 500,
 } as const
@@ -126,7 +131,19 @@ const cap = (v: string | undefined, max: number): string | null =>
 const capRaw = (v: string | undefined, max: number): string | null =>
   typeof v === 'string' && v ? v.slice(0, max) : null
 
+// The 035 column check. safeUrl is a scheme gate and passes strings this
+// constraint refuses (a scheme-less host, mailto:, #anchor, a lone /), and a
+// value that fails the CHECK takes the WHOLE insert down with a raw 23514.
+// Anything that does not match becomes "no cover" instead.
+const COVER_SHAPE = /^(https?:\/\/|\/[^/])/i
+
+const shapedCover = (v: string | undefined): string | undefined => {
+  const s = safeUrl(v)?.slice(0, FIELD_MAX.coverImage)
+  return s && COVER_SHAPE.test(s) ? s : undefined
+}
+
 function contentToRow(item: Omit<PendingContent, 'id' | 'submittedAt' | 'status'>) {
+  const cover = shapedCover(item.coverImage)
   return {
     type:          item.type,
     coach_slug:    item.coachSlug,
@@ -138,6 +155,11 @@ function contentToRow(item: Omit<PendingContent, 'id' | 'submittedAt' | 'status'
     tags:          cap(item.tags,         FIELD_MAX.tags),
     summary:       cap(item.summary,      FIELD_MAX.summary),
     content:       capRaw(item.content,   FIELD_MAX.content),
+    // Named only when there is one to store. An INSERT that lists a column the
+    // role holds no grant on — or that a not-yet-applied migration has not
+    // created — is refused outright, and a post with no cover has no business
+    // depending on either.
+    ...(cover ? { cover_image: cover } : {}),
     // Meet
     meet_name:     cap(item.meetName,     FIELD_MAX.meetName),
     meet_date:     cap(item.meetDate,     FIELD_MAX.meetDate),
@@ -286,6 +308,9 @@ export async function updateContent(
   if (patch.tags        !== undefined) row.tags          = cap(patch.tags,         FIELD_MAX.tags)
   if (patch.summary     !== undefined) row.summary       = cap(patch.summary,      FIELD_MAX.summary)
   if (patch.content     !== undefined) row.content       = capRaw(patch.content,   FIELD_MAX.content)
+  // Sent whenever the editor names it, including as null: clearing a cover is a
+  // real edit, and it is the only way to take a banner back down.
+  if (patch.coverImage  !== undefined) row.cover_image   = shapedCover(patch.coverImage) ?? null
   if (patch.meetName    !== undefined) row.meet_name     = cap(patch.meetName,     FIELD_MAX.meetName)
   if (patch.meetDate    !== undefined) row.meet_date     = cap(patch.meetDate,     FIELD_MAX.meetDate)
   if (patch.meetLocation !== undefined) row.meet_location = cap(patch.meetLocation, FIELD_MAX.meetLocation)

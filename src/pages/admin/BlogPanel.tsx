@@ -3,14 +3,20 @@ import { fetchAllContent, reviewContent, removeContent, submitContent, updateCon
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import PhotoUpload from '../../components/dashboard/PhotoUpload'
 import ImportSiteContent from '../../components/admin/ImportSiteContent'
+import { safeUrl } from '../../utils/sanitize'
 
 const STATUS_COLORS: Record<ContentStatus, string> = { pending: '#272C84', approved: '#22c55e', rejected: '#c8102e' }
 const lbl: React.CSSProperties = { color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }
 const inp: React.CSSProperties = { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem', color: 'var(--text)', fontSize: '.875rem', fontWeight: 500, padding: '.65rem .875rem', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
 
-type SectionType = 'paragraph' | 'heading' | 'subheading' | 'list' | 'callout' | 'week' | 'divider'
-interface EditorSection { _id: string; type: SectionType; text?: string; items?: string; label?: string }
+type SectionType = 'paragraph' | 'heading' | 'subheading' | 'list' | 'callout' | 'week' | 'divider' | 'image'
+/** One list, used by both the per-row type select and the add buttons, so a new
+ *  section type can never be addable but unselectable (or the reverse). */
+const SECTION_TYPES: SectionType[] = ['paragraph', 'heading', 'subheading', 'list', 'callout', 'week', 'divider', 'image']
+// `text` doubles as the caption on an image section, matching BlogSection.
+interface EditorSection { _id: string; type: SectionType; text?: string; items?: string; label?: string; url?: string; alt?: string }
 function uid() { return Math.random().toString(36).slice(2, 12) }
 function defaultSections(): EditorSection[] { return [{ _id: uid(), type: 'paragraph', text: '' }] }
 
@@ -28,13 +34,17 @@ function deserializeSections(raw: string | undefined): EditorSection[] {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsed = JSON.parse(trimmed) as any[]
-      return parsed.map((s: any) => ({ _id: uid(), type: s.type as SectionType, text: s.text, items: Array.isArray(s.items) ? s.items.join('\n') : s.items, label: s.label }))
+      // Spread first, then override: the old version named the four keys it knew
+      // about, so opening a post with an image section and saving it stripped
+      // that section's url and alt back out. Anything a future section type adds
+      // now survives the round trip too.
+      return parsed.map((s: any) => ({ ...s, _id: uid(), type: s.type as SectionType, items: Array.isArray(s.items) ? s.items.join('\n') : s.items }))
     } catch { /* fallthrough */ }
   }
   return raw.split('\n\n').filter(Boolean).map(text => ({ _id: uid(), type: 'paragraph' as SectionType, text }))
 }
 
-function SectionEditor({ sections, onChange }: { sections: EditorSection[]; onChange: (s: EditorSection[]) => void }) {
+function SectionEditor({ sections, onChange, isDemo = false }: { sections: EditorSection[]; onChange: (s: EditorSection[]) => void; isDemo?: boolean }) {
   const add = (type: SectionType) => onChange([...sections, { _id: uid(), type, text: '', items: '', label: '' }])
   const upd = (id: string, patch: Partial<EditorSection>) => onChange(sections.map(s => s._id === id ? { ...s, ...patch } : s))
   const del = (id: string) => onChange(sections.filter(s => s._id !== id))
@@ -51,7 +61,7 @@ function SectionEditor({ sections, onChange }: { sections: EditorSection[]; onCh
             <div key={sec._id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.2rem', padding: '.75rem' }}>
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', marginBottom: sec.type === 'divider' ? 0 : '.5rem', flexWrap: 'wrap' }}>
                 <select value={sec.type} onChange={e => upd(sec._id, { type: e.target.value as SectionType })} style={{ ...inp, width: 'auto', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.3rem .5rem', appearance: 'none', cursor: 'pointer', flex: 'none' }}>
-                  {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+                  {SECTION_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
                 </select>
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '.3rem' }}>
                   <button onClick={() => mov(sec._id, -1)} disabled={idx===0} style={{ background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.65rem',padding:'.2rem .5rem',borderRadius:'.15rem',cursor:idx===0?'default':'pointer',opacity:idx===0?0.3:1,fontFamily:'inherit' }}>↑</button>
@@ -65,12 +75,19 @@ function SectionEditor({ sections, onChange }: { sections: EditorSection[]; onCh
               {sec.type==='callout' && <textarea style={{...inp,minHeight:80,resize:'vertical'}} placeholder="Callout text" value={sec.text??''} onChange={e=>upd(sec._id,{text:e.target.value})} maxLength={1000}/>}
               {sec.type==='list' && <><p style={{color:'var(--steel)',fontSize:'.6rem',marginBottom:'.35rem'}}>One bullet item per line</p><textarea style={{...inp,minHeight:100,resize:'vertical'}} placeholder="Item one" value={sec.items??''} onChange={e=>upd(sec._id,{items:e.target.value})} maxLength={4000}/></>}
               {sec.type==='week' && <div style={{display:'flex',flexDirection:'column',gap:'.5rem'}}><input style={inp} placeholder="Week label" value={sec.label??''} onChange={e=>upd(sec._id,{label:e.target.value})} maxLength={100}/><textarea style={{...inp,minHeight:80,resize:'vertical'}} placeholder="Squat: 4x5 @ RPE 8" value={sec.items??''} onChange={e=>upd(sec._id,{items:e.target.value})} maxLength={2000}/></div>}
+              {sec.type==='image' && (
+                <div style={{display:'flex',flexDirection:'column',gap:'.6rem'}}>
+                  <PhotoUpload value={sec.url??''} onChange={url=>upd(sec._id,{url})} folder="blog" label="Image" shape="wide" isDemo={isDemo} hint="Upload a photo, or paste the URL of one already online." />
+                  <div><label style={lbl}>Alt text</label><input style={inp} placeholder="What the photo shows, for screen readers" value={sec.alt??''} onChange={e=>upd(sec._id,{alt:e.target.value})} maxLength={200}/></div>
+                  <div><label style={lbl}>Caption (optional)</label><input style={inp} placeholder="Shown under the image" value={sec.text??''} onChange={e=>upd(sec._id,{text:e.target.value})} maxLength={300}/></div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
       <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
-        {(['paragraph','heading','subheading','list','callout','week','divider'] as SectionType[]).map(type=>(
+        {SECTION_TYPES.map(type=>(
           <button key={type} onClick={()=>add(type)} style={{background:'transparent',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',padding:'.3rem .7rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}
             onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--text-dim)';(e.currentTarget as HTMLButtonElement).style.color='var(--chalk)'}}
             onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--text-dim)'}}>
@@ -98,6 +115,7 @@ function BlogPreview({ content }: { content: string }) {
             if(s.type==='callout') return <blockquote key={i} style={{borderLeft:'3px solid #c8102e',paddingLeft:'.875rem',color:'var(--text-3)',fontSize:'.875rem',fontWeight:600,lineHeight:1.7}}>{s.text}</blockquote>
             if(s.type==='list') return <ul key={i} style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.3rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{display:'flex',gap:'.5rem',color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.6}}><span style={{color:'#c8102e',flexShrink:0}}>·</span>{item}</li>)}</ul>
             if(s.type==='week') return <div key={i} style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'.2rem',padding:'.875rem 1rem'}}><p style={{color:'var(--text)',fontWeight:700,fontSize:'.75rem',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'.5rem'}}>{s.label}</p><ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'.25rem'}}>{(Array.isArray(s.items)?s.items:[]).map((item:string,j:number)=><li key={j} style={{color:'var(--text-4)',fontSize:'.8rem',display:'flex',gap:'.5rem'}}><span style={{color:'#c8102e'}}>·</span>{item}</li>)}</ul></div>
+            if(s.type==='image') { const src = safeUrl(s.url); return src ? <figure key={i} style={{margin:0}}><img src={src} alt={s.alt??''} style={{display:'block',maxWidth:'100%',height:'auto',borderRadius:'.2rem',border:'1px solid var(--border)'}}/>{s.text && <figcaption style={{color:'var(--steel)',fontSize:'.7rem',marginTop:'.35rem'}}>{s.text}</figcaption>}</figure> : null }
             return null
           })}
         </div>
@@ -107,9 +125,9 @@ function BlogPreview({ content }: { content: string }) {
   return <>{(content??'').split('\n\n').filter(Boolean).map((p,i)=><p key={i} style={{color:'var(--text-3)',fontSize:'.825rem',lineHeight:1.65,marginBottom:'.5rem'}}>{p}</p>)}</>
 }
 
-interface BlogForm { title:string; slug:string; subtitle:string; tags:string; summary:string; sections:EditorSection[] }
-const emptyBlog = (): BlogForm => ({ title:'', slug:'', subtitle:'', tags:'', summary:'', sections:defaultSections() })
-const itemToBlog = (item: PendingContent): BlogForm => ({ title:item.title??'', slug:item.slug??'', subtitle:item.subtitle??'', tags:item.tags??'', summary:item.summary??'', sections:deserializeSections(item.content) })
+interface BlogForm { title:string; slug:string; subtitle:string; tags:string; summary:string; coverImage:string; sections:EditorSection[] }
+const emptyBlog = (): BlogForm => ({ title:'', slug:'', subtitle:'', tags:'', summary:'', coverImage:'', sections:defaultSections() })
+const itemToBlog = (item: PendingContent): BlogForm => ({ title:item.title??'', slug:item.slug??'', subtitle:item.subtitle??'', tags:item.tags??'', summary:item.summary??'', coverImage:item.coverImage??'', sections:deserializeSections(item.content) })
 
 type FilterStatus = 'all' | 'pending' | 'reviewed'
 type Mode = 'list' | 'create' | 'edit'
@@ -147,7 +165,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
   const saveCreate = async () => {
     setSaving(true); setActionError(null)
     try {
-      const item = await submitContent({ type:'blog', coachSlug:'admin', coachName:'Axis Admin', title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo)
+      const item = await submitContent({ type:'blog', coachSlug:'admin', coachName:'Axis Admin', title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), coverImage:blog.coverImage.trim(), content:serializeSections(blog.sections) }, isDemo)
       await updateContent(item.id, { status:'approved', reviewedAt:new Date().toISOString() }, isDemo)
       setMode('list'); setFilterStatus('reviewed'); await refresh()
     } catch(e) { setActionError(e instanceof Error?e.message:'Save failed') }
@@ -157,14 +175,16 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
   const saveEdit = async () => {
     if (!editItem) return
     setSaving(true); setActionError(null)
-    try { await updateContent(editItem.id, { title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), content:serializeSections(blog.sections) }, isDemo); setMode('list'); setEditItem(null); await refresh() }
+    try { await updateContent(editItem.id, { title:blog.title.trim(), slug:blog.slug.trim(), subtitle:blog.subtitle.trim(), tags:blog.tags.trim(), summary:blog.summary.trim(), coverImage:blog.coverImage.trim(), content:serializeSections(blog.sections) }, isDemo); setMode('list'); setEditItem(null); await refresh() }
     catch(e) { setActionError(e instanceof Error?e.message:'Save failed') }
     finally { setSaving(false) }
   }
 
   const filtered = items.filter(c => filterStatus==='all' ? true : filterStatus==='pending' ? c.status==='pending' : c.status!=='pending').sort((a,b) => b.submittedAt.localeCompare(a.submittedAt))
   const pendingCount = items.filter(c=>c.status==='pending').length
-  const blogValid = blog.title.trim() && blog.summary.trim() && blog.sections.some(s => s.type==='divider' || (s.type==='list'||s.type==='week' ? (s.items??'').trim() : (s.text??'').trim()))
+  // An image section counts as content on its own: a photo essay with no caption
+  // is still a post, and requiring text to publish one would be a lie.
+  const blogValid = blog.title.trim() && blog.summary.trim() && blog.sections.some(s => s.type==='divider' || (s.type==='list'||s.type==='week' ? (s.items??'').trim() : s.type==='image' ? (s.url??'').trim() : (s.text??'').trim()))
 
   return (
     <div style={{ padding:'2rem', maxWidth:960 }}>
@@ -203,7 +223,8 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
               <div><label style={lbl}>Subtitle</label><input style={inp} maxLength={300} placeholder="One-line description" value={blog.subtitle} onChange={e=>setBlog(b=>({...b,subtitle:e.target.value}))}/></div>
               <div><label style={lbl}>Tags (comma-separated)</label><input style={inp} maxLength={200} placeholder="Meet Recap, USAPL, Case Study" value={blog.tags} onChange={e=>setBlog(b=>({...b,tags:e.target.value}))}/></div>
               <div><label style={lbl}>Summary *</label><textarea style={{...inp,minHeight:80,resize:'vertical'}} maxLength={1000} placeholder="2-3 sentence summary" value={blog.summary} onChange={e=>setBlog(b=>({...b,summary:e.target.value}))}/></div>
-              <div><label style={{...lbl,marginBottom:'.75rem'}}>Content *</label><SectionEditor sections={blog.sections} onChange={sections=>setBlog(b=>({...b,sections}))}/></div>
+              <div><PhotoUpload value={blog.coverImage} onChange={url=>setBlog(b=>({...b,coverImage:url}))} folder="blog" label="Cover image" shape="wide" isDemo={isDemo} hint="The banner behind the post title. Leave it empty for a plain header." /></div>
+              <div><label style={{...lbl,marginBottom:'.75rem'}}>Content *</label><SectionEditor sections={blog.sections} onChange={sections=>setBlog(b=>({...b,sections}))} isDemo={isDemo}/></div>
             </div>
           </div>
           <div style={{display:'flex',gap:'.75rem',marginTop:'1.5rem'}}>

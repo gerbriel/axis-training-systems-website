@@ -18,6 +18,7 @@ export interface PendingContent {
   subtitle?: string
   tags?: string          // comma-separated
   summary?: string
+  coverImage?: string    // hero banner URL for the post page
   content?: string       // paragraphs separated by \n\n
   // Meet fields
   meetName?: string

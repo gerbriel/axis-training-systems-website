@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
-import type { Coach } from '../../data/coaches'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { fmtDuration, fmtMoney } from '../../lib/availability'
 import { DEMO_SERVICES } from '../../lib/services'
 import DemoBanner from '../../components/dashboard/DemoBanner'
@@ -92,7 +92,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: Coach; isDemo?: boolean }) {
+export default function BookingPolicyPanel({ coach, isDemo = false }: { coach: CoachDisplay; isDemo?: boolean }) {
   const readOnly = isDemo || !supabaseConfigured
 
   const [services, setServices] = useState<ServiceRow[]>([])

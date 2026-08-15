@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { usePermissions } from '../../lib/usePermissions'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import PhotoUpload from '../../components/dashboard/PhotoUpload'
 import {
   fetchAllCoachProfiles, saveCoachProfile, deleteCoachProfile,
   setCoachVisibility, reorderCoach,
@@ -423,19 +424,27 @@ export default function CoachProfilesManager({ isDemo = false }: { isDemo?: bool
             </button>
           </div>
 
-          <div>
-            <label style={microLabel} htmlFor="cp-photo">Photo URL</label>
-            <input id="cp-photo" style={inputStyle} value={f.photoUrl}
-              onChange={e => patch({ photoUrl: e.target.value })} placeholder="https://..." />
-            <p style={hintStyle}>The headshot on the roster card and the coach page.</p>
-          </div>
+          <PhotoUpload
+            value={f.photoUrl}
+            onChange={url => patch({ photoUrl: url })}
+            folder="coaches"
+            label="Photo"
+            shape="circle"
+            hint="The headshot on the roster card and the coach page."
+            isDemo={isDemo}
+            disabled={saving}
+          />
 
-          <div>
-            <label style={microLabel} htmlFor="cp-bg">Background photo URL</label>
-            <input id="cp-bg" style={inputStyle} value={f.ctaBgUrl}
-              onChange={e => patch({ ctaBgUrl: e.target.value })} placeholder="https://..." />
-            <p style={hintStyle}>Sits behind the closing call to action. Also stands in for the headshot when there is none.</p>
-          </div>
+          <PhotoUpload
+            value={f.ctaBgUrl}
+            onChange={url => patch({ ctaBgUrl: url })}
+            folder="coaches"
+            label="Background photo"
+            shape="wide"
+            hint="Sits behind the closing call to action. Also stands in for the headshot when there is none."
+            isDemo={isDemo}
+            disabled={saving}
+          />
 
           <div>
             <label style={microLabel} htmlFor="cp-book">Book a call URL</label>

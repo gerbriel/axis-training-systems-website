@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Coach } from '../../data/coaches'
+import type { CoachDisplay } from '../../lib/coachProfiles'
 import { supabaseConfigured } from '../../lib/supabase'
 import { DEFAULT_TIME_ZONE } from '../../lib/availability'
 import { browserTimeZone } from '../../lib/timezone'
@@ -68,7 +68,7 @@ type Banner = { kind: 'success' | 'error'; text: string }
 type Busy   = 'connect' | 'sync' | 'disconnect' | 'tz' | null
 
 export default function CalendarSyncPanel({ coach, isDemo = false, onTimeZoneChange }: {
-  coach: Coach
+  coach: CoachDisplay
   isDemo?: boolean
   onTimeZoneChange?: (tz: string) => void
 }) {

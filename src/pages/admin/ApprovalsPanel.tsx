@@ -3,7 +3,7 @@ import { fetchAllContent, reviewContent } from '../../lib/contentApi'
 import { fetchAllTestimonials, reviewTestimonial } from '../../lib/testimonialsApi'
 import type { PendingContent } from '../../data/pendingContent'
 import type { Testimonial } from '../../data/testimonials'
-import { sanitizeText } from '../../utils/sanitize'
+import { sanitizeText, safeUrl } from '../../utils/sanitize'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 
@@ -68,6 +68,9 @@ function BlogPreview({ content }: { content: string }) {
             if (s.type === 'callout') return <blockquote key={i} style={{ borderLeft: '3px solid #c8102e', paddingLeft: '.875rem', color: 'var(--text-3)', fontSize: '.875rem', fontWeight: 600, lineHeight: 1.7 }}>{s.text}</blockquote>
             if (s.type === 'list') return <ul key={i} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.3rem' }}>{(Array.isArray(s.items) ? s.items : []).map((item: string, j: number) => <li key={j} style={{ display: 'flex', gap: '.5rem', color: 'var(--text-3)', fontSize: '.825rem', lineHeight: 1.6 }}><span style={{ color: '#c8102e', flexShrink: 0 }}>·</span>{item}</li>)}</ul>
             if (s.type === 'week') return <div key={i} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.2rem', padding: '.875rem 1rem' }}><p style={{ color: 'var(--text)', fontWeight: 700, fontSize: '.75rem', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '.5rem' }}>{s.label}</p><ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '.25rem' }}>{(Array.isArray(s.items) ? s.items : []).map((item: string, j: number) => <li key={j} style={{ color: 'var(--text-4)', fontSize: '.8rem', display: 'flex', gap: '.5rem' }}><span style={{ color: '#c8102e' }}>·</span>{item}</li>)}</ul></div>
+            // Shown, not skipped: this preview is what a head coach approves a
+            // post on, and an unrendered image section is a decision made blind.
+            if (s.type === 'image') { const src = safeUrl(s.url); return src ? <figure key={i} style={{ margin: 0 }}><img src={src} alt={s.alt ?? ''} style={{ display: 'block', maxWidth: '100%', height: 'auto', borderRadius: '.2rem', border: '1px solid var(--border)' }} />{s.text && <figcaption style={{ color: 'var(--text-3)', fontSize: '.7rem', marginTop: '.35rem' }}>{s.text}</figcaption>}</figure> : null }
             return null
           })}
         </div>

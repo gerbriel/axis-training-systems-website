@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import DemoBanner from '../../../components/dashboard/DemoBanner'
 import { COACHES } from '../../../data/coaches'
+import { fetchCoachRoster } from '../../../lib/coachRoster'
 import { fmtDuration, fmtMoney } from '../../../lib/availability'
 import {
   fetchAdminServices, createService, updateService, deleteService,
@@ -44,6 +45,11 @@ interface Draft {
 }
 
 const EMPTY_DRAFT: Draft = { name: '', description: '', duration: '30', price: '', priceNote: '', order: '0' }
+
+/** Only what the coach picker draws. The bundled five, until the roster answers. */
+interface PickerCoach { slug: string; name: string }
+
+const STATIC_PICKER: PickerCoach[] = COACHES.map(c => ({ slug: c.slug, name: c.name }))
 
 const inputBtn = (busy: boolean): React.CSSProperties => ({
   background: busy ? 'var(--border)' : ACCENT, border: 'none', color: busy ? 'var(--text-3)' : '#fff',
@@ -99,8 +105,23 @@ export default function ServicesPanel({ isDemo = false }: { isDemo?: boolean }) 
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [coachSlug, setCoachSlug] = useState<string>(COACHES[0]?.slug ?? '')
+  const [coaches, setCoaches] = useState<PickerCoach[]>(STATIC_PICKER)
   const [offers, setOffers] = useState<Map<string, { on: boolean; override: number | null }>>(new Map())
   const [offersLoading, setOffersLoading] = useState(true)
+
+  // The whole roster, so a coach provisioned from the admin can be given a menu
+  // on the day they are added. An empty or failed answer keeps the five.
+  useEffect(() => {
+    let live = true
+    fetchCoachRoster(isDemo, { includeHidden: true })
+      .then(list => {
+        if (!live || list.length === 0) return
+        setCoaches(list.map(c => ({ slug: c.slug, name: c.name })))
+        setCoachSlug(prev => (prev && list.some(c => c.slug === prev) ? prev : list[0].slug))
+      })
+      .catch(() => { /* keep the five */ })
+    return () => { live = false }
+  }, [isDemo])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -202,7 +223,7 @@ export default function ServicesPanel({ isDemo = false }: { isDemo?: boolean }) 
 
   if (loading) return <Loading />
 
-  const coach = COACHES.find(c => c.slug === coachSlug)
+  const coach = coaches.find(c => c.slug === coachSlug)
   const activeRows = rows.filter(r => r.is_active)
 
   return (
@@ -272,7 +293,7 @@ export default function ServicesPanel({ isDemo = false }: { isDemo?: boolean }) 
       >
         <Field label="Coach" style={{ maxWidth: 280, marginBottom: '1.25rem' }}>
           <select className="field" value={coachSlug} onChange={e => setCoachSlug(e.target.value)}>
-            {COACHES.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+            {coaches.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
           </select>
         </Field>
 

@@ -76,6 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // This callback runs while the auth client holds its internal lock, and a
       // Supabase call made inside it can deadlock. Defer to a fresh tick.
+      //
+      // loading goes back up for the fetch. The session alone does not answer
+      // "who is this": a guard that settles on session-without-profile shows a
+      // just-signed-in coach the wrong-account banner for the fetch's duration.
+      setLoading(true)
       setTimeout(() => {
         if (!live.current) return
         void load(next.user.id).finally(() => { if (live.current) setLoading(false) })

@@ -24,6 +24,8 @@ export interface ContentDraft<S> {
     subtitle: string
     tags: string
     summary: string
+    /** Optional so drafts written before covers existed still load. */
+    coverImage?: string
     sections: S[]
   }
   meet: {
@@ -76,12 +78,15 @@ export function clearDraft(coachSlug: string, isDemo: boolean): void {
  * every field empty) must not produce a draft — otherwise the coach gets a
  * "draft restored" banner for work they never did.
  */
-export function draftHasContent<S extends { text?: string; items?: string; label?: string; type?: string }>(
+export function draftHasContent<S extends { text?: string; items?: string; label?: string; url?: string; type?: string }>(
   draft: ContentDraft<S>
 ): boolean {
   const b = draft.blog
   if (b.title.trim() || b.subtitle.trim() || b.tags.trim() || b.summary.trim()) return true
-  if (b.sections.some(s => (s.text ?? '').trim() || (s.items ?? '').trim() || (s.label ?? '').trim())) return true
+  // A picked cover is work too — the upload already happened, and dropping the
+  // draft would make the coach find and choose the photo a second time.
+  if ((b.coverImage ?? '').trim()) return true
+  if (b.sections.some(s => (s.text ?? '').trim() || (s.items ?? '').trim() || (s.label ?? '').trim() || (s.url ?? '').trim())) return true
 
   const m = draft.meet
   return Boolean(m.name.trim() || m.date.trim() || m.location.trim() || m.federation.trim() || m.note.trim())
