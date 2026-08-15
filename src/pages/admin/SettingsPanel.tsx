@@ -2,12 +2,11 @@ import { useState } from 'react'
 import AdminSettings from './AdminSettings'
 import UserManagementPanel from './UserManagementPanel'
 import SchedulingPanel from './settings/SchedulingPanel'
-import ResourcesPanel from './settings/ResourcesPanel'
+import ServicesPanel from './settings/ServicesPanel'
 import WaitlistRulesPanel from './settings/WaitlistRulesPanel'
 import ClientNotificationsPanel from './settings/ClientNotificationsPanel'
 import TeamPanel from './settings/TeamPanel'
 import CommissionPanel from './settings/CommissionPanel'
-import LocationsPanel from './settings/LocationsPanel'
 import ImportExportPanel from './settings/ImportExportPanel'
 import LegalPanel from './settings/LegalPanel'
 
@@ -27,19 +26,18 @@ import LegalPanel from './settings/LegalPanel'
  */
 
 type SettingsTab =
-  | 'general' | 'scheduling' | 'resources' | 'waitlist' | 'notifications'
-  | 'team' | 'users' | 'commission' | 'locations' | 'import' | 'legal'
+  | 'general' | 'scheduling' | 'services' | 'waitlist' | 'notifications'
+  | 'team' | 'users' | 'commission' | 'import' | 'legal'
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'general',       label: 'General' },
   { key: 'scheduling',    label: 'Scheduling' },
-  { key: 'resources',     label: 'Rooms & equipment' },
+  { key: 'services',      label: 'Services' },
   { key: 'waitlist',      label: 'Waitlist rules' },
   { key: 'notifications', label: 'Client notifications' },
   { key: 'team',          label: 'Team' },
   { key: 'users',         label: 'Users & permissions' },
   { key: 'commission',    label: 'Commission' },
-  { key: 'locations',     label: 'Locations' },
   { key: 'import',        label: 'Import & export' },
   { key: 'legal',         label: 'Legal' },
 ]
@@ -70,13 +68,12 @@ export default function SettingsPanel({ isDemo = false }: { isDemo?: boolean }) 
       <div style={{ minWidth: 0 }}>
         {tab === 'general'       && <AdminSettings isDemo={isDemo} />}
         {tab === 'scheduling'    && <SchedulingPanel isDemo={isDemo} />}
-        {tab === 'resources'     && <ResourcesPanel isDemo={isDemo} />}
+        {tab === 'services'      && <ServicesPanel isDemo={isDemo} />}
         {tab === 'waitlist'      && <WaitlistRulesPanel isDemo={isDemo} />}
         {tab === 'notifications' && <ClientNotificationsPanel isDemo={isDemo} />}
         {tab === 'team'          && <TeamPanel isDemo={isDemo} />}
         {tab === 'users'         && <UserManagementPanel isDemo={isDemo} />}
         {tab === 'commission'    && <CommissionPanel isDemo={isDemo} />}
-        {tab === 'locations'     && <LocationsPanel isDemo={isDemo} />}
         {tab === 'import'        && <ImportExportPanel isDemo={isDemo} />}
         {tab === 'legal'         && <LegalPanel isDemo={isDemo} />}
       </div>

@@ -16,6 +16,7 @@
 
 import { supabase, supabaseConfigured } from './supabase'
 import { COACHES } from '../data/coaches'
+import { DEMO_SERVICES } from './services'
 import { sanitize, sanitizeStrict, clampInt } from '../utils/sanitize'
 
 // ── Shared ──────────────────────────────────────────────────────────────────
@@ -118,82 +119,170 @@ export async function saveSchedulingRow(row: SchedulingRow, isDemo = false): Pro
 }
 
 // =============================================================================
-// ROOMS & EQUIPMENT — public.resources
+// SERVICES — public.booking_services + coach_booking_services (009)
 // =============================================================================
+//
+// The catalog the booking pages sell from. The admin owns the menu itself —
+// what exists, what it is called, how long it runs, what it costs — while each
+// coach owns WHICH of those services appears on their own page (the same
+// service can be on every coach's menu or only one). Both live here because
+// the admin is allowed to manage both sides; a coach edits their own side from
+// their portal (BookingPolicyPanel).
 
-export type ResourceKind = 'room' | 'equipment'
-export interface ResourceRow {
+export interface AdminServiceRow {
   id: string
+  slug: string
   name: string
-  kind: ResourceKind
-  quantity: number
+  description: string | null
+  duration_minutes: number
+  price_cents: number | null
+  price_note: string | null
   is_active: boolean
-  created_at: string
+  sort_order: number
 }
 
-const RESOURCE_COLUMNS = 'id,name,kind,quantity,is_active,created_at'
+const SERVICE_COLUMNS = 'id,slug,name,description,duration_minutes,price_cents,price_note,is_active,sort_order'
 
-let demoResources: ResourceRow[] | null = null
-function resourceStore(): ResourceRow[] {
-  if (!demoResources) demoResources = [
-    { id: 'demo-res-1', name: 'Main Platform',   kind: 'room',      quantity: 1, is_active: true,  created_at: nowIso() },
-    { id: 'demo-res-2', name: 'Coaching Room A', kind: 'room',      quantity: 1, is_active: true,  created_at: nowIso() },
-    { id: 'demo-res-3', name: 'Competition Bar', kind: 'equipment', quantity: 4, is_active: true,  created_at: nowIso() },
-    { id: 'demo-res-4', name: 'Overhead Rig',    kind: 'equipment', quantity: 2, is_active: false, created_at: nowIso() },
-  ]
-  return demoResources
+/** The slug is minted once, from the first name. Renames leave it alone — it is
+ *  the stable public handle, and changing it would orphan links and history. */
+function slugFromName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
 }
 
-export async function fetchResources(isDemo = false): Promise<ResourceRow[]> {
-  if (offline(isDemo)) return resourceStore().map(r => ({ ...r }))
+let demoServices: AdminServiceRow[] | null = null
+function servicesStore(): AdminServiceRow[] {
+  if (!demoServices) demoServices = DEMO_SERVICES.map((s, i) => ({
+    id: s.id, slug: s.slug, name: s.name, description: s.description,
+    duration_minutes: s.durationMinutes, price_cents: s.priceCents, price_note: s.priceNote,
+    is_active: true, sort_order: (i + 1) * 10,
+  }))
+  return demoServices
+}
+
+/** The whole catalog, inactive rows included — the admin needs to see what is
+ *  switched off in order to switch it back on. */
+export async function fetchAdminServices(isDemo = false): Promise<AdminServiceRow[]> {
+  if (offline(isDemo)) return servicesStore().map(r => ({ ...r }))
   const { data, error } = await supabase
-    .from('resources').select(RESOURCE_COLUMNS).order('kind').order('name')
+    .from('booking_services').select(SERVICE_COLUMNS).order('sort_order').order('name')
   if (error) return []
-  return (data ?? []) as unknown as ResourceRow[]
+  return (data ?? []) as unknown as AdminServiceRow[]
 }
 
-export async function createResource(
-  input: { name: string; kind: ResourceKind; quantity: number }, isDemo = false,
+export async function createService(
+  input: { name: string; description: string; duration_minutes: number; price_cents: number | null; price_note: string; sort_order: number },
+  isDemo = false,
 ): Promise<WriteResult> {
   const name = sanitizeStrict(input.name)
-  if (!name) return { ok: false, message: 'Give the room or piece of equipment a name.' }
-  const quantity = clampInt(input.quantity, 0, 1000, 1)
-  const kind: ResourceKind = input.kind === 'equipment' ? 'equipment' : 'room'
+  if (!name) return { ok: false, message: 'Give the service a name.' }
+  const slug = slugFromName(name)
+  if (!slug) return { ok: false, message: 'The name needs at least one letter or number.' }
+  const row = {
+    slug, name,
+    description: sanitize(input.description, 500) || null,
+    duration_minutes: clampInt(input.duration_minutes, 5, 480, 30),
+    price_cents: input.price_cents === null ? null : clampInt(input.price_cents, 0, 10_000_000, 0),
+    price_note: sanitizeStrict(input.price_note) || null,
+    sort_order: clampInt(input.sort_order, 0, 100000, 0),
+  }
   if (offline(isDemo)) {
     await beat()
-    resourceStore().push({ id: genId(), name, kind, quantity, is_active: true, created_at: nowIso() })
+    if (servicesStore().some(s => s.slug === slug)) return { ok: false, message: 'That would duplicate one that already exists.' }
+    servicesStore().push({ id: genId(), ...row, is_active: true })
     return { ok: true }
   }
-  const { error } = await supabase.from('resources').insert({ name, kind, quantity })
-  return error ? { ok: false, message: writeMessage(error, 'Could not add that.') } : { ok: true }
+  const { error } = await supabase.from('booking_services').insert(row)
+  return error ? { ok: false, message: writeMessage(error, 'Could not add that service.') } : { ok: true }
 }
 
-export async function updateResource(
-  id: string, patch: Partial<Pick<ResourceRow, 'name' | 'kind' | 'quantity' | 'is_active'>>, isDemo = false,
+export async function updateService(
+  id: string,
+  patch: Partial<Pick<AdminServiceRow, 'name' | 'description' | 'duration_minutes' | 'price_cents' | 'price_note' | 'is_active' | 'sort_order'>>,
+  isDemo = false,
 ): Promise<WriteResult> {
   const clean: Record<string, unknown> = {}
   if (patch.name !== undefined) { const n = sanitizeStrict(patch.name); if (!n) return { ok: false, message: 'A name cannot be blank.' }; clean.name = n }
-  if (patch.kind !== undefined) clean.kind = patch.kind === 'equipment' ? 'equipment' : 'room'
-  if (patch.quantity !== undefined) clean.quantity = clampInt(patch.quantity, 0, 1000, 1)
+  if (patch.description !== undefined) clean.description = sanitize(patch.description ?? '', 500) || null
+  if (patch.duration_minutes !== undefined) clean.duration_minutes = clampInt(patch.duration_minutes, 5, 480, 30)
+  if (patch.price_cents !== undefined) clean.price_cents = patch.price_cents === null ? null : clampInt(patch.price_cents, 0, 10_000_000, 0)
+  if (patch.price_note !== undefined) clean.price_note = sanitizeStrict(patch.price_note ?? '') || null
   if (patch.is_active !== undefined) clean.is_active = !!patch.is_active
+  if (patch.sort_order !== undefined) clean.sort_order = clampInt(patch.sort_order, 0, 100000, 0)
   if (offline(isDemo)) {
     await beat()
-    const store = resourceStore(); const i = store.findIndex(r => r.id === id)
-    if (i >= 0) store[i] = { ...store[i], ...(clean as Partial<ResourceRow>) }
+    const store = servicesStore(); const i = store.findIndex(s => s.id === id)
+    if (i >= 0) store[i] = { ...store[i], ...(clean as Partial<AdminServiceRow>) }
     return { ok: true }
   }
-  const { error } = await supabase.from('resources').update(clean).eq('id', id)
+  const { error } = await supabase.from('booking_services').update({ ...clean, updated_at: nowIso() }).eq('id', id)
   return error ? { ok: false, message: writeMessage(error, 'That did not save.') } : { ok: true }
 }
 
-export async function deleteResource(id: string, isDemo = false): Promise<WriteResult> {
+/**
+ * Deleting is safe for history: bookings snapshot the service name and price at
+ * booking time and their service_id goes null (009), so receipts survive. The
+ * coach offering rows cascade away with the service.
+ */
+export async function deleteService(id: string, isDemo = false): Promise<WriteResult> {
   if (offline(isDemo)) {
     await beat()
-    demoResources = resourceStore().filter(r => r.id !== id)
+    demoServices = servicesStore().filter(s => s.id !== id)
+    demoCoachOffers.forEach(m => m.delete(id))
     return { ok: true }
   }
-  const { error } = await supabase.from('resources').delete().eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'Could not remove that.') } : { ok: true }
+  const { error } = await supabase.from('booking_services').delete().eq('id', id)
+  return error ? { ok: false, message: writeMessage(error, 'Could not remove that service.') } : { ok: true }
+}
+
+// ── Who offers what ──────────────────────────────────────────────────────────
+//
+// One row per (coach, service). A coach with no row for a service simply does
+// not offer it, so the admin toggling one ON has to upsert, not update.
+
+export interface CoachOfferRow {
+  service_id: string
+  is_active: boolean
+  duration_minutes_override: number | null
+}
+
+const demoCoachOffers = new Map<string, Map<string, boolean>>()
+function coachOfferStore(coachSlug: string): Map<string, boolean> {
+  let m = demoCoachOffers.get(coachSlug)
+  if (!m) { m = new Map(servicesStore().map(s => [s.id, true])); demoCoachOffers.set(coachSlug, m) }
+  return m
+}
+
+export async function fetchCoachOffers(coachSlug: string, isDemo = false): Promise<CoachOfferRow[]> {
+  if (offline(isDemo)) {
+    return [...coachOfferStore(coachSlug)].map(([service_id, is_active]) => ({
+      service_id, is_active, duration_minutes_override: null,
+    }))
+  }
+  const { data, error } = await supabase
+    .from('coach_booking_services')
+    .select('service_id,is_active,duration_minutes_override')
+    .eq('coach_slug', coachSlug)
+  if (error) return []
+  return (data ?? []) as unknown as CoachOfferRow[]
+}
+
+export async function setCoachOffered(
+  coachSlug: string, serviceId: string, offered: boolean, isDemo = false,
+): Promise<WriteResult> {
+  if (offline(isDemo)) {
+    await beat()
+    coachOfferStore(coachSlug).set(serviceId, offered)
+    return { ok: true }
+  }
+  // The overrides are deliberately NOT sent: this control changes visibility,
+  // and an upsert that omits a column leaves whatever the row already has.
+  const { error } = await supabase
+    .from('coach_booking_services')
+    .upsert(
+      { coach_slug: coachSlug, service_id: serviceId, is_active: offered },
+      { onConflict: 'coach_slug,service_id' },
+    )
+  return error ? { ok: false, message: writeMessage(error, 'That did not save.') } : { ok: true }
 }
 
 // =============================================================================
@@ -380,101 +469,6 @@ export async function deleteCommissionRule(id: string, isDemo = false): Promise<
   if (offline(isDemo)) { await beat(); demoCommission = commissionStore().filter(r => r.id !== id); return { ok: true } }
   const { error } = await supabase.from('commission_rules').delete().eq('id', id)
   return error ? { ok: false, message: writeMessage(error, 'Could not remove that rule.') } : { ok: true }
-}
-
-// =============================================================================
-// LOCATIONS — public.locations
-// =============================================================================
-
-export interface LocationRow {
-  id: string
-  name: string
-  address: string | null
-  timezone: string
-  is_primary: boolean
-  is_active: boolean
-  created_at: string
-}
-const LOCATION_COLUMNS = 'id,name,address,timezone,is_primary,is_active,created_at'
-
-/** A small, safe menu — the panel offers these rather than a free-text zone. */
-export const TIMEZONE_CHOICES: string[] = [
-  'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
-  'America/Phoenix', 'America/Anchorage', 'Pacific/Honolulu',
-]
-
-let demoLocations: LocationRow[] | null = null
-function locationStore(): LocationRow[] {
-  if (!demoLocations) demoLocations = [
-    { id: 'demo-loc-1', name: 'Axis Fresno', address: '123 Blackstone Ave, Fresno, CA 93726', timezone: 'America/Los_Angeles', is_primary: true, is_active: true, created_at: nowIso() },
-  ]
-  return demoLocations
-}
-
-export async function fetchLocations(isDemo = false): Promise<LocationRow[]> {
-  if (offline(isDemo)) return locationStore().map(r => ({ ...r }))
-  const { data, error } = await supabase
-    .from('locations').select(LOCATION_COLUMNS).order('is_primary', { ascending: false }).order('name')
-  if (error) return []
-  return (data ?? []) as unknown as LocationRow[]
-}
-
-export async function createLocation(
-  input: { name: string; address: string; timezone: string }, isDemo = false,
-): Promise<WriteResult> {
-  const name = sanitizeStrict(input.name)
-  if (!name) return { ok: false, message: 'Give the location a name.' }
-  const address = sanitize(input.address, 300) || null
-  const timezone = TIMEZONE_CHOICES.includes(input.timezone) ? input.timezone : 'America/Los_Angeles'
-  if (offline(isDemo)) {
-    await beat()
-    const store = locationStore()
-    store.push({ id: genId(), name, address, timezone, is_primary: store.length === 0, is_active: true, created_at: nowIso() })
-    return { ok: true }
-  }
-  const { error } = await supabase.from('locations').insert({ name, address, timezone })
-  return error ? { ok: false, message: writeMessage(error, 'Could not add that location.') } : { ok: true }
-}
-
-export async function updateLocation(
-  id: string, patch: Partial<Pick<LocationRow, 'name' | 'address' | 'timezone' | 'is_active'>>, isDemo = false,
-): Promise<WriteResult> {
-  const clean: Record<string, unknown> = {}
-  if (patch.name !== undefined) { const n = sanitizeStrict(patch.name); if (!n) return { ok: false, message: 'A name cannot be blank.' }; clean.name = n }
-  if (patch.address !== undefined) clean.address = sanitize(patch.address ?? '', 300) || null
-  if (patch.timezone !== undefined) clean.timezone = TIMEZONE_CHOICES.includes(patch.timezone) ? patch.timezone : 'America/Los_Angeles'
-  if (patch.is_active !== undefined) clean.is_active = !!patch.is_active
-  if (offline(isDemo)) {
-    await beat()
-    const store = locationStore(); const i = store.findIndex(r => r.id === id)
-    if (i >= 0) store[i] = { ...store[i], ...(clean as Partial<LocationRow>) }
-    return { ok: true }
-  }
-  const { error } = await supabase.from('locations').update(clean).eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'That did not save.') } : { ok: true }
-}
-
-/**
- * Make one location primary. The DB has a partial unique index over the primary
- * rows, so two trues cannot coexist — clear the others FIRST, then set this one,
- * or the second update collides with the first.
- */
-export async function makeLocationPrimary(id: string, isDemo = false): Promise<WriteResult> {
-  if (offline(isDemo)) {
-    await beat()
-    locationStore().forEach(r => { r.is_primary = r.id === id })
-    return { ok: true }
-  }
-  const clearRes = await supabase.from('locations').update({ is_primary: false }).eq('is_primary', true).neq('id', id)
-  if (clearRes.error) return { ok: false, message: writeMessage(clearRes.error, 'That did not save.') }
-  const { error } = await supabase.from('locations').update({ is_primary: true }).eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'That did not save.') } : { ok: true }
-}
-
-export async function deleteLocation(id: string, isDemo = false): Promise<WriteResult> {
-  if (offline(isDemo)) { await beat(); demoLocations = locationStore().filter(r => r.id !== id); return { ok: true } }
-  const { error } = await supabase.from('locations').delete().eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'Could not remove that location.') } : { ok: true }
 }
 
 // =============================================================================
