@@ -3,7 +3,8 @@ import { href } from '../utils/nav'
 import { subscribeNewsletter, getNewsletterAccess } from '../lib/newsletterApi'
 import { useBotTrap } from '../lib/botTrap'
 import type { NewsletterAccess } from '../types/newsletter'
-import { TOOL_LIST } from './ToolPage'
+import { useCalculatorConfig, useResourceRegistry, type GuideEntry } from '../lib/calculators'
+import { safeResourceUrl } from '../lib/resourceLibrary'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
@@ -175,20 +176,26 @@ function MeetDayChecklist() {
 // 2. ATTEMPT SELECTION CALCULATOR
 // ─────────────────────────────────────────────────────────────────────────────
 
-function round5(n: number) { return Math.round(n / 5) * 5 }
-function round2_5(n: number) { return Math.round(n / 2.5) * 2.5 }
+function roundToNearest(n: number, nearest: number) { return Math.round(n / nearest) * nearest }
 
+/**
+ * The same attempt calculator as the one in the tools strip.
+ *
+ * It used to carry its OWN copy of the percentages, typed out again a few
+ * hundred lines from the original, so the site could quote a 90% opener on one
+ * page and whatever the last edit left behind on the other. Both read one
+ * config now, and the owner edits it in the admin portal.
+ */
 function AttemptCalcGuide() {
+  const cfg = useCalculatorConfig()
   const [unit, setUnit]   = useState<'lbs' | 'kg'>('lbs')
   const [squat, setSquat] = useState('')
   const [bench, setBench] = useState('')
   const [dead,  setDead]  = useState('')
   const [style, setStyle] = useState<'conservative' | 'aggressive'>('conservative')
 
-  const profiles = {
-    conservative: { open: 0.90, second: 0.96, third: 1.00 },
-    aggressive:   { open: 0.91, second: 0.97, third: 1.03 },
-  }
+  const profiles = cfg.attempts.profiles
+  const step = unit === 'kg' ? cfg.attempts.rounding.kg : cfg.attempts.rounding.lbs
 
   function conv(v: string, factor: number) {
     const n = parseFloat(v)
@@ -204,8 +211,11 @@ function AttemptCalcGuide() {
     const max = parseFloat(maxStr)
     if (isNaN(max) || max <= 0) return null
     const p = profiles[style]
-    const r = unit === 'kg' ? round2_5 : round5
-    return [r(max * p.open), r(max * p.second), r(max * p.third)]
+    return [
+      roundToNearest(max * p.open,   step),
+      roundToNearest(max * p.second, step),
+      roundToNearest(max * p.third,  step),
+    ]
   }
 
   const lifts = [
@@ -219,7 +229,7 @@ function AttemptCalcGuide() {
   const projectedTotal = lifts.reduce((acc, l) => {
     const n = parseFloat(l.val)
     if (isNaN(n) || n <= 0) return acc
-    return acc + (unit === 'kg' ? round2_5 : round5)(n * p.second)
+    return acc + roundToNearest(n * p.second, step)
   }, 0)
 
   return (
@@ -725,10 +735,14 @@ function AuditWorksheet() {
 
 interface GateProps {
   source?: string
+  /** How many cards are actually behind the signup. The headline used to say
+   *  "All 6 Guides" as a literal, which stopped being true the moment the owner
+   *  could publish a seventh. */
+  count?: number
   onAccess: (access: NewsletterAccess) => void
 }
 
-function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
+function NewsletterGate({ source = 'guides_page', count, onAccess }: GateProps) {
   const [firstName, setFirstName] = useState('')
   const [lastName,  setLastName]  = useState('')
   const [email,     setEmail]     = useState('')
@@ -761,8 +775,10 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
     <form onSubmit={handleSubmit} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '.5rem', padding: '2.5rem', maxWidth: 480, margin: '0 auto' }}>
       <input {...bot.fieldProps} />
       <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Free Access</p>
-      <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.75rem' }}>Unlock All 6 Guides</h2>
-      <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets — no credit card, no spam.</p>
+      <h2 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.4rem', textTransform: 'uppercase', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.75rem' }}>
+        {count && count > 0 ? `Unlock All ${count} Guides` : 'Unlock The Guides'}
+      </h2>
+      <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.7, marginBottom: '1.75rem' }}>Enter your name and email to get instant, free access to all guides, tools, and worksheets. No credit card, no spam.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.875rem', marginBottom: '.875rem' }}>
         <div>
@@ -794,65 +810,72 @@ function NewsletterGate({ source = 'guides_page', onAccess }: GateProps) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GUIDE CARDS CONFIG
+// CARD BODIES
 // ─────────────────────────────────────────────────────────────────────────────
+//
+// Which cards exist, what they are called and what order they come in is the
+// database's business now (src/lib/calculators.ts reads the library and falls
+// back to the six below when it cannot). What a card CONTAINS is still code for
+// the six built-ins, and comes out of `config` for the three custom kinds an
+// owner can add from the portal.
 
-const GUIDES = [
-  {
-    id: 'checklist',
-    source: 'meet_checklist',
-    label: 'Meet Day Checklist',
-    description: 'Warmup timing, attempt strategy, gear bag essentials — everything you need the night before and on the day.',
-    tag: 'Free Checklist',
-    component: <MeetDayChecklist />,
-  },
-  {
-    id: 'attempts',
-    source: 'attempt_planner',
-    label: 'Attempt Selection Calculator',
-    description: 'Enter your training maxes and get your opener, second, and third attempt recommendations based on proven percentages.',
-    tag: 'Interactive Tool',
-    component: <AttemptCalcGuide />,
-  },
-  {
-    id: 'quiz',
-    source: 'quiz',
-    label: '"Is Your Training Leaving Gains on the Table?" Quiz',
-    description: '6 questions. Score your programming, volume management, recovery habits, and more. Get your tier and a clear picture of what to fix.',
-    tag: 'Scored Quiz',
-    component: <TrainingQuiz />,
-  },
-  {
-    id: 'rpe',
-    source: 'rpe_guide',
-    label: 'RPE Guide for Beginners',
-    description: 'What RPE 6–10 actually means, how many reps each level implies, and how to calibrate your own effort accurately.',
-    tag: 'Reference Guide',
-    component: <RPEGuide />,
-  },
-  {
-    id: 'big3',
-    source: 'big_three',
-    label: "Beginner's Guide to the Big Three",
-    description: 'Squat, bench, and deadlift cue breakdowns, phase-by-phase. Setup, execution, and the most common technical mistakes.',
-    tag: 'Technical Guide',
-    component: <BigThreeGuide />,
-  },
-  {
-    id: 'audit',
-    source: 'audit_worksheet',
-    label: 'Audit Your Last Training Block',
-    description: 'Rate your last block across 6 programming dimensions. Score your structure, specificity, recovery management, and compliance.',
-    tag: 'Scored Worksheet',
-    component: <AuditWorksheet />,
-  },
-]
+/** The built-in a guide row names, rendered. */
+function BuiltinGuide({ guide }: { guide: GuideEntry }) {
+  switch (guide.builtin) {
+    case 'checklist': return <MeetDayChecklist />
+    case 'attempts':  return <AttemptCalcGuide />
+    case 'quiz':      return <TrainingQuiz />
+    case 'rpe':       return <RPEGuide />
+    case 'big3':      return <BigThreeGuide />
+    case 'audit':     return <AuditWorksheet />
+    default:          return null
+  }
+}
+
+/**
+ * An owner-written article.
+ *
+ * Paragraphs split on blank lines and nothing else: no markdown library, and
+ * emphatically no dangerouslySetInnerHTML. The body is stored text that an
+ * admin typed, React escapes it on render, and that is the whole story.
+ */
+function ArticleBody({ body }: { body: string }) {
+  const paragraphs = body.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  if (paragraphs.length === 0) return null
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {paragraphs.map((p, i) => (
+        <p key={i} style={{ color: 'var(--text-2)', fontSize: '.9rem', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{p}</p>
+      ))}
+    </div>
+  )
+}
+
+/** The body of an expanded card, whichever kind it is. */
+function GuideBody({ guide }: { guide: GuideEntry }) {
+  if (guide.kind === 'article') {
+    const body = typeof guide.config.body === 'string' ? guide.config.body : ''
+    return body
+      ? <ArticleBody body={body} />
+      : <p style={{ color: 'var(--text-3)', fontSize: '.85rem' }}>This one has not been written yet.</p>
+  }
+  return <BuiltinGuide guide={guide} />
+}
+
+/** The address a link or download card points at, or nothing if it is not one
+ *  we are willing to render. safeResourceUrl is the library's own check, so the
+ *  form that stored the URL and the card that renders it agree on what is
+ *  allowed rather than each having an opinion. */
+function guideUrl(guide: GuideEntry): string | undefined {
+  return safeResourceUrl(guide.config.url)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GuidesPage() {
+  const { tools, guides } = useResourceRegistry()
   const [view,      setView]      = useState<'guides' | 'tools'>('guides')
   const [access,    setAccess]    = useState<NewsletterAccess | null>(null)
   const [expanded,  setExpanded]  = useState<string | null>(null)
@@ -867,13 +890,21 @@ export default function GuidesPage() {
     setAccess(a)
   }, [])
 
-  function toggleGuide(id: string, source: string) {
-    if (!access) {
-      setGateSource(source)
-      document.getElementById('guides-gate')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
-    }
-    setExpanded(prev => prev === id ? null : id)
+  /** Whether THIS card is behind the signup, rather than the whole page. The
+   *  page used to gate everything; the flag is per row now, so the owner can
+   *  put one guide out in the open as a taster. */
+  const locked = (guide: GuideEntry) => guide.requiresSignup && !access
+
+  const gatedCount = guides.filter(g => g.requiresSignup).length
+
+  function sendToGate(source: string) {
+    setGateSource(source)
+    document.getElementById('guides-gate')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function toggleGuide(guide: GuideEntry) {
+    if (locked(guide)) { sendToGate(guide.source); return }
+    setExpanded(prev => prev === guide.id ? null : guide.id)
   }
 
   return (
@@ -929,7 +960,7 @@ export default function GuidesPage() {
       {view === 'tools' && (
         <section style={{ padding: '4rem 2rem 6rem', maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1px', background: 'var(--surface)' }}>
-            {TOOL_LIST.map(tool => (
+            {tools.map(tool => (
               <div key={tool.id} style={{ background: 'var(--bg)', padding: '2rem' }}>
                 <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '.95rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>{tool.label}</p>
                 <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.5rem' }}>{tool.desc}</p>
@@ -951,40 +982,85 @@ export default function GuidesPage() {
       {view === 'guides' && (<>
         <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--surface)' }}>
-            {GUIDES.map(guide => {
-              const isOpen = expanded === guide.id
+            {guides.map(guide => {
+              const isOpen   = expanded === guide.id
+              const isLocked = locked(guide)
+              // A link or a download goes somewhere instead of opening in place,
+              // so it is an anchor rather than an expander. Everything above the
+              // marker is the same card either way.
+              const leavesThePage = guide.kind === 'link' || guide.kind === 'download'
+              const url = leavesThePage ? guideUrl(guide) : undefined
+              const marker = leavesThePage ? (guide.kind === 'download' ? '↓' : '↗') : '›'
+
+              const rowStyle: React.CSSProperties = {
+                width: '100%', textAlign: 'left', background: 'transparent', border: 'none',
+                padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', gap: '1.25rem', alignItems: 'flex-start',
+                transition: 'background .15s', textDecoration: 'none',
+              }
+
+              const cardFace = (
+                <>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
+                      <span style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
+                      {isLocked && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
+                    </div>
+                    <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
+                    <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
+                  </div>
+                  <span style={{ color: isOpen ? '#272C84' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen && !leavesThePage ? 'rotate(180deg)' : 'none' }}>{marker}</span>
+                </>
+              )
+
               return (
                 <div key={guide.id} style={{ background: 'var(--bg)' }}>
-                  <button
-                    onClick={() => toggleGuide(guide.id, guide.source)}
-                    style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '1.75rem 2rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', transition: 'background .15s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.4rem' }}>
-                        <span style={{ background: 'rgba(39,44,132,.1)', border: '1px solid rgba(39,44,132,.2)', color: 'var(--text)', fontSize: '.55rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.2rem .55rem', borderRadius: '.15rem', flexShrink: 0 }}>{guide.tag}</span>
-                        {!access && <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700 }}>🔒 Sign up to unlock</span>}
-                      </div>
-                      <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.2, marginBottom: '.4rem' }}>{guide.label}</p>
-                      <p style={{ color: 'var(--text-2)', fontSize: '.8rem', lineHeight: 1.65 }}>{guide.description}</p>
-                    </div>
-                    <span style={{ color: isOpen ? '#272C84' : 'var(--steel)', fontSize: '1.2rem', flexShrink: 0, marginTop: '.2rem', transition: 'transform .2s, color .15s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>›</span>
-                  </button>
-                  {isOpen && access && (
+                  {leavesThePage && url && !isLocked ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...(guide.kind === 'download' ? { download: '' } : {})}
+                      style={rowStyle}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {cardFace}
+                    </a>
+                  ) : (
+                    <button
+                      // A card with no usable address still opens the gate when
+                      // it is locked, and otherwise does nothing rather than
+                      // navigating somewhere we refused to vouch for.
+                      onClick={() => (leavesThePage && !isLocked ? undefined : toggleGuide(guide))}
+                      style={rowStyle}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {cardFace}
+                    </button>
+                  )}
+                  {isOpen && !isLocked && !leavesThePage && (
                     <div style={{ padding: '0 2rem 2rem', borderTop: '1px solid var(--surface-2)' }}>
-                      <div style={{ paddingTop: '1.5rem' }}>{guide.component}</div>
+                      <div style={{ paddingTop: '1.5rem' }}><GuideBody guide={guide} /></div>
                     </div>
                   )}
                 </div>
               )
             })}
+            {guides.length === 0 && (
+              <div style={{ background: 'var(--bg)', padding: '2rem' }}>
+                <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.7 }}>
+                  No guides are published right now. Check back soon.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
-        {!access && (
+        {!access && gatedCount > 0 && (
           <section id="guides-gate" style={{ padding: '3rem 2rem 6rem' }}>
-            <NewsletterGate source={gateSource} onAccess={handleAccess} />
+            <NewsletterGate source={gateSource} count={gatedCount} onAccess={handleAccess} />
           </section>
         )}
 

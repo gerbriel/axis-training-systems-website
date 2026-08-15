@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { usePermissions } from '../../lib/usePermissions'
 import { clampInt } from '../../utils/sanitize'
 import {
   fetchCategories, createCategory, updateCategory, deleteCategory, slugify,
@@ -59,6 +60,13 @@ interface Draft { name: string; slug: string; sortOrder: number; isActive: boole
 const BLANK: Draft = { name: '', slug: '', sortOrder: 0, isActive: true }
 
 export default function CategoriesPanel({ isDemo = false }: { isDemo?: boolean }) {
+  // 025 gives the staff read to manage_categories OR manage_products and the
+  // write to manage_categories alone; 040 adds view_store to the read. So the
+  // list can be visible to somebody who may not touch a row, and this is that
+  // person's version of the screen.
+  const { can } = usePermissions()
+  const canManage = isDemo || can('*') || can('manage_categories')
+
   const [cats, setCats] = useState<ProductCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [outage, setOutage] = useState(false)
@@ -176,11 +184,13 @@ export default function CategoriesPanel({ isDemo = false }: { isDemo?: boolean }
         <div style={{ maxWidth: 760 }}>
           <div style={{ border: '1px solid var(--surface-2)', borderRadius: '.25rem', overflow: 'hidden', marginBottom: '1.25rem' }}>
             {cats.length === 0 && (
-              <p style={{ padding: '1.25rem', color: 'var(--text-4)', fontSize: '.82rem', textAlign: 'center' }}>No categories yet. Add the first one below.</p>
+              <p style={{ padding: '1.25rem', color: 'var(--text-4)', fontSize: '.82rem', textAlign: 'center' }}>
+                {canManage ? 'No categories yet. Add the first one below.' : 'No categories yet.'}
+              </p>
             )}
             {cats.map(c => (
               <div key={c.id} style={{ borderBottom: '1px solid var(--surface)', padding: '.9rem 1.1rem', background: editingId === c.id ? 'var(--surface)' : 'transparent' }}>
-                {editingId === c.id ? (
+                {canManage && editingId === c.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
                     {draftFields(draft, setDraft, `edit-${c.id}`)}
                     <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
@@ -197,7 +207,7 @@ export default function CategoriesPanel({ isDemo = false }: { isDemo?: boolean }
                       </div>
                       <span style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>/{c.slug} · order {c.sortOrder}</span>
                     </div>
-                    {armedDelete === c.id ? (
+                    {!canManage ? null : armedDelete === c.id ? (
                       <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
                         <span style={{ color: 'var(--text-2)', fontSize: '.72rem' }}>Remove it?</span>
                         <button onClick={() => void remove(c.id)} disabled={busy} style={btn(DANGER, '#fff')}>Remove</button>
@@ -215,7 +225,7 @@ export default function CategoriesPanel({ isDemo = false }: { isDemo?: boolean }
             ))}
           </div>
 
-          {adding ? (
+          {!canManage ? null : adding ? (
             <div style={{ border: `1px solid ${ACCENT}55`, borderRadius: '.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
               <p style={microLabel}>New category</p>
               {draftFields(newDraft, setNewDraft, 'new')}

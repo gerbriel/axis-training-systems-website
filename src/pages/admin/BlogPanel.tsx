@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { usePermissions } from '../../lib/usePermissions'
 import { fetchAllContent, reviewContent, removeContent, submitContent, updateContent } from '../../lib/contentApi'
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
@@ -133,6 +134,14 @@ type FilterStatus = 'all' | 'pending' | 'reviewed'
 type Mode = 'list' | 'create' | 'edit'
 
 export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
+  // `view_blog` shows the whole queue; `manage_blog` is what publishes. 040
+  // widens pending_content's RLS with exactly that pair, so a view-only holder
+  // who forced any of the hidden buttons would write zero rows — this is the
+  // sign in front of that, not the lock.
+  const { can } = usePermissions()
+  const canManage = isDemo || can('*') || can('manage_blog')
+  const readOnly = !canManage
+
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [items,        setItems]        = useState<PendingContent[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -196,17 +205,17 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
             <h2 style={{color:'var(--text)',fontSize:'1.25rem',fontWeight:900,marginBottom:'.25rem'}}>
               Blog Posts {pendingCount>0 && <span style={{background:'#c8102e',color:'var(--text)',fontSize:'.6rem',fontWeight:900,borderRadius:'10rem',padding:'.15rem .55rem',marginLeft:'.5rem',verticalAlign:'middle'}}>{pendingCount}</span>}
             </h2>
-            <p style={{color:'var(--steel)',fontSize:'.8rem'}}>Review coach submissions or publish directly.</p>
+            <p style={{color:'var(--steel)',fontSize:'.8rem'}}>{readOnly?'Every submission and draft, read-only.':'Review coach submissions or publish directly.'}</p>
           </div>
           <div style={{display:'flex',gap:'.5rem'}}>
             <button onClick={refresh} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-4)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Refresh</button>
-            <button onClick={openCreate} style={{background:'#c8102e',border:'1px solid #c8102e',color:'var(--text)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
-              onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='#a30c26'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='#c8102e'}}>+ New Blog Post</button>
+            {canManage && <button onClick={openCreate} style={{background:'#c8102e',border:'1px solid #c8102e',color:'var(--text)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}
+              onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='#a30c26'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='#c8102e'}}>+ New Blog Post</button>}
           </div>
         </div>
       )}
 
-      {(mode==='create'||mode==='edit') && (
+      {canManage && (mode==='create'||mode==='edit') && (
         <div>
           <div style={{display:'flex',alignItems:'center',gap:'1rem',marginBottom:'1.75rem',flexWrap:'wrap'}}>
             <button onClick={cancelForm} style={{background:'none',border:'1px solid var(--border)',color:'var(--text-dim)',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',padding:'.4rem .75rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>← Back</button>
@@ -273,7 +282,10 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
                     {isExpanded && (
                       <div style={{borderTop:'1px solid var(--surface)',padding:'1.5rem',display:'flex',flexDirection:'column',gap:'1.25rem'}}>
                         {item.content && <div><p style={{...lbl,marginBottom:'.5rem'}}>Content Preview</p><div style={{background:'var(--bg)',border:'1px solid var(--surface)',borderRadius:'.2rem',padding:'1.25rem',maxHeight:320,overflow:'auto'}}><BlogPreview content={item.content}/></div>{item.tags&&<p style={{color:'var(--steel)',fontSize:'.7rem',marginTop:'.5rem'}}>Tags: {item.tags}</p>}</div>}
-                        <div style={{display:'flex',gap:'.6rem',flexWrap:'wrap',alignItems:'center'}}>
+                        {/* Approve, reject, edit and delete are all manage_blog.
+                            A view_blog holder keeps the preview above and gets
+                            no row of buttons that would write nothing. */}
+                        {canManage && <div style={{display:'flex',gap:'.6rem',flexWrap:'wrap',alignItems:'center'}}>
                           <button onClick={e=>{e.stopPropagation();openEdit(item)}} style={{background:'transparent',border:'1px solid var(--border)',color:'var(--text-3)',fontSize:'.65rem',fontWeight:900,letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
                           {!rejectMode[item.id] && (<>
                             {item.status!=='approved'&&<button onClick={e=>{e.stopPropagation();approve(item.id)}} disabled={actionId===item.id} style={{background:'#22c55e18',border:'1px solid #22c55e',color:'#22c55e',fontWeight:900,fontSize:'.65rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.5rem 1.1rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}>{actionId===item.id?'…':'Approve'}</button>}
@@ -293,7 +305,7 @@ export default function BlogPanel({ isDemo = false }: { isDemo?: boolean }) {
                           <div style={{flex:1}}/>
                           <button onClick={e=>{e.stopPropagation();handleDelete(item.id)}} disabled={actionId===item.id} style={{background:'none',border:'1px solid var(--border)',color:'var(--border-mid)',fontWeight:700,fontSize:'.6rem',letterSpacing:'.12em',textTransform:'uppercase',padding:'.45rem .9rem',borderRadius:'.2rem',cursor:'pointer',fontFamily:'inherit',opacity:actionId===item.id?0.5:1}}
                             onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='#c8102e';(e.currentTarget as HTMLButtonElement).style.color='#c8102e'}} onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';(e.currentTarget as HTMLButtonElement).style.color='var(--border-mid)'}}>Delete</button>
-                        </div>
+                        </div>}
                       </div>
                     )}
                   </div>

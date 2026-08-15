@@ -21,9 +21,15 @@ const daysAgoISO = (d: number) => new Date(Date.now() - d * 86_400_000).toISOStr
  */
 export default function SalesPanel({ isDemo = false }: { isDemo?: boolean }) {
   const { can } = usePermissions()
-  const canSales    = can('view_sales') || can('manage_orders')
-  const canOrders   = can('manage_orders') || can('view_sales')
-  const canExpenses = can('manage_expenses')
+  // `view_store` (040) is the read across the whole shop, so it opens the three
+  // sub-tabs that were previously reachable only through a manage key or
+  // `view_sales`. What each panel then LETS a person do is still its own
+  // business: OrdersPanel keeps `manage_orders` on the status controls.
+  // `isDemo` is ORed in because a demo session has no profile to resolve.
+  const full = isDemo || can('*')
+  const canSales    = full || can('view_store') || can('view_sales') || can('manage_orders')
+  const canOrders   = full || can('view_store') || can('manage_orders') || can('view_sales')
+  const canExpenses = full || can('view_store') || can('manage_expenses')
 
   const available = ([
     canSales    ? 'overview' : null,

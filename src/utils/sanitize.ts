@@ -143,6 +143,11 @@ export function safeUrl(input: unknown): string | undefined {
   // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(raw)) return undefined
 
+  // A backslash is a slash to the WHATWG parser on http(s) URLs, so "/\evil.com"
+  // reads as site-relative here and as protocol-relative "//evil.com" in the
+  // browser. No URL this site renders has a legitimate backslash in it.
+  if (raw.includes('\\')) return undefined
+
   if (raw.startsWith('//')) return undefined
   if (raw.startsWith('/') || raw.startsWith('#') || raw.startsWith('?')) return raw
 

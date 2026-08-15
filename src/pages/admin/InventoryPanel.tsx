@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { usePermissions } from '../../lib/usePermissions'
 import { clampInt } from '../../utils/sanitize'
 import {
   fetchProducts, adjustStock, isLowStock, totalStock, LOW_STOCK_THRESHOLD,
@@ -50,9 +51,11 @@ function StockBadge({ qty }: { qty: number }) {
   )
 }
 
-function AdjustRow({ variant, isDemo, onApplied }: {
+function AdjustRow({ variant, isDemo, canManage, onApplied }: {
   variant: ProductVariant
   isDemo: boolean
+  /** False leaves the count and the badge and takes away the delta form. */
+  canManage: boolean
   onApplied: (variantId: string, newQty: number) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -81,10 +84,10 @@ function AdjustRow({ variant, isDemo, onApplied }: {
           {variant.sku && <span style={{ color: 'var(--text-4)', fontSize: '.7rem', marginLeft: '.5rem' }}>{variant.sku}</span>}
         </div>
         <StockBadge qty={variant.stockQty} />
-        {!open && <button onClick={() => { setOpen(true); setError(null) }} style={btnGhost('var(--text-2)')}>Adjust</button>}
+        {canManage && !open && <button onClick={() => { setOpen(true); setError(null) }} style={btnGhost('var(--text-2)')}>Adjust</button>}
       </div>
 
-      {open && (
+      {canManage && open && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--surface-2)', borderRadius: '.25rem', padding: '.85rem', display: 'flex', flexDirection: 'column', gap: '.7rem' }}>
           <div style={{ display: 'flex', gap: '.75rem', alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ maxWidth: 150 }}>
@@ -122,6 +125,13 @@ function AdjustRow({ variant, isDemo, onApplied }: {
 }
 
 export default function InventoryPanel({ isDemo = false }: { isDemo?: boolean }) {
+  // `view_store` (040) reads the counts and the audit trail; moving stock stays
+  // `manage_inventory`, which is what `adjust_stock()` itself checks — the RPC
+  // is the only writer of `stock_adjustments`, so a hidden button here is a
+  // hidden button in front of a definer function that would refuse anyway.
+  const { can } = usePermissions()
+  const canManage = isDemo || can('*') || can('manage_inventory')
+
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [outage, setOutage] = useState(false)
@@ -164,8 +174,10 @@ export default function InventoryPanel({ isDemo = false }: { isDemo?: boolean })
       <p style={{ ...microLabel, marginBottom: '.4rem' }}>What is on the shelf</p>
       <h2 style={{ ...heading, marginBottom: '.6rem' }}>Inventory</h2>
       <p style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.25rem', maxWidth: 560 }}>
-        Stock lives per size. Every change is a reason, not an overwrite, so the count and the story of how it
-        got there both hold up. {LOW_STOCK_THRESHOLD} units or fewer is flagged.
+        {canManage
+          ? <>Stock lives per size. Every change is a reason, not an overwrite, so the count and the story of how it
+              got there both hold up. {LOW_STOCK_THRESHOLD} units or fewer is flagged.</>
+          : <>Stock lives per size. These are the current counts, read-only. {LOW_STOCK_THRESHOLD} units or fewer is flagged.</>}
       </p>
 
       {!loading && !outage && (
@@ -212,7 +224,7 @@ export default function InventoryPanel({ isDemo = false }: { isDemo?: boolean })
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {p.variants.map((v, i) => (
                     <div key={v.id} style={{ padding: '.85rem 1.1rem', borderBottom: i < p.variants.length - 1 ? '1px solid var(--surface)' : 'none' }}>
-                      <AdjustRow variant={v} isDemo={isDemo} onApplied={applied} />
+                      <AdjustRow variant={v} isDemo={isDemo} canManage={canManage} onApplied={applied} />
                     </div>
                   ))}
                 </div>

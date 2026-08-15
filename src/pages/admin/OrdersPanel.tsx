@@ -29,7 +29,12 @@ const FILTERS: readonly (OrderStatus | 'all')[] = ['all', ...ORDER_STATUSES]
 
 export default function OrdersPanel({ isDemo = false }: { isDemo?: boolean }) {
   const { can } = usePermissions()
-  const canManage = can('manage_orders')
+  // 026 already reads to `manage_orders` OR `view_sales`, and 040 adds
+  // `view_store` beside them, so this list has three ways to be visible and one
+  // to be editable. `isDemo` is ORed in because a demo session on a configured
+  // deployment has no profile, so `can()` answers no to everything and the
+  // status controls would vanish from the preview.
+  const canManage = isDemo || can('*') || can('manage_orders')
 
   const [orders, setOrders]   = useState<Order[]>([])
   const [loading, setLoading] = useState(true)

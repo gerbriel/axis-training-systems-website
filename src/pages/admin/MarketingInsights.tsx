@@ -16,8 +16,17 @@ import DemoBanner from '../../components/dashboard/DemoBanner'
  */
 
 export default function MarketingInsights({ isDemo = false }: { isDemo?: boolean }) {
-  const { can, ready } = usePermissions()
-  const canSend = isDemo || !ready || can('send_marketing') // optimistic until known; demo always shows it
+  const { can } = usePermissions()
+  // The numbers are `view_marketing` (040 widens newsletter_leads and
+  // broadcasts to it); recording a send stays `send_marketing`, which is what
+  // 028's `for all` policy on broadcasts has always required.
+  //
+  // The optimistic `|| !ready` this used to carry is gone: usePermissions
+  // resolves an admin and an unconfigured demo to '*' synchronously and paints
+  // a coach's role default in the same tick, so the window it covered was a
+  // frame, and what it did in that frame was offer a marketing reader a button
+  // that then vanished.
+  const canSend = isDemo || can('*') || can('send_marketing')
 
   const [summary, setSummary]       = useState<MarketingSummary | null>(null)
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
@@ -96,6 +105,12 @@ export default function MarketingInsights({ isDemo = false }: { isDemo?: boolean
           </div>
 
           {canSend && <BroadcastComposer isDemo={isDemo} onSent={refresh} subscriberCount={summary?.totalSignups ?? 0} />}
+
+          {!canSend && (
+            <p style={{ color: 'var(--text-4)', fontSize: '.7rem', marginBottom: '.75rem' }}>
+              Read-only. Recording a send needs the send marketing permission.
+            </p>
+          )}
 
           {broadcasts.length === 0 ? (
             <p style={{ color: 'var(--text-4)', fontSize: '.8rem', marginTop: canSend ? '1rem' : 0 }}>No broadcasts recorded yet.</p>

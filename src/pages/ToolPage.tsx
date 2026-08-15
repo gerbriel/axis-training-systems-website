@@ -2,40 +2,18 @@ import { useState, useEffect } from 'react'
 import { href } from '../utils/nav'
 import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
 import { useBotTrap } from '../lib/botTrap'
-import { RPECalc, DotsCalc, WeightConverter, AttemptPlanner } from '../components/Tools'
-import Rankings from './Rankings'
+import { BuiltinTool, toolSignupSource } from '../components/Tools'
+import { useResourceRegistry, FALLBACK_TOOLS, type ToolEntry } from '../lib/calculators'
 
 const BASE = (import.meta as any).env?.BASE_URL ?? '/'
 
-export const TOOL_LIST = [
-  {
-    id: 'rpe',
-    label: 'RPE Calculator',
-    desc: 'Estimate your 1RM or get a prescribed working weight from any RPE and rep target.',
-  },
-  {
-    id: 'dots',
-    label: 'Dots Score',
-    desc: 'Calculate your Dots coefficient to compare performance across weight classes and sexes.',
-  },
-  {
-    id: 'convert',
-    label: 'Weight Converter',
-    desc: 'Instantly convert between lbs and kg for any weight or total.',
-  },
-  {
-    id: 'attempts',
-    label: 'Attempt Planner',
-    desc: 'Plan your opener, second, and third attempts based on your training maxes and meet strategy.',
-  },
-  {
-    id: 'rankings',
-    label: 'View Rankings',
-    desc: 'Browse 3M+ powerlifting results worldwide. Filter by federation, weight class, and gender.',
-  },
-] as const
-
-type ToolId = typeof TOOL_LIST[number]['id']
+/**
+ * The tool registry is the database's now (see src/lib/calculators.ts), so the
+ * owner can rename a tool, reorder the strip or unpublish one from the admin
+ * portal. This export is the FALLBACK the pages render when the library cannot
+ * be reached, kept under its old name so nothing that imported it breaks.
+ */
+export const TOOL_LIST = FALLBACK_TOOLS
 
 const inp: React.CSSProperties = {
   background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.2rem',
@@ -47,7 +25,7 @@ const lbl: React.CSSProperties = {
   textTransform: 'uppercase', marginBottom: '.35rem', display: 'block',
 }
 
-function AttemptGate({ onAccess }: { onAccess: () => void }) {
+function AttemptGate({ tool, onAccess }: { tool: ToolEntry; onAccess: () => void }) {
   const [first, setFirst] = useState('')
   const [last,  setLast]  = useState('')
   const [email, setEmail] = useState('')
@@ -62,7 +40,7 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
     setError('')
     setLoading(true)
     try {
-      await subscribeNewsletter({ firstName: first, lastName: last, email, source: 'attempt_planner' }, false)
+      await subscribeNewsletter({ firstName: first, lastName: last, email, source: toolSignupSource(tool) }, false)
       onAccess()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error'
@@ -77,7 +55,7 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h3 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>Free Access Required</h3>
         <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75 }}>
-          Sign up with your email to unlock the Attempt Planner and all free guides — no credit card, no spam.
+          Sign up with your email to unlock the {tool.label} and all free guides. No credit card, no spam.
         </p>
       </div>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
@@ -104,7 +82,7 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
           onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#1a1f6b' }}
           onMouseLeave={e => { e.currentTarget.style.background = '#272C84' }}
         >
-          {loading ? 'Unlocking…' : 'Unlock Attempt Planner →'}
+          {loading ? 'Unlocking…' : `Unlock ${tool.label} →`}
         </button>
         <p style={{ color: 'var(--text-3)', fontSize: '.7rem', textAlign: 'center' }}>
           Also unlocks all <a href={href('/guides')} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>free guides</a>. No spam.
@@ -115,13 +93,20 @@ function AttemptGate({ onAccess }: { onAccess: () => void }) {
 }
 
 export default function ToolPage({ slug }: { slug: string }) {
-  const toolId = (TOOL_LIST.some(t => t.id === slug) ? slug : 'rpe') as ToolId
-  const tool = TOOL_LIST.find(t => t.id === toolId)!
+  const { tools } = useResourceRegistry()
   const [hasAccess, setHasAccess] = useState(false)
 
   useEffect(() => {
     if (getNewsletterAccess()) setHasAccess(true)
   }, [])
+
+  // An unknown slug has always fallen through to the first tool rather than to
+  // a 404, and an UNPUBLISHED one is the same kind of nothing: the owner took it
+  // down, so its old URL should land somewhere useful, not on an empty panel.
+  const tool = tools.find(t => t.id === slug) ?? tools[0] ?? null
+  if (!tool) return null
+  const toolId = tool.id
+  const gated = tool.requiresSignup && !hasAccess
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -143,7 +128,7 @@ export default function ToolPage({ slug }: { slug: string }) {
       {/* Tool tabs */}
       <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg)', overflowX: 'auto' }}>
         <div style={{ display: 'flex', gap: 0, padding: '0 1.5rem', minWidth: 'max-content' }}>
-          {TOOL_LIST.map(t => {
+          {tools.map(t => {
             const active = t.id === toolId
             return (
               <a
@@ -171,8 +156,8 @@ export default function ToolPage({ slug }: { slug: string }) {
       </div>
 
       {/* Content */}
-      {toolId === 'rankings' ? (
-        <Rankings embedded />
+      {tool.builtin === 'rankings' ? (
+        <BuiltinTool tool={tool} />
       ) : (
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '3rem 1.5rem 6rem' }}>
           {/* Tool header */}
@@ -185,14 +170,9 @@ export default function ToolPage({ slug }: { slug: string }) {
 
           {/* Tool panel */}
           <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: '2rem' }}>
-            {toolId === 'rpe'      && <RPECalc />}
-            {toolId === 'dots'     && <DotsCalc />}
-            {toolId === 'convert'  && <WeightConverter />}
-            {toolId === 'attempts' && (
-              hasAccess
-                ? <AttemptPlanner />
-                : <AttemptGate onAccess={() => setHasAccess(true)} />
-            )}
+            {gated
+              ? <AttemptGate tool={tool} onAccess={() => setHasAccess(true)} />
+              : <BuiltinTool tool={tool} />}
           </div>
         </div>
       )}

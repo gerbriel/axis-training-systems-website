@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import { usePermissions } from '../../lib/usePermissions'
 import { clampInt, safeUrl } from '../../utils/sanitize'
 import { fmtMoney } from '../../lib/availability'
 import CategoriesPanel from './CategoriesPanel'
@@ -412,6 +413,13 @@ function EditProduct({ product, categories, isDemo, onPatched, onDeleted, onVari
 type SubTab = 'products' | 'categories' | 'inventory'
 
 export default function CatalogPanel({ isDemo = false }: { isDemo?: boolean }) {
+  // `view_store` (040) is the shop read: the catalog, the stock levels and the
+  // takings, without a write anywhere. `manage_products` is what 025 has always
+  // gated the catalog write on, and it is unchanged — so a view_store holder
+  // browses the products and opens no editor.
+  const { can } = usePermissions()
+  const canManage = isDemo || can('*') || can('manage_products')
+
   const [tab, setTab] = useState<SubTab>('products')
 
   const [products, setProducts] = useState<Product[]>([])
@@ -457,14 +465,16 @@ export default function CatalogPanel({ isDemo = false }: { isDemo?: boolean }) {
         </div>
         <div style={{ display: 'flex', gap: '.5rem' }}>
           <button onClick={() => void load()} style={btnGhost('var(--text-2)')}>↺ Refresh</button>
-          {!creating && !editing && <button onClick={() => setCreating(true)} style={btn(ACCENT, '#fff')}>+ Add product</button>}
+          {canManage && !creating && !editing && <button onClick={() => setCreating(true)} style={btn(ACCENT, '#fff')}>+ Add product</button>}
         </div>
       </div>
       <p style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.25rem', maxWidth: 560 }}>
-        Each product has one or more sizes. Price is set here in dollars and stored to the cent; stock is set in the Inventory tab.
+        {canManage
+          ? 'Each product has one or more sizes. Price is set here in dollars and stored to the cent; stock is set in the Inventory tab.'
+          : 'Every product and size, including the ones hidden from the storefront. Read-only.'}
       </p>
 
-      {creating && (
+      {canManage && creating && (
         <div style={{ maxWidth: 760, marginBottom: '1.5rem' }}>
           <CreateProduct
             categories={categories}
@@ -475,7 +485,7 @@ export default function CatalogPanel({ isDemo = false }: { isDemo?: boolean }) {
         </div>
       )}
 
-      {editing && (
+      {canManage && editing && (
         <div style={{ maxWidth: 760, marginBottom: '1.5rem' }}>
           <EditProduct
             product={editing}
@@ -498,12 +508,14 @@ export default function CatalogPanel({ isDemo = false }: { isDemo?: boolean }) {
           <button onClick={() => void load()} style={btnGhost('var(--text)')}>Try again</button>
         </div>
       ) : products.length === 0 && !creating ? (
-        <p style={{ color: 'var(--text-4)', fontSize: '.85rem', maxWidth: 760 }}>No products yet. Add the first one.</p>
+        <p style={{ color: 'var(--text-4)', fontSize: '.85rem', maxWidth: 760 }}>
+          {canManage ? 'No products yet. Add the first one.' : 'No products yet.'}
+        </p>
       ) : (
         <div style={{ border: '1px solid var(--surface-2)', borderRadius: '.25rem', overflow: 'hidden', maxWidth: 760 }}>
           {products.map(p => (
-            <div key={p.id} onClick={() => { setEditingId(p.id); setCreating(false) }}
-              style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '.9rem 1.1rem', borderBottom: '1px solid var(--surface)', cursor: 'pointer', background: editingId === p.id ? 'var(--surface)' : 'transparent' }}>
+            <div key={p.id} onClick={canManage ? () => { setEditingId(p.id); setCreating(false) } : undefined}
+              style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '.9rem 1.1rem', borderBottom: '1px solid var(--surface)', cursor: canManage ? 'pointer' : 'default', background: editingId === p.id ? 'var(--surface)' : 'transparent' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ color: p.isActive ? 'var(--text)' : 'var(--text-4)', fontWeight: 700, fontSize: '.9rem' }}>{p.name}</span>
@@ -514,7 +526,7 @@ export default function CatalogPanel({ isDemo = false }: { isDemo?: boolean }) {
                 </span>
               </div>
               <span style={{ color: 'var(--text-2)', fontWeight: 900, fontSize: '.85rem', whiteSpace: 'nowrap' }}>{fmtMoney(p.priceCents)}</span>
-              <span aria-hidden style={{ color: 'var(--text-4)', fontSize: '1.2rem', lineHeight: 1 }}>›</span>
+              {canManage && <span aria-hidden style={{ color: 'var(--text-4)', fontSize: '1.2rem', lineHeight: 1 }}>›</span>}
             </div>
           ))}
         </div>

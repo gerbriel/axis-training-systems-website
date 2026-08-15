@@ -3,16 +3,28 @@ import { getNewsletterAccess, subscribeNewsletter } from '../lib/newsletterApi'
 import { useBotTrap } from '../lib/botTrap'
 import { href } from '../utils/nav'
 import Rankings, { type CompareScore } from '../pages/Rankings'
+import {
+  useCalculatorConfig,
+  useResourceRegistry,
+  rpeKey,
+  RPE_STEPS,
+  type ToolEntry,
+} from '../lib/calculators'
 
-// ── RPE percentage table (Tuchscherer) ───────────────────────────────────────
-// RPE_TABLE[rpe][reps] = fraction of 1RM
-const RPE_TABLE: Record<number, Record<number, number>> = {
-  10: { 1: 1.000, 2: 0.955, 3: 0.922, 4: 0.892, 5: 0.863, 6: 0.837, 7: 0.811, 8: 0.786, 9: 0.762, 10: 0.739 },
-   9: { 1: 0.955, 2: 0.922, 3: 0.892, 4: 0.863, 5: 0.837, 6: 0.811, 7: 0.786, 8: 0.762, 9: 0.739, 10: 0.714 },
-   8: { 1: 0.922, 2: 0.892, 3: 0.863, 4: 0.837, 5: 0.811, 6: 0.786, 7: 0.762, 8: 0.739, 9: 0.714, 10: 0.688 },
-   7: { 1: 0.892, 2: 0.863, 3: 0.837, 4: 0.811, 5: 0.786, 6: 0.762, 7: 0.739, 8: 0.714, 9: 0.688, 10: 0.663 },
-   6: { 1: 0.863, 2: 0.837, 3: 0.811, 4: 0.786, 5: 0.762, 6: 0.739, 7: 0.714, 8: 0.688, 9: 0.663, 10: 0.637 },
-}
+/**
+ * The free calculators.
+ *
+ * Every number these used to hardcode now comes from src/lib/calculators.ts,
+ * which merges the owner's overrides (migration 042) over the shipped defaults.
+ * The hook starts at the defaults and swaps in the fetched config when it
+ * lands; each calculator recomputes from its own state on every render, so a
+ * late swap simply changes the answer rather than stranding a stale one.
+ *
+ * What is NOT configurable, and is still a literal below: the Dots, Wilks and
+ * IPF GL coefficients and the IPF weight classes. Those are published standards
+ * a score has to be reproducible against, not preferences. Only the tier
+ * cutoffs that describe those scores in words are the owner's to move.
+ */
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function roundToNearest(val: number, nearest: number) {
@@ -61,6 +73,8 @@ const selectStyle: React.CSSProperties = {
 // RPE CALCULATOR
 // ─────────────────────────────────────────────────────────────────────────────
 export function RPECalc() {
+  const cfg = useCalculatorConfig()
+  const table = cfg.rpe.table
   const [mode, setMode]       = useState<'estimate' | 'prescribe'>('estimate')
   const [weight, setWeight]   = useState('')
   const [reps, setReps]       = useState('3')
@@ -81,16 +95,29 @@ export function RPECalc() {
     setUnit(next)
   }
 
-  const rpeOptions  = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+  const rpeOptions  = RPE_STEPS
   const repsOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+  /**
+   * The chart cell for a selection.
+   *
+   * This used to be `RPE_TABLE[Math.round(parseFloat(rpe))]`, which meant the
+   * 6.5, 7.5, 8.5 and 9.5 the selector has always offered were rounded away:
+   * picking 7.5 quietly gave the RPE 8 answer. The table now has a row for each
+   * of them, so the selection is looked up as made.
+   */
+  const pctFor = (rpeValue: string, repsValue: string) => {
+    const r = parseInt(repsValue)
+    const key = rpeKey(parseFloat(rpeValue))
+    if (isNaN(r)) return null
+    return table[key]?.[r] ?? null
+  }
 
   // Estimate 1RM from weight + reps @ RPE
   function estimateFrom() {
     const w = parseFloat(weight)
-    const r = parseInt(reps)
-    const rpeInt = Math.round(parseFloat(rpe))
-    if (isNaN(w) || isNaN(r) || w <= 0) return null
-    const pct = RPE_TABLE[rpeInt]?.[r]
+    if (isNaN(w) || w <= 0) return null
+    const pct = pctFor(rpe, reps)
     if (!pct) return null
     return w / pct
   }
@@ -98,16 +125,16 @@ export function RPECalc() {
   // Prescribe weight from 1RM + target reps + target RPE
   function prescribeFrom() {
     const orm = parseFloat(oneRM)
-    const r = parseInt(targetReps)
-    const rpeInt = Math.round(parseFloat(targetRpe))
     if (isNaN(orm) || orm <= 0) return null
-    const pct = RPE_TABLE[rpeInt]?.[r]
+    const pct = pctFor(targetRpe, targetReps)
     if (!pct) return null
     return orm * pct
   }
 
   const estimated1RM = mode === 'estimate' ? estimateFrom() : null
   const prescribed   = mode === 'prescribe' ? prescribeFrom() : null
+  const estimatePct  = pctFor(rpe, reps)
+  const prescribePct = pctFor(targetRpe, targetReps)
 
   const fmt = (v: number) => unit === 'lbs'
     ? `${Math.round(v)} lbs  /  ${toKg(v).toFixed(1)} kg`
@@ -177,7 +204,7 @@ export function RPECalc() {
               <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.5rem' }}>Estimated 1RM</p>
               <p style={{ color: 'var(--text)', fontWeight: 900, fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', letterSpacing: '-.02em' }}>{fmt(estimated1RM)}</p>
               <p style={{ color: 'var(--text-2)', fontSize: '.75rem', marginTop: '.75rem' }}>
-                {parseInt(reps)}@RPE{rpe} = {Math.round(RPE_TABLE[Math.round(parseFloat(rpe))]?.[parseInt(reps)] * 100)}% of 1RM
+                {parseInt(reps)}@RPE{rpe} = {Math.round((estimatePct ?? 0) * 100)}% of 1RM
               </p>
             </div>
           )}
@@ -217,10 +244,10 @@ export function RPECalc() {
               </p>
               <p style={{ color: 'var(--text-2)', fontSize: '.75rem', marginTop: '.75rem' }}>
                 Rounded target: {unit === 'lbs'
-                  ? `${roundToNearest(prescribed, 5)} lbs`
-                  : `${roundToNearest(prescribed, 2.5)} kg`}
+                  ? `${roundToNearest(prescribed, cfg.attempts.rounding.lbs)} lbs`
+                  : `${roundToNearest(prescribed, cfg.attempts.rounding.kg)} kg`}
                 &nbsp;·&nbsp;
-                {Math.round(RPE_TABLE[Math.round(parseFloat(targetRpe))]?.[parseInt(targetReps)] * 100)}% of 1RM
+                {Math.round((prescribePct ?? 0) * 100)}% of 1RM
               </p>
             </div>
           )}
@@ -234,6 +261,7 @@ export function RPECalc() {
 // ATTEMPT PLANNER
 // ─────────────────────────────────────────────────────────────────────────────
 export function AttemptPlanner() {
+  const cfg = useCalculatorConfig()
   const [unit, setUnit] = useState<'lbs' | 'kg'>('lbs')
   const [squat, setSquat]   = useState('')
   const [bench, setBench]   = useState('')
@@ -252,17 +280,19 @@ export function AttemptPlanner() {
     setUnit(next)
   }
 
-  const profiles = {
-    conservative: { open: 0.90, second: 0.96, third: 1.00 },
-    aggressive:   { open: 0.91, second: 0.97, third: 1.03 },
-  }
+  // One copy, shared with the same calculator on the guides page and with the
+  // admin panel that edits it. It used to be a literal here and a second,
+  // identical literal in GuidesPage.tsx.
+  const profiles = cfg.attempts.profiles
+  const step = unit === 'kg' ? cfg.attempts.rounding.kg : cfg.attempts.rounding.lbs
 
   function attempts(max: number) {
     const p = profiles[style]
-    const a1 = roundToNearest(max * p.open,   unit === 'kg' ? 2.5 : 5)
-    const a2 = roundToNearest(max * p.second, unit === 'kg' ? 2.5 : 5)
-    const a3 = roundToNearest(max * p.third,  unit === 'kg' ? 2.5 : 5)
-    return [a1, a2, a3]
+    return [
+      roundToNearest(max * p.open,   step),
+      roundToNearest(max * p.second, step),
+      roundToNearest(max * p.third,  step),
+    ]
   }
 
   const lifts: { label: string; val: string }[] = [
@@ -282,7 +312,7 @@ export function AttemptPlanner() {
     ? [squat, bench, dead].reduce((acc, v) => {
         const n = parseFloat(v)
         if (isNaN(n) || n <= 0) return acc
-        return acc + roundToNearest(n * profiles[style].second, unit === 'kg' ? 2.5 : 5)
+        return acc + roundToNearest(n * profiles[style].second, step)
       }, 0)
     : 0
 
@@ -374,6 +404,7 @@ export function AttemptPlanner() {
 // WEIGHT CONVERTER
 // ─────────────────────────────────────────────────────────────────────────────
 export function WeightConverter() {
+  const cfg = useCalculatorConfig()
   const [lbsVal, setLbsVal] = useState('')
   const [kgVal,  setKgVal]  = useState('')
 
@@ -395,22 +426,10 @@ export function WeightConverter() {
     setKgVal(prevLbs)
   }
 
-  // Common plate / barbell reference weights
-  const barWeights = [
-    { lbs: 45, kg: 20,    label: 'Standard barbell' },
-    { lbs: 55, kg: 25,    label: 'Women\'s barbell' },
-    { lbs: 33, kg: 15,    label: 'Technique bar' },
-  ]
-  const plates = [
-    { lbs: 100, kg: 45, label: '100 lb / 45 kg plate' },
-    { lbs:  55, kg: 25, label: '55 lb / 25 kg plate' },
-    { lbs:  45, kg: 20, label: '45 lb / 20 kg plate' },
-    { lbs:  35, kg: 15, label: '35 lb / 15 kg plate' },
-    { lbs:  25, kg: 11, label: '25 lb / 10 kg plate' },
-    { lbs:  10, kg: 5,  label: '10 lb / 5 kg plate' },
-    { lbs:   5, kg: 2.5,label: '5 lb / 2.5 kg plate' },
-    { lbs: 2.5, kg: 1.25, label: '2.5 lb / 1.25 kg plate' },
-  ]
+  // Common plate / barbell reference weights, from the shared config so a gym
+  // that racks different bars can say so without a deploy.
+  const barWeights = cfg.converter.bars
+  const plates = cfg.converter.plates
 
   return (
     <div>
@@ -461,9 +480,11 @@ export function WeightConverter() {
       <div style={{ marginTop: '2rem' }}>
         <p style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '.75rem' }}>Common Barbell Weights</p>
         <div style={{ display: 'grid', gap: '.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-          {[...barWeights, ...plates].map(({ lbs, kg, label }) => (
+          {[...barWeights, ...plates].map(({ lbs, kg, label }, i) => (
             <button
-              key={label}
+              // Indexed: the list is editable now, and two rows an owner named
+              // the same thing must not collapse into one.
+              key={`${label}-${i}`}
               onClick={() => handleLbs(String(lbs))}
               style={{
                 background: 'var(--surface-2)',
@@ -552,32 +573,13 @@ function calcGL(bwKg: number, totalKg: number, sex: 'm' | 'f') {
   return totalKg * 100 / denom
 }
 
-// Benchmarks and bar scale for each scoring system.
-// Dots & Wilks share the same scale (scores are numerically similar).
-// GL (Goodlift) uses a 0–120 scale where 100+ is world-class.
-const SCORE_BENCHMARKS = {
-  dots:  { barMax: 500, barLabel: '500+', tiers: [
-    { label: 'Beginner',     range: '< 200',     cutoff: 200 },
-    { label: 'Intermediate', range: '200 – 300', cutoff: 300 },
-    { label: 'Advanced',     range: '300 – 380', cutoff: 380 },
-    { label: 'Elite',        range: '380 – 450', cutoff: 450 },
-    { label: 'World-class',  range: '450+',      cutoff: Infinity },
-  ]},
-  wilks: { barMax: 500, barLabel: '500+', tiers: [
-    { label: 'Beginner',     range: '< 200',     cutoff: 200 },
-    { label: 'Intermediate', range: '200 – 300', cutoff: 300 },
-    { label: 'Advanced',     range: '300 – 380', cutoff: 380 },
-    { label: 'Elite',        range: '380 – 450', cutoff: 450 },
-    { label: 'World-class',  range: '450+',      cutoff: Infinity },
-  ]},
-  gl: { barMax: 120, barLabel: '120+', tiers: [
-    { label: 'Beginner',     range: '< 40',      cutoff: 40  },
-    { label: 'Intermediate', range: '40 – 60',   cutoff: 60  },
-    { label: 'Advanced',     range: '60 – 80',   cutoff: 80  },
-    { label: 'Elite',        range: '80 – 100',  cutoff: 100 },
-    { label: 'World-class',  range: '100+',      cutoff: Infinity },
-  ]},
-}
+// The tier benchmarks and bar scale for each scoring system moved to
+// src/lib/calculators.ts, because where "Elite" starts is an opinion the owner
+// is entitled to hold and the three formulas above are not.
+//
+// The IPF weight classes below stay here for the same reason the coefficients
+// do: they are the classes an athlete actually competed in. An editable 83kg
+// class would put someone on a platform they never stood on.
 
 function detectWeightClass(bwKg: number, sex: 'm' | 'f'): string {
   if (sex === 'm') {
@@ -624,6 +626,7 @@ const COMP_AGE = [
 ]
 
 export function DotsCalc() {
+  const cfg = useCalculatorConfig()
   const [sex,   setSex]   = useState<'m' | 'f'>('m')
   const [unit,  setUnit]  = useState<'lbs' | 'kg'>('lbs')
   const [bw,    setBw]    = useState('')
@@ -661,14 +664,17 @@ export function DotsCalc() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Persist inputs on every change
+  // Persist inputs on every change.
+  // scoreType is in the dependency list because it is in the payload: without
+  // it, switching DOTS → IPF GL wrote nothing, so the restore on the next visit
+  // put the athlete back on whichever scale they had two changes ago.
   useEffect(() => {
     try {
       localStorage.setItem('axis-dots-state', JSON.stringify(
         { sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear, scoreType }
       ))
     } catch {}
-  }, [sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear])
+  }, [sex, unit, bw, squat, bench, dead, compFed, compEquip, compAgeClass, compYear, scoreType])
 
   function switchUnit(next: 'lbs' | 'kg') {
     const factor = next === 'kg' ? 0.453592 : 2.20462
@@ -702,7 +708,7 @@ export function DotsCalc() {
 
   const selectedScore = scoreType === 'wilks' ? wilks : scoreType === 'gl' ? gl : dots
 
-  const activeSet = SCORE_BENCHMARKS[scoreType]
+  const activeSet = cfg.scores.benchmarks[scoreType]
   const tier = selectedScore === null ? null
     : (activeSet.tiers.find(t => selectedScore < t.cutoff) ?? activeSet.tiers[activeSet.tiers.length - 1]).label
 
@@ -943,19 +949,37 @@ export function DotsCalc() {
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN SECTION
 // ─────────────────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'rpe',       label: 'RPE Calculator',  short: 'RPE' },
-  { id: 'dots',      label: 'Dots Score',       short: 'Dots' },
-  { id: 'convert',   label: 'Weight Converter', short: 'Convert' },
-  { id: 'attempts',  label: 'Attempt Planner',  short: 'Attempts' },
-  { id: 'rankings',  label: 'View Rankings',    short: 'Rankings' },
-] as const
+/**
+ * The tool a tab renders. Named by `builtin` rather than by slug, so the owner
+ * can rename "RPE Calculator" to "Load Calculator" and reorder the strip
+ * without any of it reaching this switch.
+ */
+export function BuiltinTool({ tool }: { tool: ToolEntry }) {
+  switch (tool.builtin) {
+    case 'rpe':      return <RPECalc />
+    case 'dots':     return <DotsCalc />
+    case 'convert':  return <WeightConverter />
+    case 'attempts': return <AttemptPlanner />
+    case 'rankings': return <Rankings embedded />
+    default:         return null
+  }
+}
 
-type TabId = typeof TABS[number]['id']
+/** The newsletter list a signup from this tool is attributed to. */
+export function toolSignupSource(tool: ToolEntry): string {
+  return tool.builtin === 'attempts' ? 'attempt_planner' : `tool_${tool.id}`
+}
 
 export default function Tools() {
-  const [active, setActive] = useState<TabId>('rpe')
+  const registry = useResourceRegistry()
+  const tools = registry.tools
+  const [active, setActive] = useState<string>('rpe')
   const [hasAccess, setHasAccess] = useState(false)
+
+  // Derived rather than corrected in an effect: if the owner unpublishes the
+  // tool that is open, the strip simply falls to its first tab on the next
+  // render instead of flashing an empty panel while a setState catches up.
+  const activeTool = tools.find(t => t.id === active) ?? tools[0] ?? null
 
   // Gate form state
   const [gateFirst, setGateFirst] = useState('')
@@ -977,7 +1001,8 @@ export default function Tools() {
     setGateError('')
     setGateLoading(true)
     try {
-      await subscribeNewsletter({ firstName: gateFirst, lastName: gateLast, email: gateEmail, source: 'attempt_planner' }, false)
+      const source = activeTool ? toolSignupSource(activeTool) : 'attempt_planner'
+      await subscribeNewsletter({ firstName: gateFirst, lastName: gateLast, email: gateEmail, source }, false)
       setHasAccess(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error'
@@ -989,6 +1014,13 @@ export default function Tools() {
       }
     }
   }
+
+  // The owner published no tools at all. Not an error and not an empty box with
+  // a heading over it: the section simply is not part of the page today.
+  if (registry.ready && tools.length === 0) return null
+  if (!activeTool) return null
+
+  const gated = activeTool.requiresSignup && !hasAccess
 
   return (
     <section id="tools" style={{ padding: '6rem 2rem', background: 'var(--bg)', borderTop: '1px solid var(--surface-2)' }}>
@@ -1006,44 +1038,45 @@ export default function Tools() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: '1px solid var(--surface)', paddingBottom: '0' }}>
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActive(tab.id)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: `2px solid ${active === tab.id ? '#272C84' : 'transparent'}`,
-                color: active === tab.id ? 'var(--text)' : 'var(--text-dim)',
-                fontSize: '.7rem',
-                fontWeight: 900,
-                letterSpacing: '.15em',
-                textTransform: 'uppercase',
-                padding: '.75rem 1.25rem',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'color .15s',
-                marginBottom: '-1px',
-              }}
-              onMouseEnter={e => { if (active !== tab.id) e.currentTarget.style.color = 'var(--text-3)' }}
-              onMouseLeave={e => { if (active !== tab.id) e.currentTarget.style.color = 'var(--text-2)' }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tools.map(tab => {
+            const isActive = tab.id === activeTool.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActive(tab.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${isActive ? '#272C84' : 'transparent'}`,
+                  color: isActive ? 'var(--text)' : 'var(--text-dim)',
+                  fontSize: '.7rem',
+                  fontWeight: 900,
+                  letterSpacing: '.15em',
+                  textTransform: 'uppercase',
+                  padding: '.75rem 1.25rem',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'color .15s',
+                  marginBottom: '-1px',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-3)' }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-2)' }}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Panel */}
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: active === 'rankings' ? '0' : '2rem' }}>
-          {active === 'rpe'      && <RPECalc />}
-          {active === 'attempts' && (
-            hasAccess ? <AttemptPlanner /> : (
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--surface)', borderRadius: '.25rem', padding: activeTool.builtin === 'rankings' ? '0' : '2rem' }}>
+          {!gated ? <BuiltinTool tool={activeTool} /> : (
               <div>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                   <span style={{ display: 'inline-block', fontSize: '2rem', marginBottom: '.75rem' }}>🔒</span>
                   <h3 style={{ color: 'var(--text)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '-.01em', marginBottom: '.5rem' }}>Free Access Required</h3>
                   <p style={{ color: 'var(--text-2)', fontSize: '.875rem', lineHeight: 1.75, maxWidth: 400, margin: '0 auto' }}>
-                    The Attempt Planner is part of our free guides suite. Sign up with your email — it takes 5 seconds and unlocks all 6 powerlifting tools and guides.
+                    The {activeTool.label} is part of our free guides suite. Sign up with your email, it takes 5 seconds and unlocks every free tool and guide on the site.
                   </p>
                 </div>
                 <form onSubmit={handleGateSubmit} style={{ maxWidth: 440, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
@@ -1070,15 +1103,11 @@ export default function Tools() {
                     style={{ background: '#272C84', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '.75rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '.875rem', borderRadius: '.25rem', cursor: 'pointer', fontFamily: 'inherit', opacity: gateLoading || !gateFirst.trim() || !gateEmail.trim() ? 0.5 : 1 }}
                     onMouseEnter={e => { if (!gateLoading) e.currentTarget.style.background = '#1a1f6b' }}
                     onMouseLeave={e => e.currentTarget.style.background = '#272C84'}
-                  >{gateLoading ? 'Unlocking…' : 'Unlock Attempt Planner →'}</button>
-                  <p style={{ color: 'var(--text-3)', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks all <a href={href('/guides')} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>6 free guides</a>. No spam.</p>
+                  >{gateLoading ? 'Unlocking…' : `Unlock ${activeTool.label} →`}</button>
+                  <p style={{ color: 'var(--text-3)', fontSize: '.7rem', textAlign: 'center' }}>Also unlocks the <a href={href('/guides')} style={{ color: 'var(--text-2)', textDecoration: 'underline' }}>free guides</a>. No spam.</p>
                 </form>
               </div>
-            )
-          )}
-          {active === 'dots'     && <DotsCalc />}
-          {active === 'convert'  && <WeightConverter />}
-          {active === 'rankings' && <Rankings embedded />}
+            )}
         </div>
       </div>
     </section>

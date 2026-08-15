@@ -5,6 +5,7 @@ import type { PendingContent } from '../../data/pendingContent'
 import type { Testimonial } from '../../data/testimonials'
 import { sanitizeText, safeUrl } from '../../utils/sanitize'
 import { useMediaQuery, MOBILE_QUERY } from '../../lib/dashboard'
+import { usePermissions } from '../../lib/usePermissions'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 
 /**
@@ -92,6 +93,18 @@ function Field({ label, value }: { label: string; value?: string }) {
 
 export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean }) {
   const isMobile = useMediaQuery(MOBILE_QUERY)
+
+  // The queue mixes three surfaces and they are not one permission. Blog and
+  // meet submissions are decided with `manage_blog` (040 widens
+  // pending_content); a homepage testimonial with `moderate_testimonials`
+  // (018's trigger). Somebody holding `view_blog` alone reads the queue and
+  // decides nothing, which is the whole point of the read/write split — so the
+  // verdict is per ROW rather than per panel.
+  const { can } = usePermissions()
+  const fullAccess = isDemo || can('*')
+  const decidable = (kind: QueueItem['kind']) =>
+    fullAccess || (kind === 'testimonial' ? can('moderate_testimonials') : can('manage_blog'))
+
   const [items,        setItems]        = useState<QueueItem[]>([])
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
@@ -247,8 +260,9 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
                     </p>
                   </div>
 
-                  {/* Actions — always visible, no expansion required */}
-                  {!rejecting && (
+                  {/* Actions — always visible, no expansion required, and only
+                      for somebody who may actually decide THIS kind of row. */}
+                  {!rejecting && decidable(q.kind) && (
                     <div style={{ display: 'flex', gap: '.5rem', flexShrink: 0 }}>
                       <button
                         onClick={() => approve(q)}
@@ -269,7 +283,7 @@ export default function ApprovalsPanel({ isDemo = false }: { isDemo?: boolean })
                 </div>
 
                 {/* Inline rejection note — appears on demand, replaces the button pair */}
-                {rejecting && (
+                {rejecting && decidable(q.kind) && (
                   <div style={{ marginTop: '.85rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '.5rem', alignItems: isMobile ? 'stretch' : 'center' }}>
                     <input
                       style={{ ...inp, flex: 1, minWidth: isMobile ? 0 : 220 }}

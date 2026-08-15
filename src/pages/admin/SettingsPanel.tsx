@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { usePermissions } from '../../lib/usePermissions'
 import AdminSettings from './AdminSettings'
 import UserManagementPanel from './UserManagementPanel'
 import SchedulingPanel from './settings/SchedulingPanel'
@@ -23,6 +24,13 @@ import LegalPanel from './settings/LegalPanel'
  * A vertical rail rather than a top bar because there are a dozen entries — a
  * horizontal row of a dozen tabs wraps into an unreadable block on any normal
  * width, and the reference UI stacks them for the same reason.
+ *
+ * EACH ENTRY IS ITS OWN PERMISSION. 029 split business settings into seven keys
+ * so an admin can delegate one area at a time, and this rail is where that
+ * split becomes visible: a coach granted `manage_legal` and nothing else sees
+ * Legal and no neighbours. The filter is SalesPanel's — build the available
+ * list, keep the active entry inside it. Signage only; every panel behind these
+ * reads and writes through its own RLS.
  */
 
 type SettingsTab =
@@ -42,13 +50,67 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'legal',         label: 'Legal' },
 ]
 
+/**
+ * Which key opens which entry. ANY of them is enough.
+ *
+ * `general` and `import` are `manage_site_settings`, which 016 flags sensitive
+ * and admin-only to GRANT: between them they hold coach routing, the Resend key
+ * and the content importer, which is to say the machinery the other rules are
+ * enforced with. `team` is deliberately empty — it is the roster read that
+ * gives every other entry its context, so anybody who reached this screen at
+ * all may look at it.
+ */
+const TAB_KEYS: Record<SettingsTab, readonly string[]> = {
+  general:       ['manage_site_settings'],
+  scheduling:    ['manage_scheduling'],
+  services:      ['manage_services'],
+  waitlist:      ['manage_waitlist'],
+  notifications: ['manage_notifications'],
+  team:          [],
+  users:         ['manage_staff', 'manage_permissions'],
+  commission:    ['manage_commission'],
+  import:        ['manage_site_settings'],
+  legal:         ['manage_legal'],
+}
+
 export default function SettingsPanel({ isDemo = false }: { isDemo?: boolean }) {
+  const { can } = usePermissions()
+  const fullAccess = isDemo || can('*')
+
+  const available = useMemo(
+    () => TABS.filter(t => {
+      if (fullAccess) return true
+      const keys = TAB_KEYS[t.key]
+      // `team` (no key of its own) shows only once something else does, so an
+      // empty rail never renders as a single orphaned entry.
+      if (keys.length === 0) return TABS.some(o => TAB_KEYS[o.key].some(k => can(k)))
+      return keys.some(k => can(k))
+    }),
+    [can, fullAccess]
+  )
+
   const [tab, setTab] = useState<SettingsTab>('general')
+
+  // 'general' needs manage_site_settings, so it is exactly the wrong default for
+  // everybody this feature was built for. First available entry wins.
+  useEffect(() => {
+    if (available.length > 0 && !available.some(t => t.key === tab)) setTab(available[0].key)
+  }, [available, tab])
+
+  const open = (k: SettingsTab) => tab === k && available.some(t => t.key === k)
+
+  if (available.length === 0) {
+    return (
+      <p style={{ color: 'var(--text-3)', fontSize: '.8rem', padding: '2rem' }}>
+        You do not have access to any settings area.
+      </p>
+    )
+  }
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 180px) minmax(0, 1fr)', gap: '2rem', alignItems: 'start' }}>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '.15rem', position: 'sticky', top: '1rem' }}>
-        {TABS.map(t => (
+        {available.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -65,17 +127,21 @@ export default function SettingsPanel({ isDemo = false }: { isDemo?: boolean }) 
         ))}
       </nav>
 
+      {/* `open` rather than a bare `tab ===`: the effect above corrects the
+          active entry one frame AFTER a permission set narrows, and a settings
+          panel that mounts and fetches for that frame is a request that only
+          ever comes back refused. */}
       <div style={{ minWidth: 0 }}>
-        {tab === 'general'       && <AdminSettings isDemo={isDemo} />}
-        {tab === 'scheduling'    && <SchedulingPanel isDemo={isDemo} />}
-        {tab === 'services'      && <ServicesPanel isDemo={isDemo} />}
-        {tab === 'waitlist'      && <WaitlistRulesPanel isDemo={isDemo} />}
-        {tab === 'notifications' && <ClientNotificationsPanel isDemo={isDemo} />}
-        {tab === 'team'          && <TeamPanel isDemo={isDemo} />}
-        {tab === 'users'         && <UserManagementPanel isDemo={isDemo} />}
-        {tab === 'commission'    && <CommissionPanel isDemo={isDemo} />}
-        {tab === 'import'        && <ImportExportPanel isDemo={isDemo} />}
-        {tab === 'legal'         && <LegalPanel isDemo={isDemo} />}
+        {open('general')       && <AdminSettings isDemo={isDemo} />}
+        {open('scheduling')    && <SchedulingPanel isDemo={isDemo} />}
+        {open('services')      && <ServicesPanel isDemo={isDemo} />}
+        {open('waitlist')      && <WaitlistRulesPanel isDemo={isDemo} />}
+        {open('notifications') && <ClientNotificationsPanel isDemo={isDemo} />}
+        {open('team')          && <TeamPanel isDemo={isDemo} />}
+        {open('users')         && <UserManagementPanel isDemo={isDemo} />}
+        {open('commission')    && <CommissionPanel isDemo={isDemo} />}
+        {open('import')        && <ImportExportPanel isDemo={isDemo} />}
+        {open('legal')         && <LegalPanel isDemo={isDemo} />}
       </div>
     </div>
   )

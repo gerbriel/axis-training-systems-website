@@ -23,7 +23,11 @@ const EMPTY_FORM: FormState = { description: '', amount: '', category: EXPENSE_C
 
 export default function ExpensesPanel({ isDemo = false }: { isDemo?: boolean }) {
   const { can } = usePermissions()
-  const canManage = can('manage_expenses')
+  // The entry form and the row actions were already gated on this; 040 opens
+  // the READ to `view_store`, so from now on the ungated half of this screen is
+  // reached by people who hold no write here. `isDemo` is ORed in because a
+  // demo session has no profile for `can()` to resolve against.
+  const canManage = isDemo || can('*') || can('manage_expenses')
 
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading]   = useState(true)

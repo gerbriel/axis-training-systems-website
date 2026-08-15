@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './insights.css'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import ReportView from '../../components/insights/ReportView'
@@ -7,6 +7,7 @@ import AnalyticsPanel from './AnalyticsPanel'
 import MarketingInsights from './MarketingInsights'
 import AnnouncementsPanel from './AnnouncementsPanel'
 import { supabaseConfigured } from '../../lib/supabase'
+import { usePermissions } from '../../lib/usePermissions'
 import { useHashSubTab } from '../../lib/useHashSubTab'
 import type { Bucket, MetricKey, ChartKind } from '../../lib/insights'
 
@@ -30,6 +31,24 @@ const SUB_TABS: readonly { key: Sub; label: string }[] = [
 
 // Module-level so the hash hook does not rebuild its listener every render.
 const SUB_KEYS: readonly Sub[] = SUB_TABS.map(t => t.key)
+
+/**
+ * Which key opens which sub-tab. ANY of them is enough.
+ *
+ * The three report surfaces share `view_analytics` because they share the gate
+ * that actually enforces it: `reports_can_view()` (027) is one function in
+ * front of all six report RPCs, and 040 deliberately did NOT widen it, because
+ * one of those six is every coach's worked hours. So an area reader lands on
+ * Marketing or Announcements and never on a Reports tab that would raise 42501
+ * behind every card.
+ */
+const SUB_PERMS: Record<Sub, readonly string[]> = {
+  reports:       ['view_analytics'],
+  analytics:     ['view_analytics'],
+  custom:        ['view_analytics'],
+  marketing:     ['view_marketing', 'send_marketing'],
+  announcements: ['manage_announcements'],
+}
 
 // AnalyticsPanel, MarketingInsights and AnnouncementsPanel all lay themselves
 // out for a bare tab slot with their own 2rem gutter, which would land 4rem in
@@ -56,10 +75,10 @@ function bucketFor(days: number): Bucket {
   return days > 45 ? 'week' : 'day'
 }
 
-function SubTabs({ sub, onChange }: { sub: Sub; onChange: (s: Sub) => void }) {
+function SubTabs({ sub, tabs, onChange }: { sub: Sub; tabs: readonly { key: Sub; label: string }[]; onChange: (s: Sub) => void }) {
   return (
     <div className="ins-tabs" role="tablist" aria-label="Insights sections">
-      {SUB_TABS.map(({ key, label }) => (
+      {tabs.map(({ key, label }) => (
         <button key={key} role="tab" aria-selected={sub === key} className="ins-subtab" data-active={sub === key} onClick={() => onChange(key)}>
           {label}
         </button>
@@ -99,17 +118,39 @@ function Reports({ isDemo }: { isDemo: boolean }) {
 }
 
 export default function InsightsPanel({ isDemo = false }: { isDemo?: boolean }) {
+  const { can } = usePermissions()
+  const fullAccess = isDemo || can('*')
+  const allow = (s: Sub) => fullAccess || SUB_PERMS[s].some(k => can(k))
+
+  const available = SUB_TABS.filter(t => allow(t.key))
+
   // insights-root is required here: it defines the --viz-* chart variables.
+  // The hook still validates against the FULL key list, because a hash is a
+  // bookmark and what a person may open is decided separately, below.
   const [sub, setSub] = useHashSubTab(SUB_KEYS, 'reports')
+
+  // 'reports' is the default and needs view_analytics, so it is the wrong
+  // landing for anybody let in on a single area key.
+  useEffect(() => {
+    if (available.length > 0 && !available.some(t => t.key === sub)) setSub(available[0].key)
+  }, [available, sub, setSub])
+
+  if (available.length === 0) {
+    return (
+      <div className="insights-root" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '.8rem' }}>
+        You do not have access to any insights view.
+      </div>
+    )
+  }
 
   return (
     <div className="insights-root" style={{ padding: '2rem' }}>
-      <SubTabs sub={sub} onChange={setSub} />
-      {sub === 'reports'       && <Reports isDemo={isDemo} />}
-      {sub === 'analytics'     && <div style={UNPAD}><AnalyticsPanel isDemo={isDemo} /></div>}
-      {sub === 'custom'        && <CustomReportsPanel isDemo={isDemo} embedded />}
-      {sub === 'marketing'     && <div style={UNPAD}><MarketingInsights isDemo={isDemo} /></div>}
-      {sub === 'announcements' && <div style={UNPAD}><AnnouncementsPanel isDemo={isDemo} /></div>}
+      <SubTabs sub={sub} tabs={available} onChange={setSub} />
+      {sub === 'reports'       && allow('reports')       && <Reports isDemo={isDemo} />}
+      {sub === 'analytics'     && allow('analytics')     && <div style={UNPAD}><AnalyticsPanel isDemo={isDemo} /></div>}
+      {sub === 'custom'        && allow('custom')        && <CustomReportsPanel isDemo={isDemo} embedded />}
+      {sub === 'marketing'     && allow('marketing')     && <div style={UNPAD}><MarketingInsights isDemo={isDemo} /></div>}
+      {sub === 'announcements' && allow('announcements') && <div style={UNPAD}><AnnouncementsPanel isDemo={isDemo} /></div>}
     </div>
   )
 }

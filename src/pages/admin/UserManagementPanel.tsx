@@ -178,7 +178,7 @@ function ErrorNote({ message }: { message: string }) {
  * The database validates both ends (the athlete must be an athlete, the coach
  * must be active staff) and every refusal arrives here as its own sentence.
  */
-function AssignedCoaches({ athlete, staff, isDemo }: { athlete: Profile; staff: Profile[]; isDemo: boolean }) {
+function AssignedCoaches({ athlete, staff, isDemo, readOnly = false }: { athlete: Profile; staff: Profile[]; isDemo: boolean; readOnly?: boolean }) {
   const [assigned, setAssigned] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [outage, setOutage] = useState(false)
@@ -226,6 +226,31 @@ function AssignedCoaches({ athlete, staff, isDemo }: { athlete: Profile; staff: 
         <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.6 }}>
           We could not load the assignments. Nothing has been changed.
         </p>
+      ) : readOnly ? (
+        // Who may SEE an assignment and who may CHANGE one are different
+        // questions: this block reaches anyone the Users entry admits, which
+        // since the portal went permission-gated includes a head coach holding
+        // only manage_permissions. The write is manage_athletes/admin territory
+        // (023), so without the staff gate the chips render as facts, not
+        // switches.
+        assigned.length === 0 ? (
+          <p style={{ color: 'var(--text-4)', fontSize: '.78rem' }}>No coaches are assigned yet.</p>
+        ) : (
+          <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+            {staff.filter(c => assigned.includes(c.id)).map(coach => (
+              <span
+                key={coach.id}
+                style={{
+                  background: `${ACCENT}22`, border: `1px solid ${ACCENT}`, color: 'var(--text)',
+                  fontSize: '.62rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+                  padding: '.5rem .8rem', borderRadius: '.25rem', whiteSpace: 'nowrap',
+                }}
+              >
+                {personName(coach)}
+              </span>
+            ))}
+          </div>
+        )
       ) : staff.length === 0 ? (
         <p style={{ color: 'var(--text-4)', fontSize: '.78rem' }}>There are no active coaches to assign yet.</p>
       ) : (
@@ -283,17 +308,28 @@ function AssignedCoaches({ athlete, staff, isDemo }: { athlete: Profile; staff: 
 export default function UserManagementPanel({ isDemo = false }: { isDemo?: boolean }) {
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const { profile, isAdmin } = useAuth()
+  const { can, granted, ready: permsReady } = usePermissions()
 
   // Demo mode has no session at all, so the seeded head coach stands in as the
   // person making the change — otherwise every demo grant is stamped by nobody.
   const viewerId = isDemo ? 'demo-ronnie' : (profile?.id ?? null)
 
   // Memoised because the permissions editor recomputes its rows from it. A
-  // fresh object every render would rebuild sixteen rows on every keystroke in
+  // fresh object every render would rebuild forty rows on every keystroke in
   // the search box.
+  //
+  // `holds` is the viewer's OWN effective set, which the editor needs for
+  // `can_grant_permission`'s "you may only pass on what you hold" rule. Left
+  // undefined for an admin (who holds everything), for demo, and until the set
+  // is known — undefined means "do not lock", so a slow read never greys out a
+  // row somebody is entitled to use.
   const viewer = useMemo(
-    () => ({ id: viewerId, isAdmin: isDemo ? true : isAdmin }),
-    [viewerId, isDemo, isAdmin]
+    () => ({
+      id: viewerId,
+      isAdmin: isDemo ? true : isAdmin,
+      holds: isDemo || isAdmin || !permsReady || granted.has('*') ? undefined : granted,
+    }),
+    [viewerId, isDemo, isAdmin, permsReady, granted]
   )
 
   const [people, setPeople] = useState<Profile[]>([])
@@ -327,7 +363,11 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   // A separate registry from the one above. `profiles` says who has an account;
   // the coach directory says who has a CALENDAR, and the two only meet once an
   // invitation is claimed. Everything in this block is about that gap.
-  const { can } = usePermissions()
+  //
+  // This also decides whether the account controls in the detail drawer are
+  // drawn at all: approving, suspending and role changes are 011's
+  // `admin writes profiles`, which a head coach here on manage_permissions
+  // alone does not pass.
   const canManageCoaches = isDemo || isAdmin || can('manage_staff')
 
   // Narrower than the section itself, and deliberately. 017's
@@ -1166,7 +1206,12 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
       {detailError && <ErrorNote message={detailError} />}
 
       {/* Status ------------------------------------------------------------- */}
-      <div>
+      {/* Approving, suspending and reinstating are writes to `profiles`, and
+          011's `admin writes profiles` is the only policy that admits one. A
+          head coach reaches this screen on manage_permissions now, so the
+          controls that would refuse them are not drawn. The list, the detail
+          and the permissions editor below are all still theirs. */}
+      {canManageCoaches && <div>
         <p style={{ ...microLabel, marginBottom: '.5rem' }}>Access</p>
         {selected.status === 'pending' ? (
           isArmed(selected.id, 'approve')
@@ -1209,10 +1254,13 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
             ? 'A suspended account can still sign in and is shown nothing. Their bookings and history are untouched.'
             : 'Suspending takes every power away without deleting anything.'}
         </p>
-      </div>
+      </div>}
 
       {/* Role --------------------------------------------------------------- */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+      {/* Same policy, same reasoning as Access above. A role change also wipes
+          every permission exception on the account (016), so it is doubly not
+          something to offer somebody whose write would be refused halfway. */}
+      {canManageCoaches && <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
         <p style={microLabel}>Role</p>
 
         <div>
@@ -1280,11 +1328,11 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
             This is the only active administrator on the site. Nothing here will let that number reach zero.
           </p>
         )}
-      </div>
+      </div>}
 
       {/* Assigned coaches --------------------------------------------------- */}
       {selected.role === 'athlete' && (
-        <AssignedCoaches athlete={selected} staff={assignableCoaches} isDemo={isDemo} />
+        <AssignedCoaches athlete={selected} staff={assignableCoaches} isDemo={isDemo} readOnly={!canManageCoaches} />
       )}
 
       {/* Permissions -------------------------------------------------------- */}
@@ -1440,14 +1488,14 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
 
         {isMobile || !selected ? (
           <div style={{ maxWidth: 860 }}>
-            {queue}
+            {canManageCoaches && queue}
             {coachSection}
             {directory}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr min(400px, 42vw)', gap: '1.5rem', alignItems: 'start' }}>
             <div style={{ minWidth: 0 }}>
-              {queue}
+              {canManageCoaches && queue}
               {coachSection}
               {directory}
             </div>

@@ -152,7 +152,13 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
   const composerRef = useRef<HTMLElement | null>(null)
   const editNonceRef = useRef(0)
 
-  const allowed = isDemo || isAdmin || can('send_marketing')
+  // Two tiers now, and they were one. `send_marketing` writes drafts and pushes
+  // them out; `view_marketing` (040) reads what went out, who received it, and
+  // the signup list at the bottom, and composes nothing. 030 and 040 say the
+  // same thing in RLS: the sender policy is `for all`, the marketing reader's
+  // is SELECT with no WITH CHECK.
+  const canSend = isDemo || isAdmin || can('send_marketing')
+  const allowed = canSend || can('view_marketing')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -330,7 +336,8 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
             Not your tab yet
           </p>
           <p style={{ color: 'var(--text-3)', fontSize: '.85rem', lineHeight: 1.65 }}>
-            Sending a newsletter needs the send marketing permission. Ask an administrator to turn it on for your account.
+            Sending a newsletter needs the send marketing permission, and reading what has gone out needs
+            see marketing data. Ask an administrator to turn one of them on for your account.
           </p>
         </div>
       </div>
@@ -347,7 +354,9 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
       {isDemo && <DemoBanner note="Nothing is delivered from the demo." />}
 
       {/* ── Composer ──────────────────────────────────────────────────────── */}
-      <section ref={composerRef}>
+      {/* Sender tier only. A marketing reader arrives at the history below with
+          no half-usable form above it. */}
+      {canSend && <section ref={composerRef}>
         <p style={{ color: 'var(--text)', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '.4rem' }}>
           {draftId ? 'Editing a draft' : 'Compose'}
         </p>
@@ -485,7 +494,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
             </span>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── Drafts ────────────────────────────────────────────────────────── */}
       <section>
@@ -504,7 +513,9 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
             </button>
           </div>
         ) : drafts.length === 0 ? (
-          <p style={{ color: 'var(--text-4)', fontSize: '.875rem' }}>No drafts. Write one above.</p>
+          <p style={{ color: 'var(--text-4)', fontSize: '.875rem' }}>
+            {canSend ? 'No drafts. Write one above.' : 'No drafts.'}
+          </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
             {drafts.map(n => {
@@ -523,7 +534,9 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
                     </p>
                   </div>
 
-                  {armed ? (
+                  {/* Edit, send and delete are all sender tier. A reader keeps
+                      the row and its audience chip and nothing to press. */}
+                  {!canSend ? null : armed ? (
                     <div style={{ display: 'flex', gap: '.4rem' }}>
                       <button type="button" onClick={() => void remove(n.id)}
                         style={{ background: '#c8102e', border: 'none', color: '#fff', fontWeight: 900, fontSize: '.6rem', letterSpacing: '.1em', textTransform: 'uppercase', padding: '.5rem .9rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}>

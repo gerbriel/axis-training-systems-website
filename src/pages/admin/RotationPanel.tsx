@@ -9,6 +9,7 @@ import {
   type RotationStatus, type CycleState, type RotationCycle, type CycleInput,
 } from '../../lib/rotationApi'
 import { sanitizeText } from '../../utils/sanitize'
+import { usePermissions } from '../../lib/usePermissions'
 
 /** A waive reason is a sentence. window.prompt cannot cap it, so this does. */
 const WAIVE_NOTE_MAX = 500
@@ -28,6 +29,13 @@ const NEEDS_ACTION: CycleState[] = ['overdue', 'due', 'submitted']
 interface Props { isDemo?: boolean }
 
 export default function RotationPanel({ isDemo = false }: Props) {
+  // The schedule is `view_blog`; adding, reassigning and waiving a cycle is
+  // `manage_blog` — 040 widens content_rotation with that same pair. Seeing
+  // whose turn is next was always the point of a rotation, so the read side
+  // stays whole and only the write controls come off.
+  const { can } = usePermissions()
+  const canManage = isDemo || can('*') || can('manage_blog')
+
   const [statuses, setStatuses] = useState<RotationStatus[]>([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
@@ -175,16 +183,18 @@ export default function RotationPanel({ isDemo = false }: Props) {
             </>
           )}
         </p>
-        <button
-          onClick={openCreate}
-          disabled={saving}
-          style={{ background: '#272C84', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.1rem', borderRadius: '.2rem', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: saving ? .5 : 1 }}
-        >
-          + New Cycle
-        </button>
+        {canManage && (
+          <button
+            onClick={openCreate}
+            disabled={saving}
+            style={{ background: '#272C84', border: 'none', color: '#fff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.55rem 1.1rem', borderRadius: '.2rem', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: saving ? .5 : 1 }}
+          >
+            + New Cycle
+          </button>
+        )}
       </div>
 
-      {formOpen && (
+      {canManage && formOpen && (
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '.4rem', padding: '1.5rem', marginBottom: '2rem', maxWidth: 620 }}>
           <p style={{ color: 'var(--text)', fontSize: '.65rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>
             {editingId === null ? 'New cycle' : 'Edit cycle'}
@@ -324,7 +334,9 @@ export default function RotationPanel({ isDemo = false }: Props) {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0, flexWrap: 'wrap' }}>
+                {/* Waive, edit and delete are all writes to content_rotation,
+                    which is manage_blog. A view_blog holder keeps the row. */}
+                {canManage && <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0, flexWrap: 'wrap' }}>
                   {/* A published cycle is settled; waiving it would be meaningless. */}
                   {s.state !== 'complete' && (
                     <button
@@ -368,7 +380,7 @@ export default function RotationPanel({ isDemo = false }: Props) {
                   >
                     Delete
                   </button>
-                </div>
+                </div>}
               </div>
             )
           })}
