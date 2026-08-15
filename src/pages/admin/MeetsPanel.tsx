@@ -3,6 +3,7 @@ import { fetchAllContent, reviewContent, removeContent, submitContent, updateCon
 import type { PendingContent, ContentStatus } from '../../data/pendingContent'
 import { sanitize } from '../../utils/sanitize'
 import DemoBanner from '../../components/dashboard/DemoBanner'
+import ImportSiteContent from '../../components/admin/ImportSiteContent'
 
 const STATUS_COLORS: Record<ContentStatus, string> = { pending: '#272C84', approved: '#22c55e', rejected: '#c8102e' }
 const lbl: React.CSSProperties = { color: 'var(--text-2)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: '.35rem', display: 'block' }
@@ -117,6 +118,7 @@ export default function MeetsPanel({ isDemo = false }: { isDemo?: boolean }) {
       {mode==='list' && (
         <>
           {actionError && <div style={{background:'#1a0309',border:'1px solid #2d0810',borderRadius:'.25rem',padding:'.75rem 1rem',marginBottom:'1.5rem',color:'#f87171',fontSize:'.8rem'}}>{actionError}</div>}
+          {!isDemo && !loading && items.length===0 && <ImportSiteContent kind="meets" onImported={refresh} />}
           <div style={{display:'flex',gap:'.5rem',marginBottom:'1.5rem'}}>
             {(['pending','reviewed'] as FilterStatus[]).map(s=>(
               <button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?'var(--surface)':'transparent',border:`1px solid ${filterStatus===s?'var(--steel)':'var(--border)'}`,color:filterStatus===s?'var(--text)':'var(--steel)',borderRadius:'.2rem',padding:'.4rem .9rem',fontSize:'.6rem',fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}>
