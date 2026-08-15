@@ -44,7 +44,6 @@ export interface CoachRouting {
   coach_name: string
   email: string
   notify: boolean
-  calendly_url: string | null
   updated_at: string
   // Added by 006. Optional here because partial selects and demo fixtures predate them.
   coach_slug?: string | null

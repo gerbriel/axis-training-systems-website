@@ -4,6 +4,8 @@ import { fetchAllCoachProfiles, fetchVisibleCoachProfiles, saveCoachProfile, toC
 import type { CoachProfileRow } from './coachProfiles.ts'
 import type { InvitationState } from './invitations.ts'
 import type { ProfileStatus, UserRole } from './account.ts'
+import type { WriteResult } from '../types/messaging.ts'
+import { isValidEmail, sanitizeEmail } from '../utils/sanitize.ts'
 
 /**
  * The roster, assembled from the four places a coach actually lives.
@@ -79,13 +81,32 @@ export interface CoachDirectoryEntry {
   slug: string
   name: string
   email: string | null
+  /**
+   * The id of the `coach_routing` row this address came off, or null when there
+   * is none. It is here because the address is EDITABLE from the directory and
+   * an update needs a row to name; it is not an identifier a screen prints.
+   */
+  routingId: string | null
   hasRouting: boolean
   hasPublicProfile: boolean
   hasBookingSettings: boolean
+  /**
+   * Whether this coach has a Google Calendar connection (007), which is the one
+   * thing that decides whether their bookings can carry a Meet link.
+   *
+   * Three values, and the third is the one that matters. `true` connected,
+   * `false` not connected, `null` NOT KNOWN: the RPC was refused, failed, or was
+   * never asked. A staff screen must draw nothing at all for null rather than
+   * accusing a coach of a gap on the strength of an outage.
+   *
+   * Not the same question as `hasBookingSettings`. A coach can be perfectly
+   * bookable and unconnected; their bookings go through and land as 'skipped'.
+   */
+  calendarConnected: boolean | null
   /** The `profiles` row carrying this slug. Null means nobody has claimed it. */
   account: { id: string; status: ProfileStatus; email: string } | null
   /** The newest invitation aimed at this calendar. Null means none was ever sent. */
-  invitation: { id: number; state: InvitationState; expires_at: string } | null
+  invitation: { id: number; state: InvitationState; expires_at: string; email: string } | null
 }
 
 /** What `provision_coach` (036) takes. Only slug, name and email are required. */
@@ -106,7 +127,7 @@ export interface ProvisionCoachInput {
  * `coach_routing`, narrowed to what a directory draws.
  *
  * Not `select('*')`, which AdminSettings uses because it edits the whole row.
- * `notify`, `is_admin` and `calendly_url` are somebody else's screen.
+ * `notify` and `is_admin` are somebody else's screen.
  */
 export interface CoachRoutingRow {
   id: string
@@ -308,7 +329,7 @@ export function pickCoachInvitation(
   email: string | null,
   invitations: CoachInvitationRow[],
   now = Date.now(),
-): { id: number; state: InvitationState; expires_at: string } | null {
+): { id: number; state: InvitationState; expires_at: string; email: string } | null {
   const address = email?.toLowerCase() ?? null
 
   const candidates = invitations
@@ -321,7 +342,7 @@ export function pickCoachInvitation(
   if (candidates.length === 0) return null
 
   const chosen = candidates.find(row => coachInvitationState(row, now) === 'pending') ?? candidates[0]
-  return { id: chosen.id, state: coachInvitationState(chosen, now), expires_at: chosen.expires_at }
+  return { id: chosen.id, state: coachInvitationState(chosen, now), expires_at: chosen.expires_at, email: chosen.email }
 }
 
 export interface DirectoryInput {
@@ -331,7 +352,39 @@ export interface DirectoryInput {
   invitations: CoachInvitationRow[]
   /** Slugs with a `coach_public_settings` row. */
   wiring: Set<string>
+  /**
+   * Slug to "has a Google Calendar connection", from `fetchCalendarConnections`.
+   *
+   * Absent or null means NOBODY ASKED or the ask failed, and every entry comes
+   * back with `calendarConnected: null`. A slug missing from a map that IS
+   * present is false: 039 answers a row for every slug it was given, so an
+   * absent slug is one the caller did not ask about.
+   */
+  calendars?: Map<string, boolean> | null
   now?: number
+}
+
+/**
+ * Every slug the directory will mention, in the order it unions them.
+ *
+ * Asked BEFORE the join, because the calendar lookup takes the whole list and
+ * answers in one round trip, and it cannot be run in the same parallel batch as
+ * the reads that produce the list. `composeDirectory` uses this too, so there is
+ * exactly one definition of "who is on this screen" and the two cannot drift.
+ */
+export function directorySlugs(profiles: CoachProfileRow[], routing: CoachRoutingRow[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const add = (slug: string | null) => {
+    if (!slug || seen.has(slug)) return
+    seen.add(slug)
+    out.push(slug)
+  }
+
+  for (const row of routing) add(trimmed(row.coach_slug))
+  for (const row of profiles) add(row.slug || null)
+  for (const slug of STATIC_SLUGS) add(slug)
+  return out
 }
 
 /**
@@ -375,7 +428,8 @@ export function composeDirectory(input: DirectoryInput): CoachDirectoryEntry[] {
     accountBySlug.set(slug, row)
   }
 
-  const slugs = new Set<string>([...routingBySlug.keys(), ...profileBySlug.keys(), ...STATIC_SLUGS])
+  const slugs = directorySlugs(input.profiles, input.routing)
+  const calendars = input.calendars ?? null
 
   const entries: CoachDirectoryEntry[] = []
   for (const slug of slugs) {
@@ -398,9 +452,11 @@ export function composeDirectory(input: DirectoryInput): CoachDirectoryEntry[] {
       slug,
       name,
       email,
+      routingId: routing?.id ?? null,
       hasRouting: !!routing,
       hasPublicProfile: !!profile,
       hasBookingSettings: input.wiring.has(slug),
+      calendarConnected: calendars ? calendars.get(slug) === true : null,
       account: account ? { id: account.id, status: account.status, email: account.email } : null,
       invitation: pickCoachInvitation(slug, email, input.invitations, now),
     })
@@ -576,6 +632,29 @@ function demoWiringStore(): Set<string> {
   return demoWiring
 }
 
+/**
+ * Who has connected Google, in the demo.
+ *
+ * Four of the five, and deliberately not Aedan. He is the one of the five with
+ * a live invitation and no account, so he is already the row a walk-through
+ * stops on, and leaving him unconnected is what puts the amber calendar chip on
+ * a screen without anybody having to set a database up. He is bookable either
+ * way, which is the whole point the chip has to make.
+ *
+ * The sixth coach, provisioned and unclaimed, is not in here either: nobody has
+ * connected a calendar for a coach who has not signed in yet.
+ */
+const DEMO_UNCONNECTED = 'aedan-nguyen'
+
+let demoCalendars: Set<string> | null = null
+
+function demoCalendarStore(): Set<string> {
+  if (!demoCalendars) {
+    demoCalendars = new Set<string>(COACHES.map(c => c.slug).filter(slug => slug !== DEMO_UNCONNECTED))
+  }
+  return demoCalendars
+}
+
 // ---------------------------------------------------------------------------
 // Reading
 // ---------------------------------------------------------------------------
@@ -613,6 +692,44 @@ export async function fetchBookingWiring(slugs: string[], isDemo = false): Promi
 }
 
 /**
+ * Which of these coaches has a Google Calendar connected.
+ *
+ * `coach_calendar_connected` (039) is definer, gated on admin or manage_staff,
+ * and answers a slug and a boolean for each one asked about. It has to be an
+ * RPC: `private.coach_calendar_connections` is in a schema no browser role holds
+ * USAGE on, which is where the encrypted refresh tokens live, and the function
+ * is the one-bit door through it.
+ *
+ * `null` is an outage OR a refusal, and both mean the same thing to a screen:
+ * this is not known, so draw nothing. The alternative, treating an unreadable
+ * answer as "not connected", would print a gap chip against a coach who has
+ * been connected for a year.
+ *
+ * 039 answers at most two hundred slugs per call, as 036 does.
+ */
+export async function fetchCalendarConnections(
+  slugs: string[],
+  isDemo = false,
+): Promise<Map<string, boolean> | null> {
+  const wanted = slugs.filter(slug => COACH_SLUG_SHAPE.test(slug))
+  if (wanted.length === 0) return new Map<string, boolean>()
+
+  if (offline(isDemo)) {
+    const store = demoCalendarStore()
+    return new Map<string, boolean>(wanted.map(slug => [slug, store.has(slug)]))
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('coach_calendar_connected', { p_slugs: wanted })
+    if (error) return null
+    const rows = (data ?? []) as unknown as { coach_slug: string; connected: boolean }[]
+    return new Map<string, boolean>(rows.map(row => [String(row.coach_slug), row.connected === true]))
+  } catch {
+    return null
+  }
+}
+
+/**
  * The public roster.
  *
  * Never null and never empty because of a failure: an outage answers the static
@@ -643,16 +760,24 @@ export async function fetchCoachRoster(
  * The booking-settings read here is a plain select rather than the RPC the
  * public roster uses: staff hold SELECT on `coach_public_settings` (007), it
  * needs no slug list, and it joins the same parallel batch.
+ *
+ * The CALENDAR read is the one that cannot join that batch, because 039 takes
+ * the slug list and the slug list is what the batch produces. So it is a sixth
+ * round trip, after the other five, and a failure there is NOT an outage: it
+ * costs one chip on a screen that still tells the truth about everything else.
+ * `calendarConnected` comes back null and nothing is drawn for it.
  */
 export async function fetchCoachDirectory(isDemo = false): Promise<CoachDirectoryEntry[] | null> {
   if (offline(isDemo)) {
     const profiles = (await fetchAllCoachProfiles(isDemo)) ?? []
+    const routing = demoRoutingStore().map(row => ({ ...row }))
     return composeDirectory({
       profiles,
-      routing: demoRoutingStore().map(row => ({ ...row })),
+      routing,
       accounts: demoAccountStore().map(row => ({ ...row })),
       invitations: demoInvitationStore().map(row => ({ ...row })),
       wiring: new Set(demoWiringStore()),
+      calendars: await fetchCalendarConnections(directorySlugs(profiles, routing), isDemo),
     })
   }
 
@@ -675,12 +800,16 @@ export async function fetchCoachDirectory(isDemo = false): Promise<CoachDirector
       ((settings.data ?? []) as unknown as { coach_slug: string }[]).map(row => String(row.coach_slug)),
     )
 
+    const routingRows = (routing.data ?? []) as unknown as CoachRoutingRow[]
+    const calendars = await fetchCalendarConnections(directorySlugs(profiles, routingRows), isDemo)
+
     return composeDirectory({
       profiles,
-      routing: (routing.data ?? []) as unknown as CoachRoutingRow[],
+      routing: routingRows,
       accounts: (accounts.data ?? []) as unknown as CoachAccountRow[],
       invitations: (invitations.data ?? []) as unknown as CoachInvitationRow[],
       wiring,
+      calendars,
     })
   } catch {
     return null
@@ -752,5 +881,88 @@ export async function provisionCoach(
   })
 
   if (error) return { ok: false, message: rpcMessage(error, 'That coach was not added. Nothing was created.') }
+  return { ok: true }
+}
+
+/**
+ * Change the address a coach's calendar routes to.
+ *
+ * ONE COLUMN, THREE JOBS, which is why this is worth a control of its own on the
+ * roster screen rather than a trip to Settings:
+ *
+ *   1. Lead notifications and booking notices are addressed to it (010's
+ *      `coach_notify_email` reads this exact row).
+ *   2. An invitation is sent to it, and the Coaches section offers that
+ *      invitation one line above.
+ *   3. `handle_new_user` (011) admits a sign-up at this address as staff, and
+ *      `google-oauth` binds a Google account to a coach by case-folded match on
+ *      it. A wrong address here is a coach who cannot connect their calendar and
+ *      cannot sign in, with no error anywhere that says why.
+ *
+ * The validation is AdminSettings' idiom, unchanged: `sanitizeEmail` first
+ * because the string is a credential and not markup, then `isValidEmail` for the
+ * shape. An empty box is refused rather than written: this column is what an
+ * invitation is addressed to, so blanking it is a silent way to strand somebody.
+ *
+ * `.select('id')` is load-bearing. 017's `coach_routing_admin_write` is an
+ * ADMIN-only policy, and an RLS refusal on an UPDATE arrives as a successful
+ * request that changed nothing. Without the select, a coach holding manage_staff
+ * would see "Saved" over an address that never moved.
+ */
+export async function updateCoachRoutingEmail(
+  routingId: string,
+  email: string,
+  isDemo = false,
+): Promise<WriteResult> {
+  const clean = sanitizeEmail(email)
+
+  if (!clean) {
+    return {
+      ok: false,
+      message: 'A coach needs an email address. It is where their invitation and their lead notifications go.',
+    }
+  }
+  if (!isValidEmail(clean)) {
+    return { ok: false, message: 'That does not look like an email address.' }
+  }
+
+  if (offline(isDemo)) {
+    await beat()
+    const store = demoRoutingStore()
+    const row = store.find(r => r.id === routingId)
+    if (!row) {
+      return { ok: false, message: 'That coach is no longer on the routing list. Refresh the roster.' }
+    }
+    // 036 refuses a second coach on one address for a reason worth repeating
+    // here: one address, one calendar, because the OAuth binding matches on it.
+    if (store.some(r => r.id !== routingId && (r.email ?? '').toLowerCase() === clean.toLowerCase())) {
+      return { ok: false, message: 'That email address already routes to a coach. One address, one calendar.' }
+    }
+    row.email = clean
+    return { ok: true }
+  }
+
+  const { data, error } = await supabase
+    .from('coach_routing')
+    .update({ email: clean, updated_at: new Date().toISOString() })
+    .eq('id', routingId)
+    .select('id')
+
+  // The grant refusing reads differently from the policy refusing, and only one
+  // of `rpcMessage`'s sentences is about adding a coach, so that one case is
+  // answered here rather than borrowed.
+  if (error?.code === '42501') {
+    return {
+      ok: false,
+      message: 'Your account does not have permission to change a coach’s address. An admin can do it from Settings, General.',
+    }
+  }
+  if (error) return { ok: false, message: rpcMessage(error, 'That address was not saved.') }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      message: 'That address was not saved. The coach may have been removed from the routing list, or your account may not have permission to change it.',
+    }
+  }
   return { ok: true }
 }

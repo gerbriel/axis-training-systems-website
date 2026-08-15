@@ -229,7 +229,11 @@ export default function CalendarSyncPanel({ coach, isDemo = false, onTimeZoneCha
     ? 'Google stopped accepting our access — usually because the permission was removed from your Google account. Reconnect to resume syncing.'
     : connected
       ? `Calendar: ${conn.calendarId ?? 'primary'} · Last synced ${fmtSynced(conn.lastSyncedAt)}`
-      : 'Website bookings are not on your Google Calendar, and your Google busy times do not block slots yet.'
+      // The cost of not connecting, stated. Bookings are not blocked by it, and
+      // a coach who reads "not connected" as "nothing works" connects for the
+      // wrong reason. The Meet link is the part that is actually missing: it can
+      // only be minted when the booking is written to a real calendar.
+      : 'Website bookings are not on your Google Calendar, and your Google busy times do not block slots yet. Bookings still work, but clients do not get a Google Meet link until you connect.'
 
   return (
     <section>

@@ -8,7 +8,7 @@ import {
   ROLE_LABELS, STATUS_LABELS, STATUS_COLORS, ROLE_COLORS, COACH_SLUG_PATTERN,
 } from '../../lib/userManagement'
 import { fetchCoachAssignments, setCoachAssignment } from '../../lib/messagingApi'
-import { fetchCoachDirectory, provisionCoach } from '../../lib/coachRoster'
+import { fetchCoachDirectory, provisionCoach, updateCoachRoutingEmail } from '../../lib/coachRoster'
 import type { CoachDirectoryEntry } from '../../lib/coachRoster'
 import { sendInvitation, revokeInvitation } from '../../lib/invitations'
 import { usePermissions } from '../../lib/usePermissions'
@@ -86,6 +86,16 @@ const blankCoach = (): CoachDraft => ({
  * `coach_profiles` and a `profiles` row carrying the slug. `provision_coach`
  * creates the first three in one go, so a gap here means either an older coach
  * who predates it or a piece somebody removed by hand. Each chip says which.
+ *
+ * The fourth chip is a different kind of gap and is worded like one. A missing
+ * Google Calendar connection breaks NOTHING: the booking goes through, the time
+ * is held, the emails are sent. What it costs is the video link, because a Meet
+ * link is only ever minted when the booking is written to a real calendar. It is
+ * also the only gap on this list the admin cannot close themselves, which is why
+ * its hint says where the coach goes rather than where the admin does.
+ *
+ * `calendarConnected === false` and nothing else. A null there means the
+ * connection could not be read, and an outage must not print an accusation.
  */
 function wiringGaps(entry: CoachDirectoryEntry): { label: string; hint: string }[] {
   const gaps: { label: string; hint: string }[] = []
@@ -105,6 +115,12 @@ function wiringGaps(entry: CoachDirectoryEntry): { label: string; hint: string }
     gaps.push({
       label: 'No lead routing',
       hint: 'New leads and booking notices will not reach them until they are on the routing list.',
+    })
+  }
+  if (entry.hasBookingSettings && entry.calendarConnected === false) {
+    gaps.push({
+      label: 'No Google Calendar',
+      hint: 'Bookings with them go through, but without a Google Meet link. They connect their calendar from their portal under Set Availability.',
     })
   }
   return gaps
@@ -314,6 +330,13 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   const { can } = usePermissions()
   const canManageCoaches = isDemo || isAdmin || can('manage_staff')
 
+  // Narrower than the section itself, and deliberately. 017's
+  // `coach_routing_admin_write` is an ADMIN-only policy, so a coach holding
+  // manage_staff would get a write that changes nothing rather than a refusal.
+  // The database still has the last word; this only keeps a control off a screen
+  // where it could not work.
+  const canEditRouting = isDemo || isAdmin
+
   const [coaches, setCoaches] = useState<CoachDirectoryEntry[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [coachesOutage, setCoachesOutage] = useState(false)
@@ -324,6 +347,14 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
   const [coachBusy, setCoachBusy] = useState<string | null>(null)       // slug being written
   const [issued, setIssued] = useState<{ slug: string; link: string; emailed: boolean } | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // The routing address, edited in place. One row at a time: this is a
+  // credential as much as a mailbox, and two half-typed addresses on one screen
+  // is a way to save the wrong one.
+  const [emailEdit, setEmailEdit] = useState<
+    { slug: string; routingId: string; value: string; error: string | null } | null
+  >(null)
+  const [savingEmail, setSavingEmail] = useState(false)
 
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState<CoachDraft>(blankCoach)
@@ -500,6 +531,31 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
     if (!ok) { setCoachError('Could not revoke that invitation.'); return }
 
     if (issued?.slug === slug) setIssued(null)
+    await loadCoaches()
+  }
+
+  /**
+   * Save the routing address.
+   *
+   * Three things hang off this one column: where their leads and booking notices
+   * go, where their invitation is sent, and which Google account may bind itself
+   * to their calendar. The library checks the shape and the database has the
+   * last word; a refusal that changed nothing comes back as a sentence rather
+   * than as a silent success, which is what the `.select('id')` is for.
+   */
+  const saveRoutingEmail = async () => {
+    if (!emailEdit || savingEmail) return
+
+    setSavingEmail(true)
+    const res = await updateCoachRoutingEmail(emailEdit.routingId, emailEdit.value, isDemo)
+    setSavingEmail(false)
+
+    if (!res.ok) {
+      setEmailEdit(edit => (edit ? { ...edit, error: res.message } : edit))
+      return
+    }
+
+    setEmailEdit(null)
     await loadCoaches()
   }
 
@@ -830,12 +886,26 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
 
   const coachRow = (entry: CoachDirectoryEntry) => {
     const invite = entry.invitation && entry.invitation.state === 'pending' ? entry.invitation : null
+    // An invitation is immutable and redeemable only at the address it was
+    // sent to. Once the routing email is corrected, a live invitation to the
+    // OLD address must not render as though it covers the new one: the row
+    // says which inbox actually holds the link, and offers a fresh send.
+    const rowAddress = (entry.account?.email ?? entry.email)?.toLowerCase() ?? null
+    const staleInvite = !!invite && !!rowAddress && invite.email.toLowerCase() !== rowAddress
     const gaps = wiringGaps(entry)
     const busy = coachBusy === entry.slug
     const email = entry.account?.email ?? entry.email
 
+    // The address being edited is the ROUTING one, which is not always the one
+    // printed above it: a claimed coach shows the address on their account, and
+    // the two are separate columns in separate tables. Only a coach with a
+    // routing row has anything to edit.
+    const editing = emailEdit?.slug === entry.slug ? emailEdit : null
+    const routingId = entry.routingId
+    const canEditEmail = canEditRouting && routingId !== null
+
     const actions = isDemo || entry.account ? null
-      : invite ? (
+      : invite && (!staleInvite || armedRevoke === invite.id) ? (
         armedRevoke === invite.id ? (
           <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--text-2)', fontSize: '.75rem', fontWeight: 600 }}>Cancel their invitation?</span>
@@ -880,12 +950,22 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => { setArmedRevoke(null); setArmedInvite(entry.slug) }}
-            style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1.2rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
-          >
-            Send invite
-          </button>
+          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => { setArmedRevoke(null); setArmedInvite(entry.slug) }}
+              style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.62rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', padding: '.6rem 1.2rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+            >
+              Send invite
+            </button>
+            {staleInvite && invite && (
+              <button
+                onClick={() => { setArmedInvite(null); setArmedRevoke(invite.id) }}
+                style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1.1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+              >
+                Revoke old invite
+              </button>
+            )}
+          </div>
         )
       ) : null
 
@@ -907,11 +987,75 @@ export default function UserManagementPanel({ isDemo = false }: { isDemo?: boole
                 : <Badge text="Not claimed" color="var(--text-4)" />}
               {gaps.map(g => <Badge key={g.label} text={g.label} color={PENDING} />)}
             </div>
-            <p style={{ color: 'var(--text-4)', fontSize: '.72rem', wordBreak: 'break-all' }}>
-              <span style={{ fontFamily: 'monospace' }}>/{entry.slug}</span>
-              {' · '}{email ?? 'no email on file'}
-              {invite ? ` · invited, expires ${fmtDate(invite.expires_at)}` : ''}
-            </p>
+            {editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.45rem', marginTop: '.15rem' }}>
+                <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ color: 'var(--text-4)', fontSize: '.72rem', fontFamily: 'monospace', flexShrink: 0 }}>
+                    /{entry.slug}
+                  </span>
+                  <input
+                    className="field"
+                    type="email"
+                    maxLength={254}
+                    autoFocus
+                    aria-label={`Routing email for ${entry.name}`}
+                    value={editing.value}
+                    onChange={e => {
+                      const next = e.target.value
+                      setEmailEdit(edit => (edit ? { ...edit, value: next, error: null } : edit))
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); void saveRoutingEmail() }
+                      if (e.key === 'Escape') setEmailEdit(null)
+                    }}
+                    style={{ flex: 1, minWidth: 200, maxWidth: 340 }}
+                  />
+                  <button
+                    onClick={() => void saveRoutingEmail()}
+                    disabled={savingEmail}
+                    style={{ background: ACCENT, border: 'none', color: '#ffffff', fontSize: '.6rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: savingEmail ? 'default' : 'pointer', fontFamily: 'inherit', opacity: savingEmail ? 0.6 : 1 }}
+                  >
+                    {savingEmail ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setEmailEdit(null)}
+                    style={{ background: 'transparent', border: '1px solid var(--surface-2)', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', padding: '.55rem 1rem', minHeight: '2.5rem', borderRadius: '.2rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {editing.error && <ErrorNote message={editing.error} />}
+                <p style={{ color: 'var(--text-4)', fontSize: '.7rem', lineHeight: 1.55, maxWidth: 460 }}>
+                  Leads, booking notices and their invitation go here. A Google Calendar connection also matches on
+                  this address.
+                </p>
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-4)', fontSize: '.72rem', wordBreak: 'break-all' }}>
+                <span style={{ fontFamily: 'monospace' }}>/{entry.slug}</span>
+                {' · '}{email ?? 'no email on file'}
+                {invite && !staleInvite ? ` · invited, expires ${fmtDate(invite.expires_at)}` : ''}
+                {canEditEmail && (
+                  <button
+                    onClick={() => setEmailEdit({
+                      slug: entry.slug,
+                      routingId,
+                      value: entry.email ?? '',
+                      error: null,
+                    })}
+                    style={{ background: 'none', border: 'none', padding: '.15rem .35rem', marginLeft: '.35rem', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Edit email
+                  </button>
+                )}
+              </p>
+            )}
+            {staleInvite && invite && !editing && (
+              <p style={{ color: PENDING, fontSize: '.72rem', marginTop: '.25rem' }}>
+                Their invitation went to {invite.email}, not the address above. It only works
+                from that inbox. Revoke it and send a new one.
+              </p>
+            )}
           </div>
           {actions}
         </div>

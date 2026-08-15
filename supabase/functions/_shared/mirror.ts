@@ -14,13 +14,16 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { decryptToken } from './db.ts'
 import {
+  bookingIdFilter,
   deleteEvent,
   getAccessToken,
   insertEvent,
+  listEvents,
   patchEvent,
   GoogleApiError,
   GoogleGoneError,
   GoogleRevokedError,
+  type GoogleEventMatch,
   type StoredConnection,
 } from './google.ts'
 
@@ -35,6 +38,26 @@ export type MirrorUpsertResult =
   | { status: 'skipped' }
   | { status: 'synced'; eventId: string; calendarId: string; meetLink: string | null }
   | { status: 'failed'; code: string }
+
+/**
+ * What a lookup learned. 'absent' is a real answer and means "we looked and
+ * there is nothing there", which is the only safe basis for inserting. 'failed'
+ * means we did NOT get to look, and a caller weighing an insert must treat it
+ * as "there might be one" rather than as "there is none".
+ */
+export type MirrorLookupResult =
+  | { status: 'skipped' }
+  | { status: 'found'; eventId: string; calendarId: string }
+  | { status: 'absent' }
+  | { status: 'failed'; code: string }
+
+/**
+ * How far an event's start may sit from the booking's before the free-text
+ * fallback stops believing it is the same thing. The event we are looking for
+ * was written at exactly the booking's start; the tolerance is here only so a
+ * clock or a rounding difference cannot rule it out.
+ */
+const ADOPT_START_TOLERANCE_MS = 120_000
 
 /**
  * Runs `fn` with a live access token for this coach, or reports why it could not.
@@ -104,6 +127,88 @@ export function mirrorCancel(
 }
 
 /**
+ * Is this booking already on the coach's calendar under an event we lost track
+ * of?
+ *
+ * The window where that happens: a push reaches Google, Google creates the
+ * event and mails the client, and the response never gets back to us or the
+ * row update that would have recorded the event id fails. The booking is left
+ * at google_sync_status='pending' with google_event_id null, which is
+ * indistinguishable from a push that never happened, and the obvious retry
+ * INSERTs a second event and sends the client a second invitation.
+ *
+ * So a retry asks first. Two searches, both inside the booking's own time
+ * window:
+ *   1. the private `axis_booking_id` property, which is exact and is on every
+ *      event this system has written since it was added;
+ *   2. free text on the booking id, for events written before that, whose
+ *      description carries `Booking ID: <id>`. A hit there is accepted only if
+ *      it also starts when the booking starts, so a coach who happened to paste
+ *      a booking id into some other event does not get that event overwritten.
+ *
+ * A 'found' result is for PATCHing. Adopting an event is strictly better than
+ * inserting beside it even when the adoption is imperfect: a PATCH cannot mint
+ * a Meet link, but it also cannot put a duplicate in front of the client.
+ */
+export async function mirrorFindEvent(
+  db: SupabaseClient,
+  coachSlug: string,
+  lookup: {
+    bookingId: string
+    startsAt: Date
+    timeMin: Date
+    timeMax: Date
+    /** Any calendar the booking already names; the connection's own otherwise. */
+    calendarId?: string | null
+  }
+): Promise<MirrorLookupResult> {
+  let out: MirrorLookupResult = { status: 'absent' }
+
+  const usable = (e: GoogleEventMatch) => e.id !== '' && e.status !== 'cancelled'
+
+  const result = await withCalendar(db, coachSlug, async (token, defaultCalendar) => {
+    // Resolved exactly as mirrorUpsert resolves it, so the calendar searched is
+    // the calendar an insert would go to.
+    const calendarId = lookup.calendarId ?? defaultCalendar
+
+    const byKey = await listEvents(token, {
+      calendarId,
+      timeMin:                 lookup.timeMin,
+      timeMax:                 lookup.timeMax,
+      privateExtendedProperty: bookingIdFilter(lookup.bookingId),
+    })
+
+    // Re-checked rather than trusted: Google applied the filter, and the cost
+    // of confirming it did is one comparison against a value we already hold.
+    let match = byKey.find(e => usable(e) && e.bookingId === lookup.bookingId)
+
+    if (!match) {
+      const byText = await listEvents(token, {
+        calendarId,
+        timeMin: lookup.timeMin,
+        timeMax: lookup.timeMax,
+        q:       lookup.bookingId,
+      })
+      match = byText.find(e =>
+        usable(e) && (
+          e.bookingId === lookup.bookingId ||
+          (e.start !== null &&
+           Math.abs(e.start.getTime() - lookup.startsAt.getTime()) <= ADOPT_START_TOLERANCE_MS)
+        )
+      )
+    }
+
+    out = match
+      ? { status: 'found', eventId: match.id, calendarId }
+      : { status: 'absent' }
+  })
+
+  if (result.status === 'skipped') return { status: 'skipped' }
+  if (result.status === 'failed')  return { status: 'failed', code: result.code }
+  return out
+}
+
+/**
  * Put the booking on the calendar, whether or not it is already there.
  *
  * PATCH when we hold an event id, INSERT when we do not — and INSERT as the
@@ -124,6 +229,14 @@ export async function mirrorUpsert(
     timeZone: string
     attendeeEmail: string
     attendeeName: string
+    /**
+     * The booking this event is for. Optional only because a caller may not
+     * have it to hand; pass it wherever it exists. On the INSERT branch it
+     * becomes the event's private `axis_booking_id`, which is what
+     * `mirrorFindEvent` later matches on, and is the difference between a
+     * retry adopting the event it already created and inserting a second one.
+     */
+    bookingId?: string
   }
 ): Promise<MirrorUpsertResult> {
   let out: MirrorUpsertResult = { status: 'failed', code: 'unreachable' }
@@ -166,6 +279,7 @@ export async function mirrorUpsert(
         timeZone:    event.timeZone,
         attendees:   [{ email: event.attendeeEmail, displayName: event.attendeeName }],
         addMeet:     true,
+        bookingId:   event.bookingId,
       },
       { calendarId, sendUpdates: 'all' }
     )

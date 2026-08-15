@@ -54,14 +54,13 @@ interface ProfileForm {
   services: ServiceRow[]
   photoUrl: string
   ctaBgUrl: string
-  bookCallUrl: string
 }
 
 function blankForm(): ProfileForm {
   return {
     slug: '', name: '', firstName: '', roleTitle: '', tagline: '', philosophy: '',
     bioText: '', specialtiesText: '', stats: [], services: [],
-    photoUrl: '', ctaBgUrl: '', bookCallUrl: '',
+    photoUrl: '', ctaBgUrl: '',
   }
 }
 
@@ -81,7 +80,6 @@ function toForm(row: CoachProfileRow): ProfileForm {
     })),
     photoUrl: row.photo_url ?? '',
     ctaBgUrl: row.cta_bg_url ?? '',
-    bookCallUrl: row.book_call_url ?? '',
   }
 }
 
@@ -241,7 +239,6 @@ export default function CoachProfilesManager({ isDemo = false }: { isDemo?: bool
         .filter(s => s.name || s.price || s.description),
       photo_url: f.photoUrl.trim() || null,
       cta_bg_url: f.ctaBgUrl.trim() || null,
-      book_call_url: f.bookCallUrl.trim() || null,
     }, isDemo)
     setSaving(false)
 
@@ -445,12 +442,6 @@ export default function CoachProfilesManager({ isDemo = false }: { isDemo?: bool
             isDemo={isDemo}
             disabled={saving}
           />
-
-          <div>
-            <label style={microLabel} htmlFor="cp-book">Book a call URL</label>
-            <input id="cp-book" style={inputStyle} value={f.bookCallUrl}
-              onChange={e => patch({ bookCallUrl: e.target.value })} placeholder="https://calendly.com/..." />
-          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '.75rem', marginTop: '1.75rem' }}>

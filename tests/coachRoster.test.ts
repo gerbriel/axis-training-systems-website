@@ -5,6 +5,7 @@ import {
   coachSlugFromName,
   composeDirectory,
   composeRoster,
+  directorySlugs,
   pickCoachInvitation,
   provisionRefusal,
   rosterSlugs,
@@ -37,7 +38,6 @@ function profile(partial: Partial<CoachProfileRow> & { slug: string }): CoachPro
     services: [],
     photo_url: partial.photo_url ?? null,
     cta_bg_url: null,
-    book_call_url: null,
     is_visible: partial.is_visible ?? true,
     sort_order: partial.sort_order ?? 0,
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -275,6 +275,10 @@ function directory(overrides: Partial<Parameters<typeof composeDirectory>[0]> = 
     accounts: overrides.accounts ?? ACCOUNTS,
     invitations: overrides.invitations ?? [],
     wiring: overrides.wiring ?? new Set(['kobe-pham', 'nia-adeyemi']),
+    // Passed through as given, undefined included: "nobody asked about calendars"
+    // and "the ask failed" are both null on the way out and the tests below
+    // check that they stay that way.
+    calendars: overrides.calendars,
     now: overrides.now,
   })
 }
@@ -374,6 +378,9 @@ test('composeDirectory attaches the live invitation for an unclaimed calendar', 
     id: 21,
     state: 'pending',
     expires_at: '2026-06-10T00:00:00.000Z',
+    // Carried so the row can tell when a corrected routing address no longer
+    // matches the inbox the live invitation actually went to.
+    email: 'someone@example.com',
   })
 })
 
@@ -459,4 +466,144 @@ test('provisionRefusal accepts what the database accepts, and no more', () => {
   assert.match(provisionRefusal({ ...GOOD, slug: 'a'.repeat(65) }) ?? '', /lowercase letters/)
   // Trimmed and lower-cased before the shape check, exactly as the RPC does it.
   assert.equal(provisionRefusal({ ...GOOD, slug: '  NIA-ADEYEMI  ', email: '  NIA@Axis.com ' }), null)
+})
+
+// ---------------------------------------------------------------------------
+// 8. directorySlugs — the list the calendar lookup is asked about
+// ---------------------------------------------------------------------------
+//
+// This has to be exactly the set composeDirectory renders. A slug it forgets is
+// a coach whose calendar state is never asked about and therefore never known,
+// which draws as "not connected" nowhere and as nothing at all on the row.
+
+test('directorySlugs unions routing, profiles and the static five, in that order', () => {
+  const slugs = directorySlugs(
+    [profile({ slug: 'orphan-page' })],
+    [{ id: 'r1', coach_name: 'Nia Adeyemi', email: 'nia@axis.com', coach_slug: 'nia-adeyemi' }],
+  )
+
+  assert.equal(slugs[0], 'nia-adeyemi')
+  assert.equal(slugs[1], 'orphan-page')
+  assert.equal(new Set(slugs).size, slugs.length)
+  for (const slug of SLUGS) assert.ok(slugs.includes(slug), slug)
+})
+
+test('directorySlugs drops the unslugged routing rows and never repeats one', () => {
+  const slugs = directorySlugs(
+    [profile({ slug: 'kobe-pham' })],
+    [
+      ...ROUTING,
+      { id: 'r9', coach_name: 'Kobe Again', email: 'k2@axis.com', coach_slug: '  kobe-pham  ' },
+    ],
+  )
+
+  // 'No Preference' carries no slug and is not a person; the whitespace spelling
+  // of an existing slug is the same coach.
+  assert.equal(slugs.filter(slug => slug === 'kobe-pham').length, 1)
+  assert.equal(slugs.includes(''), false)
+})
+
+test('directorySlugs answers the static five for two empty tables', () => {
+  assert.deepEqual(directorySlugs([], []), SLUGS)
+})
+
+test('directorySlugs is exactly the set composeDirectory renders', () => {
+  const profiles = [profile({ slug: 'orphan-page', name: 'Orphan Page' })]
+  const entries = composeDirectory({
+    profiles,
+    routing: ROUTING,
+    accounts: ACCOUNTS,
+    invitations: [],
+    wiring: new Set(),
+  })
+
+  assert.deepEqual(
+    [...entries.map(e => e.slug)].sort(),
+    [...directorySlugs(profiles, ROUTING)].sort(),
+  )
+})
+
+// ---------------------------------------------------------------------------
+// 9. composeDirectory — the calendar connection, and the difference between
+//    "not connected" and "we could not find out"
+// ---------------------------------------------------------------------------
+
+test('composeDirectory answers null for every coach when nobody asked about calendars', () => {
+  // The default. A screen must draw no chip at all for this.
+  assert.ok(directory().every(entry => entry.calendarConnected === null))
+})
+
+test('composeDirectory answers null for every coach when the calendar lookup failed', () => {
+  // fetchCalendarConnections answers null for an outage AND for a refusal, and
+  // both mean the same thing here: unknown, so say nothing.
+  assert.ok(directory({ calendars: null }).every(entry => entry.calendarConnected === null))
+})
+
+test('composeDirectory carries the connection through for each coach that has one', () => {
+  const entries = directory({
+    calendars: new Map([['kobe-pham', true], ['nia-adeyemi', false]]),
+  })
+
+  assert.equal(entries.find(e => e.slug === 'kobe-pham')?.calendarConnected, true)
+  assert.equal(entries.find(e => e.slug === 'nia-adeyemi')?.calendarConnected, false)
+})
+
+test('composeDirectory reads a slug missing from an answered map as not connected', () => {
+  // 039 returns a row per slug it was given, so a slug absent from a map that
+  // exists was either never asked about or came back false. Both are "no Meet
+  // link", and only a null MAP means "we do not know".
+  const entries = directory({ calendars: new Map([['kobe-pham', true]]) })
+  assert.equal(entries.find(e => e.slug === 'aedan-nguyen')?.calendarConnected, false)
+})
+
+test('composeDirectory keeps bookable and connected as separate facts', () => {
+  // The state the amber chip exists for: wired up to take bookings, with no
+  // calendar behind them, so every booking lands without a video link.
+  const entries = directory({
+    wiring: new Set(['kobe-pham', 'nia-adeyemi']),
+    calendars: new Map([['kobe-pham', false], ['nia-adeyemi', true]]),
+  })
+  const kobe = entries.find(e => e.slug === 'kobe-pham')
+
+  assert.equal(kobe?.hasBookingSettings, true)
+  assert.equal(kobe?.calendarConnected, false)
+  // And the other direction: connected, with no booking settings, is a coach
+  // nobody can book at all, which is a different chip and a different fix.
+  const entries2 = directory({
+    wiring: new Set(),
+    calendars: new Map([['nia-adeyemi', true]]),
+  })
+  const nia = entries2.find(e => e.slug === 'nia-adeyemi')
+  assert.equal(nia?.hasBookingSettings, false)
+  assert.equal(nia?.calendarConnected, true)
+})
+
+// ---------------------------------------------------------------------------
+// 10. composeDirectory — the routing row id the inline editor writes to
+// ---------------------------------------------------------------------------
+
+test('composeDirectory carries the routing row id, and only where there is a routing row', () => {
+  const entries = directory()
+
+  assert.equal(entries.find(e => e.slug === 'kobe-pham')?.routingId, 'r1')
+  assert.equal(entries.find(e => e.slug === 'nia-adeyemi')?.routingId, 'r2')
+  // A static coach with no routing row has nothing to edit, and the panel hides
+  // the control rather than writing to an id it guessed.
+  const noRouting = entries.find(e => e.slug === 'seth-burman')
+  assert.equal(noRouting?.hasRouting, false)
+  assert.equal(noRouting?.routingId, null)
+})
+
+test('composeDirectory pairs the routing id with the routing address, not the account one', () => {
+  const entries = directory({
+    routing: [{ id: 'r1', coach_name: 'Kobe Pham', email: 'routing@axistrainingsystems.com', coach_slug: 'kobe-pham' }],
+    accounts: [{ id: 'p1', email: 'personal@gmail.com', status: 'active', coach_slug: 'kobe-pham' }],
+  })
+  const kobe = entries.find(e => e.slug === 'kobe-pham')
+
+  // The editor seeds from `email`, so the two must be halves of one row: it is
+  // the routing address that google-oauth and handle_new_user match on.
+  assert.equal(kobe?.routingId, 'r1')
+  assert.equal(kobe?.email, 'routing@axistrainingsystems.com')
+  assert.equal(kobe?.account?.email, 'personal@gmail.com')
 })

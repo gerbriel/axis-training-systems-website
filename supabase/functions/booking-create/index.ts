@@ -292,6 +292,13 @@ Deno.serve(async (req) => {
       timeZone:      policy.timeZone,
       attendeeEmail: payload.email,
       attendeeName:  `${payload.first_name} ${payload.last_name}`,
+      // Stamped on the Google event as a private property. If the push below
+      // succeeds and this response or the row update is lost, the booking is
+      // left at 'pending' with no event id and looks exactly like a push that
+      // never happened. The key is how the recovery sweep in booking-notify
+      // tells those apart and adopts this event instead of creating a second
+      // one and mailing the client a second invitation.
+      bookingId:     booking.id,
     }
   )
 

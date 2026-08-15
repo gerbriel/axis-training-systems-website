@@ -358,6 +358,10 @@ Deno.serve(async (req) => {
         timeZone,
         attendeeEmail: booking.email,
         attendeeName:  `${booking.first_name} ${booking.last_name}`,
+        // Only read on the insert branch, where it stamps the new event with a
+        // private key the recovery sweep can find it by. The patch branch is
+        // unaffected.
+        bookingId:     booking.id,
       }
     )
 

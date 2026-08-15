@@ -20,7 +20,6 @@ export interface Coach {
   email: string         // used for Supabase auth + routing
   photo?: string        // headshot URL
   ctaBg?: string        // CTA section background photo
-  bookCallUrl?: string  // per-coach consultation booking link
   role: string          // short title
   tagline: string       // one-line philosophy
   bio: string[]         // paragraphs
@@ -39,7 +38,6 @@ export const COACHES: Coach[] = [
     email: 'ronnie@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_1947a325134d4dff956eb3a7a6436e0e~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/20240302_201048_edited_edited_edited.jpg',
     ctaBg: 'https://static.wixstatic.com/media/e99af3_78afea37a86d42b59c9a5885e5909905~mv2.jpg',
-    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Head Coach & Founder',
     tagline: 'Strength built on intention, not ego.',
     bio: [
@@ -89,7 +87,6 @@ export const COACHES: Coach[] = [
     email: 'seth@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_c6dd9c18b5374a038d9d94d95c94ccc2~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_6895%20(1).jpg',
     ctaBg: 'https://static.wixstatic.com/media/c0cc37_22d0ada4e59a43e68d265f53b7ff6219~mv2.jpg',
-    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Team Axis Coach',
     tagline: 'Competitive fire, methodical preparation.',
     bio: [
@@ -124,7 +121,6 @@ export const COACHES: Coach[] = [
     email: 'lucas@axistrainingsystems.com',
     photo: 'https://static.wixstatic.com/media/e99af3_c0aba7590f844eddaf80c5aa96fa99e4~mv2.jpg/v1/fill/w_432,h_434,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Screenshot_20220826-172606_Instagram_edited.jpg',
     ctaBg: 'https://static.wixstatic.com/media/e99af3_8188e795483040e68ca52efc20c469ca~mv2.jpg',
-    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Team Axis Coach',
     tagline: 'Fix the movement, free the strength.',
     bio: [
@@ -174,7 +170,6 @@ export const COACHES: Coach[] = [
     email: 'kobe@axistrainingsystems.com',
     photo: 'https://instagram.fsac1-2.fna.fbcdn.net/v/t51.82787-15/612966792_18038219582719560_4634281464013267619_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=103&ig_cache_key=MzgwNDM4OTc1NDc0MjY5NTUyMw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTY2OS5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=DZQ9CydWePUQ7kNvwGfJAmR&_nc_oc=AdrN_uW7lR5z63vCEPrGBIZVDu-_zVs-UWTGGoPYQJHHo4ied_qn8To1JJUadL0XdTwv4XSEEN4wKd2NK0k52NTw&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=instagram.fsac1-2.fna&_nc_gid=2js1Ezqun08wK0n65x4XkA&_nc_ss=7a22e&oh=00_Af8dmkjx9765S3FbuKJEi_Cauix3mtjG9nAYdrrVupwZdA&oe=6A3E9EAD',
     ctaBg: 'https://static.wixstatic.com/media/e99af3_33b79dddeb93448a8e7ddb66b45fd5aa~mv2.jpg',
-    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Performance Coach',
     tagline: 'Consistency compounds. Show up and do the work.',
     bio: [
@@ -209,7 +204,6 @@ export const COACHES: Coach[] = [
     email: 'aedan@axistrainingsystems.com',
     photo: 'https://instagram.fsac1-1.fna.fbcdn.net/v/t51.82787-15/612987658_18038926238719560_8601351049067518365_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=100&ig_cache_key=MzgwOTQ2MzUyODMxNDY1OTA3MQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuMTA4MC5zZHIucmVndWxhcl9waG90by5DMyJ9&_nc_ohc=-xyB7SSPppcQ7kNvwH1zfB0&_nc_oc=AdrZ8gWCxMOfQNzfQjkvvZBMhPsIMci7_szT7XpMgnDuwA_gbNxyEESsxH_SmHR4VEqsGdGEw687KDsJSMWQ8v19&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=instagram.fsac1-1.fna&_nc_gid=1SfPPqlAnHOot5ksQaYlrQ&_nc_ss=7a22e&oh=00_Af_TuQUbB-scW5zCyWEtpzkhrbik4VHrpBR3wx6BK9g8pg&oe=6A3E8ADD',
     ctaBg: 'https://static.wixstatic.com/media/e99af3_c7a9a45668c649ae84984977f3b7603a~mv2.jpg',
-    bookCallUrl: 'https://calendly.com/ronnie-axistrainingsystems',
     role: 'Development Coach',
     tagline: 'Every elite athlete was once a beginner. Start right.',
     bio: [

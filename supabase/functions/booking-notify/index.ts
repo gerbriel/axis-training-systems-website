@@ -36,15 +36,73 @@
 // and stamps `sent_at`. A row that fails keeps its incremented attempt count and
 // its last error and is swept again until it runs out of attempts. Nothing here
 // remembers anything between invocations.
+//
+// TWO jobs run here, in this order. The queue first, because it is the one with
+// a deadline. Then a small Meet-link recovery sweep over bookings still sitting
+// at google_sync_status='pending' — the retry migration 007 wrote an outbox for
+// and never gave a drainer. It runs on whatever time is left, it is bounded, and
+// it cannot affect the mail: see the sweep itself for what it does and does not
+// touch.
 
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import { loadCoachPolicy } from '../_shared/booking.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { buildIcs, icsBase64 } from '../_shared/ics.ts'
+import { mirrorFindEvent, mirrorUpsert } from '../_shared/mirror.ts'
 import { formatDateInTimeZone, formatTimeInTimeZone, timeZoneAbbreviation } from '../_shared/tz.ts'
 
 const BATCH_SIZE = 25
 const MS_PER_MINUTE = 60_000
+const MS_PER_DAY = 86_400_000
 const BRAND = '#272C84'
+
+/**
+ * How much Google work one invocation will do. Five pushes is a couple of
+ * seconds against a cadence of five minutes, and it keeps the sweep from ever
+ * being the reason an invocation runs long enough to lose the mail behind it.
+ */
+const RECOVERY_BATCH = 5
+
+/**
+ * How far back the sweep looks. This is the whole retry budget: a booking gets
+ * retried every five minutes for a week and is then left alone. No attempt
+ * counter, no backoff column, nothing to keep in step with the row — the window
+ * expires the work by itself, which is the one bookkeeping scheme that cannot
+ * drift out of sync with what actually happened.
+ */
+const RECOVERY_WINDOW_DAYS = 7
+
+/**
+ * Failure codes that will not heal on their own, whatever the window says.
+ *
+ *   google_revoked  the coach revoked Axis in their Google account settings.
+ *                   The connection row survives that, so nothing here notices:
+ *                   every refresh fails the same way, for ever.
+ *   decrypt_failed  the stored refresh token cannot be decrypted by this
+ *                   deployment. A key that changed, not a credential that will
+ *                   come back.
+ *
+ * A row failing on one of these sorts first by created_at and therefore holds a
+ * place in every batch of five until the window drops it a week later. Two or
+ * three of them are most of the batch, and the sweep spends its whole budget
+ * failing the same rows and never reaches the booking behind them. So these are
+ * written to google_sync_status='failed' and taken out of the sweep.
+ */
+const TERMINAL_SYNC_CODES = new Set(['google_revoked', 'decrypt_failed'])
+
+/**
+ * Not a mirror code: the coach has no usable coach_public_settings row, so
+ * there is no zone to write an event in. Terminal for the same reason as the
+ * two above, and recorded the same way.
+ */
+const POLICY_MISSING = 'policy_missing'
+
+/**
+ * How far either side of a booking the look-before-insert search reaches. Wide
+ * enough that a start recorded a moment off still overlaps, narrow enough that
+ * the search is about this booking and not about the coach's afternoon.
+ */
+const ADOPT_PAD_MS = 5 * MS_PER_MINUTE
 
 type Kind =
   | 'confirmation' | 'confirmed' | 'coach_alert'
@@ -337,6 +395,258 @@ async function send(n: Claimed): Promise<{ ok: true } | { ok: false; error: stri
   return { ok: true }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Meet-link recovery sweep
+//
+// Migration 007 built `google_sync_outbox` for exactly this and then nothing was
+// ever written to drain it: rows go in on every booking and nothing takes them
+// out, private.calendar_gc only deletes rows already marked completed, and
+// nothing marks them completed. So the comment in booking-create that says a
+// failed push is "left at 'pending' for the outbox to retry" described a retry
+// that did not exist, and a booking whose Google push failed kept
+// google_sync_status='pending' and no Meet link for ever.
+//
+// This sweep is that retry. It adopts the outbox's job WITHOUT adopting the
+// outbox: the bookings row already carries the state the drain needs
+// (google_sync_status, google_event_id, created_at), so the queue table is not
+// a second source of truth worth keeping in step. google_sync_outbox remains
+// write-only legacy — still enqueued by bookings_mirror_to_busy, still read by
+// nobody — and a later migration may drop it and that trigger's insert.
+//
+// What it is careful about:
+//   • Cancelled bookings are excluded. booking-update's failed-cancel branch and
+//     booking-manage's client cancel both leave rows at 'pending', and pushing
+//     one would put a cancelled appointment back on the coach's calendar and
+//     mail the client an invite for it (mirrorUpsert sends updates to all).
+//   • Bookings whose end has passed are excluded. A Meet link for a call that
+//     already happened is not a recovery, it is an invite to a past event.
+//   • The event payload is the one booking-create builds, from the columns that
+//     booking's snapshot fields hold. It is duplicated rather than shared: the
+//     three call sites already each build it from what they have (booking-update
+//     has its own eventSummary/eventDescription), and a shared builder would
+//     have to take either a payload or a row shape that no two of them agree on.
+//   • Any event id the row already holds is passed through, so a row that failed
+//     part-way PATCHes its existing event instead of creating a second one. That
+//     branch cannot mint a Meet link — only insert can — but a duplicate event on
+//     a coach's calendar is worse than a link they can add by hand.
+//   • A row with NO event id is not assumed to have no event. booking-create's
+//     push can reach Google, create the event and mail the client, and still
+//     leave the row at 'pending' with google_event_id null if the response is
+//     lost or the row update fails. Inserting there would be a second event and
+//     a second invitation in the client's inbox, so the sweep looks first
+//     (mirrorFindEvent) and adopts what it finds. A lookup it could not perform
+//     is not a licence to insert: that row waits for the next run.
+//
+// Terminal versus transient. 'failed' in google_sync_status means WILL NOT HEAL
+// WITHOUT HUMAN ACTION, and the reason is in google_sync_error as an opaque
+// code: a coach who revoked Axis in their Google settings, a credential this
+// deployment cannot decrypt, a coach with no usable settings row. Those rows
+// leave the sweep, because sorting oldest-first meant they otherwise held their
+// place in every batch of five for a week and starved the rows behind them.
+// Everything else stays at 'pending' and is retried, and the seven-day window
+// is still the entire budget for those.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The booking columns the sweep needs, and no others. */
+interface PendingSync {
+  id: string
+  coach_slug: string
+  booked_at: string
+  duration_minutes: number
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  service_name: string | null
+  goals: string | null
+  google_event_id: string | null
+  google_calendar_id: string | null
+}
+
+interface Recovery {
+  swept: number
+  synced: number
+  skipped: number
+  /** Transient failures. Still 'pending', will be tried again. */
+  failed: number
+  /** Terminal failures. Now 'failed', with the reason in google_sync_error. */
+  stopped: number
+  /** Rows that turned out to already have an event, and PATCHed it. */
+  adopted: number
+}
+
+/**
+ * Take a row out of the sweep for good, with the reason attached.
+ *
+ * Guarded on 'pending' like every other write here: a coach confirming or
+ * moving the same booking in booking-update may have synced it since this run
+ * read it, and this must not paint 'failed' over their 'synced'.
+ */
+async function stopSweeping(db: SupabaseClient, bookingId: string, code: string): Promise<void> {
+  const { error } = await db.from('bookings')
+    .update({ google_sync_status: 'failed', google_sync_error: code })
+    .eq('id', bookingId)
+    .eq('google_sync_status', 'pending')
+  if (error) console.error('booking-notify recovery_persist', error.code)
+}
+
+async function recoverPendingSyncs(db: SupabaseClient): Promise<Recovery> {
+  const out: Recovery = { swept: 0, synced: 0, skipped: 0, failed: 0, stopped: 0, adopted: 0 }
+
+  const now = new Date()
+  const since = new Date(now.getTime() - RECOVERY_WINDOW_DAYS * MS_PER_DAY).toISOString()
+
+  // Oldest first: the booking that has been waiting longest is the one whose
+  // client is closest to needing the link.
+  const { data, error } = await db
+    .from('bookings')
+    .select(
+      'id,coach_slug,booked_at,duration_minutes,first_name,last_name,email,phone,' +
+      'service_name,goals,google_event_id,google_calendar_id'
+    )
+    .eq('google_sync_status', 'pending')
+    .neq('status', 'cancelled')
+    .gt('created_at', since)
+    .gt('ends_at', now.toISOString())
+    .order('created_at', { ascending: true })
+    .limit(RECOVERY_BATCH)
+
+  if (error) {
+    console.error('booking-notify recovery_read', error.code)
+    return out
+  }
+
+  const pending = (data ?? []) as PendingSync[]
+  out.swept = pending.length
+
+  // Sequential, like the mail above. These are token refreshes and Google writes
+  // against one coach at a time, and there is no hurry.
+  for (const b of pending) {
+    // The coach's zone, from the loader booking-create used. Null is "no usable
+    // settings row", and there is no zone to fall back to: an event written in
+    // the wrong zone is a call an hour out, not a cosmetic defect. Nothing this
+    // function does will produce that row, so the booking stops being swept.
+    const policy = await loadCoachPolicy(db, b.coach_slug)
+    if (!policy) {
+      out.stopped++
+      console.error('booking-notify recovery_sync', b.id, POLICY_MISSING)
+      await stopSweeping(db, b.id, POLICY_MISSING)
+      continue
+    }
+
+    const start = new Date(b.booked_at)
+    const end   = new Date(start.getTime() + b.duration_minutes * MS_PER_MINUTE)
+
+    let existing = { eventId: b.google_event_id, calendarId: b.google_calendar_id }
+
+    // Look before inserting. Only when the row holds no event id: with one, the
+    // upsert PATCHes and there is nothing to look for.
+    if (!existing.eventId) {
+      const found = await mirrorFindEvent(db, b.coach_slug, {
+        bookingId:  b.id,
+        startsAt:   start,
+        timeMin:    new Date(start.getTime() - ADOPT_PAD_MS),
+        timeMax:    new Date(end.getTime() + ADOPT_PAD_MS),
+        calendarId: b.google_calendar_id,
+      })
+
+      if (found.status === 'found') {
+        // The event booking-create created and never got to record. PATCHing it
+        // updates the invitation the client already has instead of sending a
+        // second one, and the ids are persisted below like any other sync.
+        out.adopted++
+        existing = { eventId: found.eventId, calendarId: found.calendarId }
+      } else if (found.status === 'failed') {
+        // Not knowing whether an event exists is the one state in which we do
+        // not insert. Nothing is lost by waiting: the row is still pending and
+        // the next invocation asks again.
+        if (TERMINAL_SYNC_CODES.has(found.code)) {
+          out.stopped++
+          await stopSweeping(db, b.id, found.code)
+        } else {
+          out.failed++
+        }
+        console.error('booking-notify recovery_lookup', b.id, found.code)
+        continue
+      }
+      // 'skipped' and 'absent' both fall through: 'skipped' is a coach with no
+      // connection, and letting the upsert below say so keeps that terminal
+      // write in one place; 'absent' is the ordinary case, an insert.
+    }
+
+    const sync = await mirrorUpsert(
+      db,
+      b.coach_slug,
+      existing,
+      {
+        summary:     `${b.service_name ?? 'Axis Consultation'} — ${b.first_name} ${b.last_name}`,
+        description: [
+          b.service_name ? `Service: ${b.service_name} (${b.duration_minutes} min)` : null,
+          b.goals ? `Goals: ${b.goals}` : null,
+          b.phone ? `Phone: ${b.phone}` : null,
+          `Booking ID: ${b.id}`,
+        ].filter(Boolean).join('\n'),
+        start,
+        end,
+        timeZone:      policy.timeZone,
+        attendeeEmail: b.email,
+        attendeeName:  `${b.first_name} ${b.last_name}`,
+        // Stamped on the event when this is an insert, so the NEXT run can find
+        // it by key if this one's answer never comes back.
+        bookingId:     b.id,
+      }
+    )
+
+    // Both writes re-assert google_sync_status='pending'. Nothing else in this
+    // function is racing for the row, but a coach confirming or moving the same
+    // booking in booking-update is, and if they got there first their event id
+    // is the current one — this write is stale and must not land on top of it.
+    if (sync.status === 'synced') {
+      out.synced++
+      const { error: persistError } = await db.from('bookings').update({
+        google_event_id:    sync.eventId,
+        google_calendar_id: sync.calendarId,
+        google_meet_url:    sync.meetLink,
+        google_synced_at:   new Date().toISOString(),
+        google_sync_status: 'synced',
+      }).eq('id', b.id).eq('google_sync_status', 'pending')
+      if (persistError) console.error('booking-notify recovery_persist', persistError.code)
+    } else if (sync.status === 'skipped') {
+      // The coach disconnected Google between the booking and now, or never had
+      // it. A terminal state, and the row stops being swept.
+      out.skipped++
+      const { error: persistError } = await db.from('bookings')
+        .update({ google_sync_status: 'skipped' })
+        .eq('id', b.id).eq('google_sync_status', 'pending')
+      if (persistError) console.error('booking-notify recovery_persist', persistError.code)
+    } else if (TERMINAL_SYNC_CODES.has(sync.code)) {
+      // Nothing about the next five minutes changes this answer, so the row is
+      // marked 'failed' and the reason is left where a person can read it. The
+      // batch is five rows wide and sorted oldest-first; a row that can only
+      // fail must not be allowed to occupy one of those places for a week.
+      out.stopped++
+      await stopSweeping(db, b.id, sync.code)
+      console.error('booking-notify recovery_sync', b.id, sync.code)
+    } else {
+      // Left at 'pending' deliberately: the next invocation tries again, and the
+      // seven-day window is what eventually stops it. The code is opaque and the
+      // id is ours — neither is anybody's personal data.
+      out.failed++
+      console.error('booking-notify recovery_sync', b.id, sync.code)
+    }
+  }
+
+  if (out.swept > 0) {
+    console.log(
+      `booking-notify recovery swept=${out.swept} synced=${out.synced} ` +
+      `adopted=${out.adopted} skipped=${out.skipped} ` +
+      `failed=${out.failed} stopped=${out.stopped}`
+    )
+  }
+
+  return out
+}
+
 /**
  * Constant-time string compare. Returns false on a length mismatch, which does
  * leak the length — irrelevant for credentials whose length is not the secret,
@@ -417,7 +727,18 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, claimed: claimed.length, sent, failed }), {
+  // After the mail, never before it, and never able to stop it. The sweep does
+  // its own error handling and returns counts; this catch is for the thing it
+  // did not think of. Only the error's name is logged — a message can carry a
+  // URL, an address, or whatever an upstream decided to echo back.
+  let recovery: Recovery = { swept: 0, synced: 0, skipped: 0, failed: 0, stopped: 0, adopted: 0 }
+  try {
+    recovery = await recoverPendingSyncs(db)
+  } catch (err) {
+    console.error('booking-notify recovery', err instanceof Error ? err.name : 'unknown')
+  }
+
+  return new Response(JSON.stringify({ ok: true, claimed: claimed.length, sent, failed, recovery }), {
     headers: { ...cors, 'Content-Type': 'application/json' },
   })
 })

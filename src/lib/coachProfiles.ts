@@ -64,7 +64,6 @@ export interface CoachProfileRow {
   services: CoachService[]
   photo_url: string | null
   cta_bg_url: string | null
-  book_call_url: string | null
   is_visible: boolean
   sort_order: number
   updated_at: string
@@ -85,7 +84,7 @@ export interface CoachDisplay extends Omit<Coach, 'slug'> {
 // Single string literal, never `.join(',')`. postgrest-js parses the select
 // string at the type level and a computed one erases to `string`.
 export const COACH_PROFILE_COLUMNS =
-  'id,slug,name,first_name,role_title,tagline,philosophy,bio,specialties,stats,services,photo_url,cta_bg_url,book_call_url,is_visible,sort_order,updated_at'
+  'id,slug,name,first_name,role_title,tagline,philosophy,bio,specialties,stats,services,photo_url,cta_bg_url,is_visible,sort_order,updated_at'
 
 /** The column checks in 032, restated so a long paste is trimmed here rather than bouncing off `23514`. */
 export const COACH_NAME_LIMIT = 120
@@ -242,7 +241,6 @@ function toRow(row: Record<string, unknown>): CoachProfileRow {
     services: parseServices(row.services),
     photo_url: nullableText(row.photo_url),
     cta_bg_url: nullableText(row.cta_bg_url),
-    book_call_url: nullableText(row.book_call_url),
     is_visible: row.is_visible !== false,
     sort_order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
     updated_at: String(row.updated_at ?? ''),
@@ -283,7 +281,6 @@ function fromCoach(coach: Coach, index: number): CoachProfileRow {
     services: coach.services.map(service => ({ ...service })),
     photo_url: coach.photo ?? null,
     cta_bg_url: coach.ctaBg ?? null,
-    book_call_url: coach.bookCallUrl ?? null,
     is_visible: true,
     sort_order: index,
     updated_at: new Date().toISOString(),
@@ -317,7 +314,6 @@ export function toCoachShape(row: CoachProfileRow): CoachDisplay {
     email: staticCoach?.email ?? '',
     photo: row.photo_url ?? undefined,
     ctaBg: row.cta_bg_url ?? undefined,
-    bookCallUrl: row.book_call_url ?? undefined,
     role: row.role_title ?? '',
     tagline: row.tagline ?? '',
     bio: row.bio,
@@ -540,7 +536,6 @@ function cleanProfile(input: CoachProfileInput, allowBlob = false): { ok: true; 
   const urls: [keyof CoachProfileRow, string, string][] = [
     ['photo_url', 'photo_url', 'The photo link'],
     ['cta_bg_url', 'cta_bg_url', 'The background image link'],
-    ['book_call_url', 'book_call_url', 'The booking link'],
   ]
   for (const [key, column, label] of urls) {
     if (!has(input, key)) continue

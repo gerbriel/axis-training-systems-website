@@ -288,9 +288,11 @@ is wrong or it never deployed. A `401` means you forgot `--no-verify-jwt`.
 ## 3. Turn on the periodic sync (pg_cron)
 
 Importing busy times is a poll: every 15 minutes a job asks Google for each connected coach's
-free/busy window and refreshes `coach_calendar_busy`. The same job drains the outbox — the
-queue of "create this event / cancel that event" jobs produced by bookings — so a booking made
-while Google was down still lands on the calendar a few minutes later.
+free/busy window and refreshes `coach_calendar_busy`. Event creation is synchronous at booking
+time; if that push fails, the booking-notify cron retries bookings left at
+`google_sync_status = 'pending'` (five per run, over a seven-day window), so a booking made
+while Google was down still lands on the calendar, Meet link included, a few minutes later.
+The `google_sync_outbox` table is write-only legacy and is not drained by anything.
 
 In the Supabase dashboard → **SQL Editor**, run this **once**:
 
@@ -385,7 +387,7 @@ portal notices within a sync cycle and shows you as disconnected.
 | **`redirect_uri_mismatch`** the moment consent is granted | The URI in Google's OAuth client ≠ the `GOOGLE_REDIRECT_URI` secret. Usually a trailing slash, `http` vs `https`, or the wrong project ref. | Put them side by side and compare character by character: Google Cloud → Credentials → your Web client → *Authorized redirect URIs*, vs `supabase secrets list`. Must be `https://YOUR_PROJECT_REF.supabase.co/functions/v1/google-oauth-callback`. Google can take a few minutes to propagate a change. |
 | **Coach adds an event in Google, but the slot is still bookable on the site** | The importer polls; it is not instant. Give it up to 15 minutes. If it never clears: the coach isn't connected; or the event is on a *secondary* calendar (we read `primary` only); or the event is marked **Free** rather than **Busy** in Google (free/busy deliberately ignores it); or the cron job is failing. | `select * from cron.job_run_details order by start_time desc limit 5;` and check the `calendar-sync` function logs in the Supabase dashboard. To force a poll, run the `net.http_post` from §3 by hand. Tell the coach to set the event's visibility/availability to **Busy** and put it on their main calendar. |
 | **Slot disappeared but the coach has nothing there** | An event marked Busy that they don't think of as a commitment (all-day "Vacation", a birthday from a shared calendar) still counts as busy. | Expected behaviour. Mark it **Free** in Google, or remove the offending calendar from the account's primary view. |
-| **Client didn't get the calendar invite** | Three usual causes: it went to spam; the client typed their email wrong at booking; or the outbox job hasn't run yet / is failing. | Check the booking row's `google_sync_status` in the dashboard. `pending` → wait for the next cron tick. `error` → read `google_sync_error` and the `calendar-sync` logs. `synced` → the event exists; the invite is in the client's spam folder, or their address is wrong. The coach can always re-send the invite from Google Calendar directly, or forward the Meet link from the booking. |
+| **Client didn't get the calendar invite** | Three usual causes: it went to spam; the client typed their email wrong at booking; or the create-time push failed and the retry has not run yet. | Check the booking row's `google_sync_status` in the dashboard. `pending` → wait for the next booking-notify tick (it retries five per run). `failed` → read `google_sync_error`; that coach needs human attention (usually a revoked Google connection). `synced` → the event exists; the invite is in the client's spam folder, or their address is wrong. The coach can always re-send the invite from Google Calendar directly, or forward the Meet link from the booking. |
 | **Coach connected, but no Meet link on the event** | Meet links are only issued for events on a Google account that has Meet enabled (all consumer and most Workspace accounts do). Rare. | The booking still stands; the coach can add a Meet link with one click in Google Calendar. |
 | **Booking page says a slot is taken the instant someone else books it** | Working as intended. The database has an exclusion constraint: two people cannot hold the same coach at the same instant, no matter how simultaneously they click. The loser sees a "just taken" message and picks another slot. | Nothing to fix. |
 | **Everything is broken right after deploy — every function 401s** | You are calling functions from an origin that isn't in `ALLOWED_ORIGINS`, or you deployed the OAuth callback without `--no-verify-jwt`. | `supabase secrets list`, fix `ALLOWED_ORIGINS`; redeploy the callback with the flag. |
@@ -401,12 +403,12 @@ They contain status codes and error codes only — never a token, never a calend
                  ┌──────────── every 15 min (pg_cron) ────────────┐
                  │                                                │
   Google Cal ──freeBusy──▶ calendar-sync ──▶ coach_calendar_busy ─┼─▶ /book page
-  (coach's)                     │                                 │   (public, no PII)
-                                │                                 │
-                                └── drains outbox ──▶ Google Cal ─┘
-                                         ▲
-  Client books ──▶ booking-create ──▶ bookings (committed first)
-                                  └──▶ calendar_outbox (job queued)
+  (coach's)                                                       │   (public, no PII)
+                                                                  │
+  Client books ──▶ booking-create ──▶ bookings (committed first) ─┘
+                                  └──▶ event + Meet link pushed to Google inline;
+                                       if that push fails, booking-notify's cron
+                                       (every 5 min) retries it, five per run
 ```
 
 - **The public booking page never reads the `bookings` table and never talks to Google.** It

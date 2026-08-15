@@ -3,7 +3,7 @@ import type { CoachRouting } from '../../types/database'
 import { supabase } from '../../lib/supabase'
 import { DEMO_ROUTING, DEMO_CONFIG } from '../../data/demoData'
 import DemoBanner from '../../components/dashboard/DemoBanner'
-import { safeUrl, sanitizeEmail, isValidEmail } from '../../utils/sanitize'
+import { sanitizeEmail, isValidEmail } from '../../utils/sanitize'
 import { fetchSiteFlag, setSiteFlag } from '../../lib/siteSettings'
 import { importSiteContent } from '../../lib/seedContent'
 
@@ -122,16 +122,6 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
       setSavingRoutes(false)
       return
     }
-    // Checked before the write, not after: this column is documented to become
-    // an `href` on a public coach profile, and a `javascript:` URI stored there
-    // is stored XSS waiting for the day the field is wired up. safeUrl allows
-    // http/https/mailto and refuses everything else.
-    const badUrl = routes.find(r => r.calendly_url && !safeUrl(r.calendly_url))
-    if (badUrl) {
-      setRoutesMsg({ text: `${badUrl.coach_name}: that booking link is not a valid http(s) URL.`, ok: false })
-      setSavingRoutes(false)
-      return
-    }
     const badEmail = routes.find(r => r.notify && r.email && !isValidEmail(sanitizeEmail(r.email)))
     if (badEmail) {
       setRoutesMsg({ text: `${badEmail.coach_name}: that does not look like an email address.`, ok: false })
@@ -142,7 +132,7 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
     const updates = routes.map(r =>
       supabase.from('coach_routing')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ email: sanitizeEmail(r.email), notify: r.notify, calendly_url: safeUrl(r.calendly_url) ?? null, updated_at: new Date().toISOString() } as any)
+        .update({ email: sanitizeEmail(r.email), notify: r.notify, updated_at: new Date().toISOString() } as any)
         .eq('id', r.id)
     )
     const results = await Promise.all(updates)
@@ -273,7 +263,6 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
         <p style={{ color: 'var(--text-2)', fontSize: '.85rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
           When an athlete selects a coach preference, their application is emailed to that coach's address.
           Enable/disable per coach. Leave email blank to skip.
-          The <strong style={{ color: 'var(--text-3)' }}>Calendly URL</strong> is shown as a “Book a Consultation” button on each coach's public profile — leave blank to hide it.
         </p>
 
         {/* Column headers */}
@@ -281,7 +270,6 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
           <span style={{ width: '2.25rem', flexShrink: 0 }} />
           <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', minWidth: '9rem' }}>Coach</span>
           <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 1, minWidth: 180 }}>Notification Email</span>
-          <span style={{ color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', flex: 2, minWidth: 220 }}>Calendly URL</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -312,14 +300,6 @@ export default function AdminSettings({ isDemo = false }: { isDemo?: boolean }) 
                 value={r.email} onChange={e => updateRoute(r.id, 'email', e.target.value)}
                 disabled={!r.notify}
                 style={{ flex: 1, minWidth: 180, opacity: r.notify ? 1 : 0.4 }}
-              />
-
-              {/* Calendly URL */}
-              <input
-                type="url" className="field" placeholder="https://calendly.com/their-link (optional)" maxLength={500}
-                value={r.calendly_url ?? ''}
-                onChange={e => updateRoute(r.id, 'calendly_url', e.target.value)}
-                style={{ flex: 2, minWidth: 220 }}
               />
             </div>
           ))}

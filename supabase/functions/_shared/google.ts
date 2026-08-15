@@ -7,8 +7,13 @@
 //     NEVER embedded in an Error message. Errors carry status + Google's `reason`
 //     only. `String(err)` on a failed fetch stringifies its request URL, which on
 //     the token endpoint carries the auth code — so we never stringify one either.
-//   • Data minimization: we call freeBusy, not events.list. Event titles and
-//     attendees from a coach's personal calendar never enter our system.
+//   • Data minimization: availability is read with freeBusy, which returns
+//     instants and nothing else. There is exactly one events.list call in this
+//     file, `listEvents`, and it is a lookup for one of our own bookings by a
+//     filter that names it rather than a read of the coach's calendar. What it
+//     returns is reduced to ids and instants before it leaves this module, so
+//     titles and attendees from a coach's personal calendar still never enter
+//     our system.
 //   • A revoked coach (invalid_grant) is a STATE, not an exception: callers get a
 //     typed GoogleRevokedError to record and surface, not an unhandled throw.
 
@@ -384,6 +389,23 @@ export async function freeBusyQuery(
   return (cal?.busy ?? []).map(b => ({ start: new Date(b.start), end: new Date(b.end) }))
 }
 
+/**
+ * The private extendedProperties key every event we create carries.
+ *
+ * It is the idempotency key for the whole Google mirror. A push whose response
+ * we lose leaves an event on the calendar that our row knows nothing about, and
+ * without a key on it the only way to recognise our own work is to guess from
+ * the time and the title. With it, `listEvents` below answers "did this booking
+ * already get written" exactly, which is what keeps a retry from inserting a
+ * second event and mailing the client a second invitation.
+ */
+export const AXIS_BOOKING_KEY = 'axis_booking_id'
+
+/** The `privateExtendedProperty` filter value for one booking. */
+export function bookingIdFilter(bookingId: string): string {
+  return `${AXIS_BOOKING_KEY}=${bookingId}`
+}
+
 export interface GoogleEventInput {
   summary:      string
   description?: string
@@ -394,6 +416,12 @@ export interface GoogleEventInput {
   attendees?:   { email: string; displayName?: string }[]
   /** Request a Google Meet link on insert. */
   addMeet?:     boolean
+  /**
+   * Our booking id, written to the event as a private extended property. Not
+   * secret and not personal data: it is the same opaque uuid the description
+   * already carries, and only the coach's own calendar can see it.
+   */
+  bookingId?:   string
 }
 
 export interface GoogleEvent {
@@ -410,6 +438,8 @@ interface RawEvent {
   htmlLink?:    string
   hangoutLink?: string
   status?:      string
+  start?:       { dateTime?: string; date?: string }
+  extendedProperties?: { private?: Record<string, string> }
 }
 
 function eventBody(input: GoogleEventInput): Record<string, unknown> {
@@ -427,6 +457,12 @@ function eventBody(input: GoogleEventInput): Record<string, unknown> {
         conferenceSolutionKey: { type: 'hangoutsMeet' },
       },
     }
+  }
+  // Written on every insert that knows which booking it is for. Google keeps
+  // private extended properties out of everything except the API, so this is
+  // invisible on the coach's screen and searchable by us.
+  if (input.bookingId) {
+    body.extendedProperties = { private: { [AXIS_BOOKING_KEY]: input.bookingId } }
   }
   return body
 }
@@ -511,6 +547,85 @@ export async function deleteEvent(
     if (err instanceof GoogleApiError && err.status === 404) return
     throw err
   }
+}
+
+/**
+ * One events.list hit, reduced to what a recovery can act on: the ids, the
+ * status, the start INSTANT (the same class of fact freeBusy already returns),
+ * and our own key if the event carries one. No summary, no description, no
+ * attendees, no organizer. A caller cannot read a coach's calendar through this
+ * even by accident, because the fields to read it with are not on the type.
+ */
+export interface GoogleEventMatch {
+  id:          string
+  hangoutLink: string | null
+  status:      string | null
+  start:       Date | null
+  /** `extendedProperties.private.axis_booking_id`, when the event has one. */
+  bookingId:   string | null
+}
+
+function toMatch(raw: RawEvent): GoogleEventMatch {
+  // dateTime only. An all-day event carries `date` instead and cannot be one of
+  // ours, and parsing it would invent a midnight that means nothing here.
+  const startedAt = raw.start?.dateTime ? new Date(raw.start.dateTime) : null
+  return {
+    id:          raw.id ?? '',
+    hangoutLink: raw.hangoutLink ?? null,
+    status:      raw.status ?? null,
+    start:       startedAt && !Number.isNaN(startedAt.getTime()) ? startedAt : null,
+    bookingId:   raw.extendedProperties?.private?.[AXIS_BOOKING_KEY] ?? null,
+  }
+}
+
+/**
+ * Find an event we have already written, in a window we already know about.
+ *
+ * The only read of a coach's calendar in this system, and it is deliberately
+ * narrow: a time window of one booking, a filter naming that booking, and at
+ * most ten results, mapped through `toMatch` so nothing but ids and instants
+ * comes back. Callers pass `privateExtendedProperty` for the exact answer and
+ * `q` only as a fallback for events written before the key existed, whose
+ * description still carries the booking id as text.
+ *
+ * Note what the window means to Google: timeMin and timeMax select events that
+ * OVERLAP the range, not events contained by it, so a booking's own start and
+ * end are enough to catch the event written for it.
+ */
+export async function listEvents(
+  accessToken: string,
+  opts: {
+    calendarId?:              string
+    timeMin:                  Date
+    timeMax:                  Date
+    /** `key=value`, e.g. `bookingIdFilter(id)`. Google ANDs repeated filters. */
+    privateExtendedProperty?: string
+    /** Free-text search across summary, description and location. */
+    q?:                       string
+    maxResults?:              number
+  },
+): Promise<GoogleEventMatch[]> {
+  const calendarId = opts.calendarId ?? 'primary'
+
+  const query: Record<string, string> = {
+    timeMin:      opts.timeMin.toISOString(),
+    timeMax:      opts.timeMax.toISOString(),
+    // Recurrences expanded to instances, deleted events left out: an adoption
+    // must never land on a cancelled event or on a series master.
+    singleEvents: 'true',
+    showDeleted:  'false',
+    maxResults:   String(opts.maxResults ?? 10),
+  }
+  if (opts.privateExtendedProperty) query.privateExtendedProperty = opts.privateExtendedProperty
+  if (opts.q) query.q = opts.q
+
+  const data = await calendarFetch<{ items?: RawEvent[] }>(
+    accessToken,
+    `/calendars/${encodeURIComponent(calendarId)}/events`,
+    { method: 'GET', query },
+  )
+
+  return (data?.items ?? []).map(toMatch)
 }
 
 /** Safe-to-log summary of any error. Never includes a token, a body, or a URL. */

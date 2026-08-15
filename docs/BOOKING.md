@@ -89,7 +89,8 @@ supabase/functions/
   booking-create          the only public write path into bookings  (no JWT)
   booking-manage          the client's cancel / reschedule          (no JWT)
   booking-update          the coach's confirm / cancel / move       (JWT)
-  booking-notify          drains the notification queue             (cron)
+  booking-notify          drains the notification queue, then       (cron)
+                          retries pending Google syncs (Meet links)
 ```
 
 ### Why availability moved to the server
@@ -240,11 +241,15 @@ a limiter that cannot count is a reason to refuse.
   not there.
 - **No deposits.** There is no money anywhere in this system, so there is nothing
   protecting against a no-show beyond the reminders.
-- **The Google outbox has no drainer.** `google_sync_outbox` is filled by the
-  mirror trigger (007) and nothing empties it. Every write path does a
-  synchronous best-effort mirror instead, so the practical effect is that a
-  Google failure is never retried — the booking is correct, the calendar event
-  is simply absent.
+- **The Google outbox is write-only legacy.** `google_sync_outbox` is filled by
+  the mirror trigger (007) and nothing empties it. Every write path does a
+  synchronous best-effort mirror, and since round 5 the booking-notify cron
+  also sweeps bookings stuck at `google_sync_status = 'pending'` (five per run,
+  seven-day window), so a transient Google failure heals within minutes. A push
+  that never succeeds inside that window is abandoned: the booking stays
+  correct, the calendar event is simply absent, and terminal failures are
+  marked `failed` with a code in `google_sync_error`. The legacy table itself
+  is inert and safe to drop in a later migration.
 - **`booking-notify` is email-only.** No SMS. The queue carries a `channel`
   column and rejects anything that is not `email`; adding a sender means widening
   that check and writing the worker, not reshaping any of this.

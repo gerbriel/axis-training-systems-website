@@ -801,10 +801,20 @@ function BookingConfirmation({ coach, service, slot, result }: {
           cancelling is what gives it back. The email really is sent —
           booking-notify drains the queue that migration 010's trigger fills.
         */}
+        {/*
+          A booking with no meet link is not a broken booking. A coach who has
+          not connected Google books exactly like one who has: the trigger marks
+          the row 'skipped', the time is held, the emails go out, and there is
+          simply no video link to send. Saying nothing about it left the reader
+          to notice the absence and wonder, so the no-link branch says who is
+          going to close the gap instead.
+        */}
         <p style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 1.7, margin: 0 }}>
           {heldForReview
             ? `${coach.firstName} will confirm within 24 hours. Your time is held on their calendar until then — nobody else can take it. We’ve emailed you a confirmation, and we’ll email again the moment it’s confirmed.`
-            : `This one is confirmed. We’ve emailed you the details${result.meetLink ? ', including the video link' : ''}.`}
+            : result.meetLink
+              ? 'This one is confirmed. We’ve emailed you the details, including the video link.'
+              : 'This one is confirmed. We’ve emailed you the details. Your coach will send the call details before your session.'}
         </p>
       </div>
 
