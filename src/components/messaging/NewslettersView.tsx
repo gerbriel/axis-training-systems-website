@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { castPollVote } from '../../lib/newsletterBroadcast'
+import { castPollVote } from '../../lib/newsletters'
 import type { MessagingContact, NewsletterThread, PollState } from '../../types/messaging'
 import { Avatar, ErrorLine, OutageBlock, Pill } from './MessagingChrome'
 import PollWidget from './PollWidget'
@@ -9,9 +9,9 @@ import { ACCENT, MICRO, clockTime, conversationTitle, dayLabel, senderName, time
  * The Newsletters tab: everything the team has announced to this person, one
  * item per newsletter, in the same two-pane shape as the inbox.
  *
- * A newsletter is not a conversation. It arrives as its own broadcast thread so
- * that unread, delivery, and Realtime all keep working per person, but there is
- * nothing to write back into: the database refuses a reply to a broadcast, so
+ * A newsletter is not a conversation. It arrives as its own thread so that
+ * unread, delivery, and Realtime all keep working per person, but there is
+ * nothing to write back into: the database refuses a reply into one (033), so
  * this view never offers a composer to be refused. The only thing a reader can
  * change is a vote, and a vote is aggregate. The tallies are the server's
  * answer, never this component's arithmetic, so a vote moves the bar at once

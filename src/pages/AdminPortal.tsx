@@ -15,7 +15,7 @@ import BookingsPanel from './admin/BookingsPanel'
 import TestimonialsPanel from './admin/TestimonialsPanel'
 import ApprovalsPanel from './admin/ApprovalsPanel'
 import InvitationsPanel from './admin/InvitationsPanel'
-import MessagesHub from './admin/MessagesHub'      // hosts Inbox / Newsletter
+import MessagesHub from './admin/MessagesHub'      // hosts Inbox / Newsletters
 // ── Wave-1 verticals ──
 import CalendarPanel from './admin/CalendarPanel'
 import TimeClockPanel from './admin/TimeClockPanel'
@@ -25,12 +25,6 @@ import SalesPanel from './admin/SalesPanel'        // hosts Sales / Orders / Exp
 import InsightsPanel from './admin/InsightsPanel'  // hosts Reports / Analytics / Custom Reports / Marketing / Announcements
 import SettingsPanel from './admin/SettingsPanel'  // hosts General + Users + the settings sub-tabs
 import ResourcesHub from './admin/ResourcesHub'   // hosts Resource Library / Calculator Settings
-import AvailabilityManager from './coach-admin/AvailabilityManager'
-import CoachProfilesManager from './admin/CoachProfilesManager'
-import { COACHES, getCoachBySlug } from '../data/coaches'
-import { fetchCoachRoster } from '../lib/coachRoster'
-import type { RosterCoach } from '../lib/coachRoster'
-import type { CoachDisplay } from '../lib/coachProfiles'
 import { useRequirePortalAccess } from '../lib/useGuard'
 import { usePermissions } from '../lib/usePermissions'
 import { useAuth } from '../context/AuthContext'
@@ -40,19 +34,24 @@ import { useUnreadCount } from '../lib/useUnreadCount'
 // first two are Insights sub-tabs and the newsletter sits beside the inbox
 // under Messages. An old ?tab=marketing bookmark is not a valid tab any more,
 // so useUrlTab drops it back to Clients rather than showing an empty shell.
+//
+// Set Availability went the same way: it is a Settings sub-tab now, at
+// ?tab=settings#availability, sitting with the Scheduling and Services setup it
+// belongs with rather than holding a rail slot for two hosted components. An old
+// ?tab=availability bookmark falls back to Clients exactly like ?tab=marketing.
 type Tab =
   | 'calendar' | 'crm' | 'bookings' | 'messages' | 'timeclock' | 'forms'
   | 'approvals' | 'blog' | 'meets' | 'testimonials' | 'resources'
   | 'catalog' | 'sales'
   | 'insights'
-  | 'invitations' | 'availability' | 'settings'
+  | 'invitations' | 'settings'
 
 const TABS: readonly Tab[] = [
   'calendar', 'crm', 'bookings', 'messages', 'timeclock', 'forms',
   'approvals', 'blog', 'meets', 'testimonials', 'resources',
   'catalog', 'sales',
   'insights',
-  'invitations', 'availability', 'settings',
+  'invitations', 'settings',
 ]
 
 const TITLES: Record<Tab, string> = {
@@ -63,7 +62,7 @@ const TITLES: Record<Tab, string> = {
   resources: 'Resources & Tools',
   catalog: 'Catalog', sales: 'Sales',
   insights: 'Insights',
-  invitations: 'Invitations', availability: 'Set Availability', settings: 'Settings',
+  invitations: 'Invitations', settings: 'Settings',
 }
 
 /**
@@ -99,11 +98,11 @@ const TAB_KEYS: Record<Tab, readonly string[]> = {
   sales:        ['view_store', 'view_sales', 'manage_orders', 'manage_expenses'],
   insights:     ['view_analytics', 'view_marketing', 'send_marketing', 'manage_announcements'],
   invitations:  [],
-  availability: ['manage_staff'],
+  // `manage_staff` is still here because Users and Set Availability are both
+  // Settings sub-tabs, so it is still a key that opens this tab.
   settings: [
     'manage_site_settings', 'manage_scheduling', 'manage_services', 'manage_waitlist',
-    'manage_notifications', 'manage_commission', 'manage_legal', 'manage_staff',
-    'manage_permissions',
+    'manage_notifications', 'manage_legal', 'manage_staff', 'manage_permissions',
   ],
 }
 
@@ -130,38 +129,8 @@ const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'Content',  tabs: ['approvals', 'blog', 'meets', 'testimonials', 'resources'] },
   { label: 'Store',    tabs: ['catalog', 'sales'] },
   { label: 'Grow',     tabs: ['insights'] },
-  { label: 'Setup',    tabs: ['invitations', 'availability', 'settings'] },
+  { label: 'Setup',    tabs: ['invitations', 'settings'] },
 ]
-
-/**
- * The roster the availability picker starts with.
- *
- * The bundled five, so the row of buttons paints on the first frame exactly as
- * it always has. The database answer replaces it a moment later and adds
- * anybody provisioned since.
- */
-const STATIC_ROSTER: RosterCoach[] = COACHES.map(c => ({
-  slug: c.slug, name: c.name, firstName: c.firstName, roleTitle: c.role,
-  photo: c.photo ?? null, email: c.email, bookable: true, source: 'static' as const,
-}))
-
-/**
- * A roster row as the shape AvailabilityManager takes.
- *
- * The static entry when there is one, so the five keep their full copy, and
- * otherwise the little the roster knows. The panel and the two it hosts read
- * `slug` and nothing else, which is why the thin version is enough.
- */
-function asDisplay(c: RosterCoach): CoachDisplay {
-  const staticCoach = getCoachBySlug(c.slug)
-  if (staticCoach) return staticCoach
-  return {
-    slug: c.slug, name: c.name, firstName: c.firstName,
-    email: c.email ?? '', photo: c.photo ?? undefined,
-    role: c.roleTitle ?? '', tagline: '', bio: [], coachingPhilosophy: '',
-    specialties: [], services: [], stats: [], testimonials: [],
-  }
-}
 
 function Nav({ tab, groups, counts, unread, onSelect, onSignOut, signOutLabel }: {
   tab: Tab
@@ -210,8 +179,6 @@ export default function AdminPortal() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useUrlTab(TABS, 'crm')
-  const [availCoach, setAvailCoach] = useState<string>(COACHES[0].slug)
-  const [roster, setRoster] = useState<RosterCoach[]>(STATIC_ROSTER)
   const [isDemo, setIsDemo] = useState(demoParamActive)
   const [counts, setCounts] = useState<PendingCounts>(ZERO_PENDING)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -274,17 +241,6 @@ export default function AdminPortal() {
   }, [])
 
   useDemoParamSync(setIsDemo)
-
-  // Every coach, bookable or not: setting somebody's hours is how a new coach
-  // BECOMES bookable, so the one picker that must not be filtered is this one.
-  // An empty answer keeps the bundled five rather than blanking the row.
-  useEffect(() => {
-    let live = true
-    fetchCoachRoster(isDemo, { includeHidden: true })
-      .then(list => { if (live && list.length > 0) setRoster(list) })
-      .catch(() => { /* keep the static roster */ })
-    return () => { live = false }
-  }, [isDemo])
 
   // A signed-in athlete reaching /admin is sent where they belong. RLS already
   // returns them nothing here; this is what turns that into a sentence rather
@@ -429,43 +385,6 @@ export default function AdminPortal() {
           {tab === 'sales'        && <SalesPanel isDemo={isDemo} />}
           {tab === 'insights'     && <InsightsPanel isDemo={isDemo} />}
           {tab === 'settings'     && <SettingsPanel isDemo={isDemo} />}
-          {tab === 'availability' && (
-            <div>
-              {/* AvailabilityManager pads itself with .dash-pad — a padded
-                  wrapper here would double the inset to 4rem. Only the coach
-                  picker needs its own gutter. */}
-              <div className="dash-pad" style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', paddingBottom: 0 }}>
-                {roster.map(c => (
-                  <button
-                    key={c.slug}
-                    onClick={() => setAvailCoach(c.slug)}
-                    style={{
-                      background: availCoach === c.slug ? '#c8102e' : 'var(--surface)',
-                      border: `1px solid ${availCoach === c.slug ? '#c8102e' : 'var(--border)'}`,
-                      color: availCoach === c.slug ? 'var(--text)' : 'var(--text-3)',
-                      borderRadius: '.3rem', padding: '.6rem 1.1rem', minHeight: '2.5rem',
-                      fontSize: '.7rem', fontWeight: 700, letterSpacing: '.1em',
-                      textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    {c.firstName}
-                  </button>
-                ))}
-              </div>
-              {/* No non-null assertion: the roster is loaded, not compiled in,
-                  and a coach hidden between two renders would have crashed the
-                  whole tab. Falling back to the first row keeps the panel on
-                  screen instead. */}
-              <AvailabilityManager
-                key={availCoach}
-                coach={asDisplay(roster.find(c => c.slug === availCoach) ?? roster[0] ?? STATIC_ROSTER[0])}
-                isDemo={isDemo}
-              />
-              {/* Who a coach is on the public site, below when they work.
-                  CoachProfilesManager pads itself too, so it mounts bare. */}
-              <CoachProfilesManager isDemo={isDemo} />
-            </div>
-          )}
         </main>
       </div>
     </div>

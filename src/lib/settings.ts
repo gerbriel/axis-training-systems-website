@@ -3,7 +3,10 @@
  *
  * CRUD for the admin Settings sub-tabs backed by migration 029, plus the
  * Scheduling area that reuses coach_public_settings (009). One module so the
- * nine panels share one demo story and one error translator.
+ * panels share one demo story and one error translator.
+ *
+ * Commission lived here until 049 removed the feature. The rules table is gone,
+ * so nothing in this file reads or writes it.
  *
  * Demo / no-backend  →  in-memory stores seeded below, mutated in place so a
  *                       walk-through survives a tab change and resets on reload.
@@ -393,96 +396,6 @@ export async function saveNotificationSettings(next: NotificationSettings, isDem
 }
 
 // =============================================================================
-// COMMISSION — public.commission_rules
-// =============================================================================
-
-export type CommissionKind = 'percent' | 'flat'
-export type CommissionAppliesTo = 'bookings' | 'sales'
-export interface CommissionRule {
-  id: string
-  coach_slug: string | null
-  kind: CommissionKind
-  rate_bps: number | null
-  amount_cents: number | null
-  applies_to: CommissionAppliesTo
-  is_active: boolean
-  created_at: string
-}
-const COMMISSION_COLUMNS = 'id,coach_slug,kind,rate_bps,amount_cents,applies_to,is_active,created_at'
-
-let demoCommission: CommissionRule[] | null = null
-function commissionStore(): CommissionRule[] {
-  if (!demoCommission) demoCommission = [
-    { id: 'demo-com-1', coach_slug: 'seth-burman', kind: 'percent', rate_bps: 6000, amount_cents: null, applies_to: 'bookings', is_active: true, created_at: nowIso() },
-    { id: 'demo-com-2', coach_slug: null,          kind: 'flat',    rate_bps: null, amount_cents: 500,  applies_to: 'sales',    is_active: true, created_at: nowIso() },
-  ]
-  return demoCommission
-}
-
-export async function fetchCommissionRules(isDemo = false): Promise<CommissionRule[]> {
-  if (offline(isDemo)) return commissionStore().map(r => ({ ...r }))
-  const { data, error } = await supabase
-    .from('commission_rules').select(COMMISSION_COLUMNS).order('created_at', { ascending: false })
-  if (error) return []
-  return (data ?? []) as unknown as CommissionRule[]
-}
-
-export interface CommissionInput {
-  coach_slug: string | null
-  kind: CommissionKind
-  applies_to: CommissionAppliesTo
-  /** For percent rules: whole-percent value the UI collects (e.g. 60 → 6000 bps). */
-  percent?: number
-  /** For flat rules: dollar amount the UI collects (e.g. 5 → 500 cents). */
-  dollars?: number
-}
-
-function normalizeCommission(input: CommissionInput): { ok: true; row: Omit<CommissionRule, 'id' | 'created_at' | 'is_active'> } | { ok: false; message: string } {
-  const kind: CommissionKind = input.kind === 'flat' ? 'flat' : 'percent'
-  const applies_to: CommissionAppliesTo = input.applies_to === 'sales' ? 'sales' : 'bookings'
-  const coach_slug = input.coach_slug && /^[a-z0-9-]+$/.test(input.coach_slug) ? input.coach_slug : null
-  if (kind === 'percent') {
-    const pct = clampInt(input.percent, 0, 1000, -1)
-    if (pct < 0) return { ok: false, message: 'Enter a percentage.' }
-    return { ok: true, row: { coach_slug, kind, rate_bps: Math.round(pct * 100), amount_cents: null, applies_to } }
-  }
-  const dollars = typeof input.dollars === 'number' && Number.isFinite(input.dollars) ? input.dollars : NaN
-  if (!Number.isFinite(dollars) || dollars < 0) return { ok: false, message: 'Enter a dollar amount.' }
-  const cents = clampInt(Math.round(dollars * 100), 0, 100000000, -1)
-  if (cents < 0) return { ok: false, message: 'Enter a dollar amount.' }
-  return { ok: true, row: { coach_slug, kind, rate_bps: null, amount_cents: cents, applies_to } }
-}
-
-export async function createCommissionRule(input: CommissionInput, isDemo = false): Promise<WriteResult> {
-  const n = normalizeCommission(input)
-  if (!n.ok) return n
-  if (offline(isDemo)) {
-    await beat()
-    commissionStore().unshift({ id: genId(), created_at: nowIso(), is_active: true, ...n.row })
-    return { ok: true }
-  }
-  const { error } = await supabase.from('commission_rules').insert(n.row)
-  return error ? { ok: false, message: writeMessage(error, 'Could not add that rule.') } : { ok: true }
-}
-
-export async function setCommissionActive(id: string, is_active: boolean, isDemo = false): Promise<WriteResult> {
-  if (offline(isDemo)) {
-    await beat()
-    const store = commissionStore(); const i = store.findIndex(r => r.id === id)
-    if (i >= 0) store[i] = { ...store[i], is_active }
-    return { ok: true }
-  }
-  const { error } = await supabase.from('commission_rules').update({ is_active }).eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'That did not save.') } : { ok: true }
-}
-
-export async function deleteCommissionRule(id: string, isDemo = false): Promise<WriteResult> {
-  if (offline(isDemo)) { await beat(); demoCommission = commissionStore().filter(r => r.id !== id); return { ok: true } }
-  const { error } = await supabase.from('commission_rules').delete().eq('id', id)
-  return error ? { ok: false, message: writeMessage(error, 'Could not remove that rule.') } : { ok: true }
-}
-
-// =============================================================================
 // LEGAL — public.legal_documents
 // =============================================================================
 
@@ -574,16 +487,4 @@ export async function fetchTeam(isDemo = false): Promise<TeamMember[]> {
     const name = p.display_name?.trim() || `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.email
     return { id: p.id, name, email: p.email, role: p.role, status: p.status, coach_slug: p.coach_slug }
   })
-}
-
-// ── Display helpers ──────────────────────────────────────────────────────────
-
-export function fmtCommission(rule: CommissionRule): string {
-  const target = rule.coach_slug
-    ? (COACHES.find(c => c.slug === rule.coach_slug)?.name ?? rule.coach_slug)
-    : 'All coaches'
-  const amount = rule.kind === 'percent'
-    ? `${((rule.rate_bps ?? 0) / 100).toFixed(rule.rate_bps && rule.rate_bps % 100 ? 2 : 0)}%`
-    : `$${((rule.amount_cents ?? 0) / 100).toFixed(2)}`
-  return `${target} · ${amount} of ${rule.applies_to}`
 }

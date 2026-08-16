@@ -77,7 +77,9 @@ export default function ConversationView({
   const meId = me?.id ?? null
   const conversationId = conversation.id
   const isChannel = conversation.kind === 'channel'
-  const isBroadcast = conversation.kind === 'broadcast'
+  // 'broadcast' is what 023 called the newsletter kind in `conversation_kind`.
+  // The name is the database's; everything this component says is "newsletter".
+  const isNewsletter = conversation.kind === 'broadcast'
   const showSenderNames = conversation.kind !== 'dm'
 
   const [messages, setMessages] = useState<LocalMessage[]>([])
@@ -384,7 +386,7 @@ export default function ConversationView({
             >
               {title}
             </span>
-            {isBroadcast && <Pill label="Newsletter" tone="accent" />}
+            {isNewsletter && <Pill label="Newsletter" tone="accent" />}
             {isChannel && <Pill label="Channel" />}
           </div>
           <p style={{ color: 'var(--text-4)', fontSize: '.66rem', marginTop: '.15rem' }}>
@@ -392,7 +394,7 @@ export default function ConversationView({
               ? otherPerson
                 ? ROLE_LABEL[otherPerson.role]
                 : 'Former member'
-              : isBroadcast
+              : isNewsletter
                 ? conversation.created_by === meId
                   ? `Sent to ${conversation.members[0]?.display_name ?? 'a member'}`
                   : `From ${senderName(conversation.created_by, profiles)}`
@@ -645,10 +647,10 @@ export default function ConversationView({
       {/* ── Composer ───────────────────────────────────────────────────────── */}
       {/*
         A newsletter is read here only by accident: it has its own tab, and the
-        database refuses a reply to a broadcast either way. Hiding the box is
-        the honest version of that refusal, and it costs one conditional.
+        database refuses a reply into one either way. Hiding the box is the
+        honest version of that refusal, and it costs one conditional.
       */}
-      {isBroadcast ? (
+      {isNewsletter ? (
         <div
           style={{
             borderTop: '1px solid var(--surface)',

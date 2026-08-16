@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { usePermissions } from '../../lib/usePermissions'
+import { useHashSubTab } from '../../lib/useHashSubTab'
 import AdminSettings from './AdminSettings'
 import UserManagementPanel from './UserManagementPanel'
 import SchedulingPanel from './settings/SchedulingPanel'
 import ServicesPanel from './settings/ServicesPanel'
+import AvailabilityPanel from './settings/AvailabilityPanel'
 import WaitlistRulesPanel from './settings/WaitlistRulesPanel'
 import ClientNotificationsPanel from './settings/ClientNotificationsPanel'
 import TeamPanel from './settings/TeamPanel'
-import CommissionPanel from './settings/CommissionPanel'
 import ImportExportPanel from './settings/ImportExportPanel'
 import LegalPanel from './settings/LegalPanel'
 
@@ -31,24 +32,36 @@ import LegalPanel from './settings/LegalPanel'
  * Legal and no neighbours. The filter is SalesPanel's — build the available
  * list, keep the active entry inside it. Signage only; every panel behind these
  * reads and writes through its own RLS.
+ *
+ * THE ACTIVE ENTRY LIVES IN THE URL HASH, the same slot Messages and Insights
+ * use, so `?tab=settings#availability` is a link somebody can be sent and a
+ * refresh lands back where it left off. Commission is gone entirely: the rules
+ * table was built ahead of anything that paid out against it and 049 drops it.
  */
 
 type SettingsTab =
-  | 'general' | 'scheduling' | 'services' | 'waitlist' | 'notifications'
-  | 'team' | 'users' | 'commission' | 'import' | 'legal'
+  | 'general' | 'scheduling' | 'services' | 'availability' | 'waitlist'
+  | 'notifications' | 'team' | 'users' | 'import' | 'legal'
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'general',       label: 'General' },
   { key: 'scheduling',    label: 'Scheduling' },
   { key: 'services',      label: 'Services' },
+  { key: 'availability',  label: 'Set Availability' },
   { key: 'waitlist',      label: 'Waitlist rules' },
   { key: 'notifications', label: 'Client notifications' },
   { key: 'team',          label: 'Team' },
   { key: 'users',         label: 'Users & permissions' },
-  { key: 'commission',    label: 'Commission' },
   { key: 'import',        label: 'Import & export' },
   { key: 'legal',         label: 'Legal' },
 ]
+
+/**
+ * The hash values, module-level so useHashSubTab does not rebuild its
+ * hashchange listener on every render. Named apart from TAB_KEYS below, which
+ * is the PERMISSION map and a different thing entirely.
+ */
+const SUB_KEYS: readonly SettingsTab[] = TABS.map(t => t.key)
 
 /**
  * Which key opens which entry. ANY of them is enough.
@@ -59,16 +72,20 @@ const TABS: { key: SettingsTab; label: string }[] = [
  * enforced with. `team` is deliberately empty — it is the roster read that
  * gives every other entry its context, so anybody who reached this screen at
  * all may look at it.
+ *
+ * `availability` is `manage_staff`, which is the key it carried when it was a
+ * portal tab of its own. Setting a coach's hours and editing their public page
+ * are both roster work.
  */
 const TAB_KEYS: Record<SettingsTab, readonly string[]> = {
   general:       ['manage_site_settings'],
   scheduling:    ['manage_scheduling'],
   services:      ['manage_services'],
+  availability:  ['manage_staff'],
   waitlist:      ['manage_waitlist'],
   notifications: ['manage_notifications'],
   team:          [],
   users:         ['manage_staff', 'manage_permissions'],
-  commission:    ['manage_commission'],
   import:        ['manage_site_settings'],
   legal:         ['manage_legal'],
 }
@@ -89,13 +106,20 @@ export default function SettingsPanel({ isDemo = false }: { isDemo?: boolean }) 
     [can, fullAccess]
   )
 
-  const [tab, setTab] = useState<SettingsTab>('general')
+  // The hook validates against the FULL key list on purpose: a hash is a
+  // bookmark, and what this person may OPEN is decided separately, below. An
+  // unrecognised hash (Messages left #newsletters in the slot, say) is not an
+  // error, it just falls back to the default.
+  const [tab, setTab] = useHashSubTab(SUB_KEYS, 'general')
 
   // 'general' needs manage_site_settings, so it is exactly the wrong default for
-  // everybody this feature was built for. First available entry wins.
+  // everybody this feature was built for. First available entry wins. Still
+  // needed now the hash decides the entry: a link to #availability handed to
+  // somebody without manage_staff must land them on a tab they can use rather
+  // than strand them on an empty pane.
   useEffect(() => {
     if (available.length > 0 && !available.some(t => t.key === tab)) setTab(available[0].key)
-  }, [available, tab])
+  }, [available, tab, setTab])
 
   const open = (k: SettingsTab) => tab === k && available.some(t => t.key === k)
 
@@ -135,11 +159,11 @@ export default function SettingsPanel({ isDemo = false }: { isDemo?: boolean }) 
         {open('general')       && <AdminSettings isDemo={isDemo} />}
         {open('scheduling')    && <SchedulingPanel isDemo={isDemo} />}
         {open('services')      && <ServicesPanel isDemo={isDemo} />}
+        {open('availability')  && <AvailabilityPanel isDemo={isDemo} />}
         {open('waitlist')      && <WaitlistRulesPanel isDemo={isDemo} />}
         {open('notifications') && <ClientNotificationsPanel isDemo={isDemo} />}
         {open('team')          && <TeamPanel isDemo={isDemo} />}
         {open('users')         && <UserManagementPanel isDemo={isDemo} />}
-        {open('commission')    && <CommissionPanel isDemo={isDemo} />}
         {open('import')        && <ImportExportPanel isDemo={isDemo} />}
         {open('legal')         && <LegalPanel isDemo={isDemo} />}
       </div>

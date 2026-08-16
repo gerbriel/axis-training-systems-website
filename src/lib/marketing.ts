@@ -3,10 +3,15 @@
  *
  * The Marketing vertical's data layer:
  *   - announcements  — the site-wide banner (public read + admin CRUD)
- *   - broadcasts     — a record that a newsletter/marketing send was made
  *   - a small marketing-analytics summary (signups by source + conversion)
  *
- * Demo mode  →  in-memory stores seeded from the DEMO_* constants below.
+ * No newsletter lives here. The one newsletter Axis has is composed and
+ * delivered in `lib/newsletters.ts`, in the app, and this module never touches
+ * it. There WAS a second thing here: a hand-kept log of marketing email sent
+ * through a mailer that was never wired up. It delivered nothing, nobody ever
+ * recorded a row in it, and migration 050 retired it.
+ *
+ * Demo mode  →  an in-memory store seeded from DEMO_ANNOUNCEMENTS below.
  * Live mode  →  Supabase (migration 028_marketing.sql).
  *
  * Mirrors newsletterApi.ts: sanitize before write, dedupe demo vs live on
@@ -60,18 +65,6 @@ export interface AnnouncementInput {
   priority?: number | null
 }
 
-export type BroadcastAudience = 'newsletter' | 'all'
-
-export interface Broadcast {
-  id: string
-  subject: string
-  body: string | null
-  audience: BroadcastAudience
-  sentAt: string | null
-  sentCount: number
-  createdAt: string
-}
-
 export interface MarketingSummary {
   totalSignups: number
   bySource: { source: string; count: number }[]
@@ -111,18 +104,6 @@ function toAnnouncement(row: Record<string, unknown>): Announcement {
     priority:       cleanPriority(row.priority),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at ?? row.created_at),
-  }
-}
-
-function toBroadcast(row: Record<string, unknown>): Broadcast {
-  return {
-    id:        String(row.id),
-    subject:   String(row.subject ?? ''),
-    body:      row.body == null ? null : String(row.body),
-    audience:  (row.audience as BroadcastAudience) ?? 'newsletter',
-    sentAt:    row.sent_at == null ? null : String(row.sent_at),
-    sentCount: Number(row.sent_count ?? 0),
-    createdAt: String(row.created_at),
   }
 }
 
@@ -166,21 +147,11 @@ const DEMO_ANNOUNCEMENTS: Announcement[] = [
   },
 ]
 
-const DEMO_BROADCASTS: Broadcast[] = [
-  { id: 'bc01', subject: 'January newsletter — the off-season audit', body: 'What to change before the next block.', audience: 'newsletter', sentAt: iso(-9 * DAY),  sentCount: 214, createdAt: iso(-9 * DAY) },
-  { id: 'bc02', subject: 'Meet-day checklist is back',                  body: null,                                     audience: 'newsletter', sentAt: iso(-30 * DAY), sentCount: 188, createdAt: iso(-30 * DAY) },
-]
-
 let _demoAnnouncements: Announcement[] | null = null
-let _demoBroadcasts:    Broadcast[]    | null = null
 
 function annStore(): Announcement[] {
   if (!_demoAnnouncements) _demoAnnouncements = DEMO_ANNOUNCEMENTS.map(a => ({ ...a }))
   return _demoAnnouncements
-}
-function bcStore(): Broadcast[] {
-  if (!_demoBroadcasts) _demoBroadcasts = DEMO_BROADCASTS.map(b => ({ ...b }))
-  return _demoBroadcasts
 }
 
 function useDemo(isDemo: boolean): boolean {
@@ -415,60 +386,6 @@ export async function deleteAnnouncement(id: string, isDemo = false): Promise<vo
   }
   const { error } = await supabase.from('announcements').delete().eq('id', id)
   if (error) throw new Error(error.message)
-}
-
-// ── Broadcasts ───────────────────────────────────────────────────────────────
-
-export async function listBroadcasts(isDemo = false): Promise<Broadcast[]> {
-  if (useDemo(isDemo)) return bcStore().slice().sort(byCreatedDescBc)
-
-  const { data, error } = await supabase
-    .from('broadcasts')
-    .select('id, subject, body, audience, sent_at, sent_count, created_at')
-    .order('created_at', { ascending: false })
-  if (error) throw new Error(error.message)
-  return (data ?? []).map(r => toBroadcast(r as Record<string, unknown>))
-}
-
-function byCreatedDescBc(a: Broadcast, b: Broadcast): number {
-  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-}
-
-/**
- * Record a marketing send. The mailer (Resend) is out of scope, so this writes
- * the intent and the audience size at send time — the recipient count is read
- * from the current newsletter list, never supplied by the caller.
- */
-export async function recordBroadcast(
-  data: { subject: string; body?: string | null; audience?: BroadcastAudience },
-  isDemo = false,
-): Promise<Broadcast> {
-  const subject  = sanitizeText(String(data.subject ?? '').trim(), 160)
-  if (!subject) throw new Error('A broadcast needs a subject.')
-  const body     = data.body ? sanitizeText(String(data.body).trim(), 4000) : null
-  const audience: BroadcastAudience = data.audience === 'all' ? 'all' : 'newsletter'
-
-  // The audience size is the current subscriber count — read it, don't trust it.
-  const leads = await fetchNewsletterLeads(isDemo).catch(() => [])
-  const sentCount = leads.length
-  const sentAt = new Date().toISOString()
-
-  if (useDemo(isDemo)) {
-    const created: Broadcast = {
-      id: 'bc-' + rid(), subject, body, audience,
-      sentAt, sentCount, createdAt: sentAt,
-    }
-    bcStore().unshift(created)
-    return created
-  }
-
-  const { data: inserted, error } = await supabase
-    .from('broadcasts')
-    .insert([{ subject, body, audience, sent_at: sentAt, sent_count: sentCount }])
-    .select('id, subject, body, audience, sent_at, sent_count, created_at')
-    .single()
-  if (error) throw new Error(error.message)
-  return toBroadcast(inserted as Record<string, unknown>)
 }
 
 // ── Marketing analytics summary ──────────────────────────────────────────────

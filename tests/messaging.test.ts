@@ -8,7 +8,7 @@ import {
   MESSAGE_BODY_LIMIT,
   CONVERSATION_TITLE_LIMIT,
 } from '../src/lib/messagingApi.ts'
-import { composePollState, oneThreadPerNewsletter, pollRefusal } from '../src/lib/newsletterBroadcast.ts'
+import { composePollState, oneThreadPerNewsletter, pollRefusal } from '../src/lib/newsletters.ts'
 import type {
   Conversation,
   ConversationMemberRow,
@@ -327,9 +327,12 @@ test('audienceIncludes: "staff" is coaches AND admins', () => {
 // ---------------------------------------------------------------------------
 // 7. oneThreadPerNewsletter — the sender's own copies, collapsed
 // ---------------------------------------------------------------------------
-// A recipient holds one broadcast conversation per newsletter. The sender holds
+// A recipient holds one newsletter conversation per newsletter. The sender holds
 // one per RECIPIENT, because the fan-out puts them in every room it makes, so
 // their Newsletters tab would otherwise list a send to forty people forty times.
+//
+// `kind: 'broadcast'` is the enum value 023 gave the newsletter kind, kept
+// because it is what the database returns.
 
 const summary = (id: string, newsletter_id: string | null, last_message_at: string): ConversationSummary => ({
   id,
@@ -364,7 +367,7 @@ test('oneThreadPerNewsletter leaves a recipient list alone', () => {
   assert.deepEqual(oneThreadPerNewsletter(rows).map(s => s.id), ['c1', 'c2'])
 })
 
-test('oneThreadPerNewsletter keeps every broadcast whose newsletter is gone', () => {
+test('oneThreadPerNewsletter keeps every thread whose newsletter is gone', () => {
   // `on delete set null`: the newsletter was deleted, the delivery stands. With
   // no id to group on, collapsing these would hide readable announcements.
   const rows = [

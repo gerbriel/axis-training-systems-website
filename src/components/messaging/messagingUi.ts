@@ -48,12 +48,15 @@ export const ROLE_LABEL: Record<MessagingContact['role'], string> = {
  * What a conversation is called in the list and the header. A direct message
  * is named after the other person, everything else carries its own title, and
  * a title that went missing still has to render as something.
+ *
+ * `kind === 'broadcast'` is the newsletter kind under the name 023 gave the
+ * enum. The fallback a person sees says newsletter, like everything else.
  */
 export function conversationTitle(conversation: ConversationSummary): string {
   if (conversation.kind === 'dm') return conversation.members[0]?.display_name ?? 'Former member'
   const title = conversation.title?.trim()
   if (title) return title
-  return conversation.kind === 'broadcast' ? 'Axis news' : 'Channel'
+  return conversation.kind === 'broadcast' ? 'Newsletter' : 'Channel'
 }
 
 /** A sender whose profile row was deleted still has messages in the thread. */

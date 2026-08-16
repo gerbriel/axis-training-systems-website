@@ -1,13 +1,13 @@
 import { supabase, supabaseConfigured } from './supabase.ts'
 import { MESSAGES_PAGE_SIZE } from '../types/messaging.ts'
 import type {
-  BroadcastNewsletter,
   ChatMessage,
   CoachAssignment,
   Conversation,
   ConversationMemberRow,
   ConversationSummary,
   MessagingContact,
+  Newsletter,
   NewsletterRecipient,
   WriteResult,
 } from '../types/messaging.ts'
@@ -31,7 +31,7 @@ import type {
  * `messages` IS written directly, and alone in that. An optimistic send needs
  * the inserted row back in one round trip, and the INSERT policy already says
  * exactly the right thing: you are the sender, you are active, you are in the
- * conversation, and since 033 the room is not a broadcast. A refusal arrives as
+ * conversation, and since 033 the room is not a newsletter. A refusal arrives as
  * `42501` and means one of three things in practice: you were removed, your
  * account was suspended, or you typed into a newsletter. All three get a
  * sentence instead of the generic one.
@@ -78,11 +78,11 @@ export const CONVERSATION_TITLE_LIMIT = 200
 const CONVERSATION_LIST_LIMIT = 100
 
 /**
- * Received newsletters, newest first. A recipient holds exactly one broadcast
+ * Received newsletters, newest first. A recipient holds exactly one
  * conversation per newsletter, so this window counts newsletters, and a
  * hundred of them is an archive nobody scrolls.
  */
-const RECEIVED_BROADCAST_LIMIT = 100
+const RECEIVED_NEWSLETTER_LIMIT = 100
 
 /**
  * The raw window over a sender's OWN fan-out copies, which arrive in blocks of
@@ -91,7 +91,7 @@ const RECEIVED_BROADCAST_LIMIT = 100
  * recent send; at this studio's roster size it covers years of newsletters,
  * and older sends remain fully visible in the Newsletter panel's Sent list.
  */
-const SENT_BROADCAST_RAW_LIMIT = 400
+const SENT_NEWSLETTER_RAW_LIMIT = 400
 
 /**
  * Demo mode and "no credentials configured" are the same situation from a
@@ -272,7 +272,7 @@ async function currentUserId(): Promise<string | null> {
 
 /**
  * The viewer, in demo mode. Exported because the newsletter module composes as
- * this person too, and a draft with a different author id than the broadcast it
+ * this person too, and a draft with a different author id than the delivery it
  * produces would be a small lie that shows up on screen.
  */
 export const DEMO_VIEWER_ID = 'demo-you'
@@ -313,7 +313,7 @@ interface DemoState {
  *
  * Between them they cover every rendering branch the workspace has: a two-party
  * thread titled by the other person, a named channel with a roster and a kind
- * pill, and a broadcast that shows a subject and takes no reply at all. The
+ * pill, and a newsletter that shows a subject and takes no reply at all. The
  * newsletter arrives unread so the badge is not a paragraph nobody sees, and it
  * is filtered out of the inbox by `fetchConversations` the way a live one is:
  * it belongs to the Newsletters tab now.
@@ -321,7 +321,7 @@ interface DemoState {
 function seedDemo(): DemoState {
   const dm = 'demo-conv-dm'
   const channel = 'demo-conv-channel'
-  const broadcast = 'demo-conv-broadcast'
+  const newsletter = 'demo-conv-newsletter'
 
   const conversations: Conversation[] = [
     {
@@ -347,7 +347,9 @@ function seedDemo(): DemoState {
       created_at: demoIso(20_160),
     },
     {
-      id: broadcast,
+      id: newsletter,
+      // The database calls this kind 'broadcast' (023); the product calls it a
+      // newsletter. See ConversationKind in types/messaging.ts.
       kind: 'broadcast',
       title: 'Welcome to Axis news',
       created_by: 'demo-ronnie',
@@ -368,8 +370,8 @@ function seedDemo(): DemoState {
     { conversation_id: channel, profile_id: 'demo-seth', unread: false, joined_at: demoIso(20_160) },
     { conversation_id: channel, profile_id: 'demo-devin', unread: false, joined_at: demoIso(20_160) },
 
-    { conversation_id: broadcast, profile_id: DEMO_VIEWER_ID, unread: true, joined_at: demoIso(2_880) },
-    { conversation_id: broadcast, profile_id: 'demo-ronnie', unread: false, joined_at: demoIso(2_880) },
+    { conversation_id: newsletter, profile_id: DEMO_VIEWER_ID, unread: true, joined_at: demoIso(2_880) },
+    { conversation_id: newsletter, profile_id: 'demo-ronnie', unread: false, joined_at: demoIso(2_880) },
   ]
 
   const messages: ChatMessage[] = [
@@ -384,7 +386,7 @@ function seedDemo(): DemoState {
 
     {
       id: 'demo-msg-8',
-      conversation_id: broadcast,
+      conversation_id: newsletter,
       sender_id: 'demo-ronnie',
       body: 'This is where meet dates, schedule changes and programme notes will land. These do not take replies. If you need something, message your coach directly.',
       created_at: demoIso(2_880),
@@ -444,7 +446,7 @@ function demoRollup(state: DemoState, message: ChatMessage) {
  * quietly skipped the head coach would be a bug nobody noticed for months.
  */
 export function audienceIncludes(
-  audience: BroadcastNewsletter['audience'],
+  audience: Newsletter['audience'],
   role: MessagingContact['role'],
 ): boolean {
   if (audience === 'all') return true
@@ -453,8 +455,8 @@ export function audienceIncludes(
 }
 
 /**
- * The demo half of a newsletter send: one broadcast conversation per recipient
- * IN THE AUDIENCE, each carrying the body as its first message, exactly as
+ * The demo half of a newsletter send: one conversation per recipient IN THE
+ * AUDIENCE, each carrying the body as its first message, exactly as
  * `send_newsletter` does server-side. Lives here rather than in the newsletter
  * module so both halves of demo mode read from one store and the sent
  * newsletter actually shows up in the inbox.
@@ -464,11 +466,11 @@ export function audienceIncludes(
  * differently in the composer and deliver identically, and the recipient list
  * the panel then shows is a straight lie about what the audience column does.
  */
-export function deliverDemoBroadcast(
+export function deliverDemoNewsletter(
   newsletterId: string,
   subject: string,
   body: string,
-  audience: BroadcastNewsletter['audience'] = 'all',
+  audience: Newsletter['audience'] = 'all',
 ): number {
   const state = demoStore()
   const stamp = new Date().toISOString()
@@ -478,6 +480,8 @@ export function deliverDemoBroadcast(
     const conversationId = demoId('demo-conv')
     state.conversations.unshift({
       id: conversationId,
+      // 'broadcast' is the database's historical spelling of the newsletter
+      // kind (023). Nothing a person reads says it.
       kind: 'broadcast',
       title: subject,
       created_by: DEMO_VIEWER_ID,
@@ -509,7 +513,7 @@ export function deliverDemoBroadcast(
  *
  * Two halves, and the first one is the honest one. If the demo viewer actually
  * SENT this newsletter, the rows are read back out of the store exactly as the
- * `newsletter_recipients` RPC reads them out of the database: every broadcast
+ * `newsletter_recipients` RPC reads them out of the database: every newsletter
  * conversation carrying that newsletter id, the member who is not the sender,
  * `seen` as the inverse of their unread flag. Send in the composer, expand the
  * row, and the two agree, audience and all.
@@ -527,13 +531,14 @@ export function deliverDemoBroadcast(
  */
 export function demoNewsletterRecipients(
   newsletterId: string,
-  audience: BroadcastNewsletter['audience'] = 'all',
+  audience: Newsletter['audience'] = 'all',
 ): NewsletterRecipient[] {
   const state = demoStore()
   const byId = new Map([DEMO_SELF, ...DEMO_CONTACTS].map(c => [c.id, c]))
 
   const delivered: NewsletterRecipient[] = []
   for (const conversation of state.conversations) {
+    // 'broadcast' is the newsletter kind's name in the enum, nowhere else.
     if (conversation.newsletter_id !== newsletterId || conversation.kind !== 'broadcast') continue
     if (conversation.created_by !== DEMO_VIEWER_ID) continue
     for (const row of state.members) {
@@ -591,6 +596,8 @@ async function fetchConversationList(limit: number): Promise<ConversationSummary
   const { data: conversationRows, error } = await supabase
     .from('conversations')
     .select(CONVERSATION_COLUMNS)
+    // Newsletters are excluded from the inbox; 'broadcast' is the enum's name
+    // for that kind (023) and the filter has to spell it the way Postgres does.
     .neq('kind', 'broadcast')
     .order('last_message_at', { ascending: false })
     .limit(limit)
@@ -624,10 +631,10 @@ async function stitchSummaries(
 }
 
 /** The same stitch over the demo store, split on the same boundary. */
-function demoConversationList(broadcasts: boolean): ConversationSummary[] {
+function demoConversationList(newsletters: boolean): ConversationSummary[] {
   const state = demoStore()
   const conversations = state.conversations
-    .filter(c => (c.kind === 'broadcast') === broadcasts)
+    .filter(c => (c.kind === 'broadcast') === newsletters)
     .sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
 
   return composeConversations(
@@ -641,7 +648,7 @@ function demoConversationList(broadcasts: boolean): ConversationSummary[] {
 /**
  * The inbox, newest conversation first. DMs and channels only.
  *
- * Broadcasts are excluded here and returned by `fetchBroadcastSummaries`
+ * Newsletters are excluded here and returned by `fetchNewsletterConversations`
  * instead, because a newsletter is no longer a conversation you can answer
  * (033) and a thread with no composer in it does not belong in a list whose
  * whole promise is that you can reply. They keep their own membership rows, so
@@ -657,9 +664,9 @@ export async function fetchConversations(isDemo = false): Promise<ConversationSu
  * The other half: newsletters delivered to the viewer, newest first.
  *
  * Conversations only. Joining them to the newsletters and polls behind them is
- * `newsletterBroadcast.fetchNewsletterThreads`, which is where every other
- * newsletter read already lives. This module knows about rooms; that one knows
- * what was in them.
+ * `newsletters.fetchNewsletterThreads`, which is where every other newsletter
+ * read already lives. This module knows about rooms; that one knows what was
+ * in them.
  *
  * Fetched as TWO windows, not one. A sender is a member of every fan-out copy
  * their send created, and those copies all share one send-time timestamp, so a
@@ -672,23 +679,25 @@ export async function fetchConversations(isDemo = false): Promise<ConversationSu
  * The null check on created_by keeps newsletters from a since-deleted sender
  * in the received pile rather than silently dropped.
  */
-export async function fetchBroadcastSummaries(isDemo = false): Promise<ConversationSummary[] | null> {
+export async function fetchNewsletterConversations(isDemo = false): Promise<ConversationSummary[] | null> {
   if (offline(isDemo)) return demoConversationList(true)
 
   const me = await currentUserId()
   if (!me) return null
 
+  // `kind = 'broadcast'` is the newsletter kind under its enum name (023). The
+  // value is a database fact and stays; everything around it says newsletter.
   const [receivedResult, sentResult] = await Promise.all([
     supabase.from('conversations').select(CONVERSATION_COLUMNS)
       .eq('kind', 'broadcast')
       .or(`created_by.is.null,created_by.neq.${me}`)
       .order('last_message_at', { ascending: false })
-      .limit(RECEIVED_BROADCAST_LIMIT),
+      .limit(RECEIVED_NEWSLETTER_LIMIT),
     supabase.from('conversations').select(CONVERSATION_COLUMNS)
       .eq('kind', 'broadcast')
       .eq('created_by', me)
       .order('last_message_at', { ascending: false })
-      .limit(SENT_BROADCAST_RAW_LIMIT),
+      .limit(SENT_NEWSLETTER_RAW_LIMIT),
   ])
 
   if (receivedResult.error || sentResult.error) return null
@@ -821,7 +830,7 @@ export async function fetchCoachAssignments(isDemo = false): Promise<CoachAssign
  * so `id` and `created_at` come from the defaults and are read back out of the
  * row this returns. See the header.
  *
- * The signature deliberately does not learn about broadcasts. A newsletter has
+ * The signature deliberately does not learn about newsletters. A newsletter has
  * no composer to type into, so the only ways to reach this with one are a stale
  * tab and a REST client, and both are answered by the policy. Screens that know
  * they are rendering a newsletter say so themselves rather than round-tripping
@@ -1037,7 +1046,7 @@ export async function renameChannel(conversationId: string, title: string, isDem
  * Leave a channel.
  *
  * Channels only. A DM has two people in it and leaving would delete half a
- * conversation for somebody who did not agree to that; a broadcast is a record
+ * conversation for somebody who did not agree to that; a newsletter is a record
  * of what was sent. The RPC refuses both with a sentence of its own.
  */
 export async function leaveConversation(conversationId: string, isDemo = false): Promise<WriteResult> {

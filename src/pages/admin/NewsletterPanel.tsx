@@ -5,24 +5,30 @@ import {
   fetchNewsletters, saveNewsletterDraft, deleteNewsletterDraft,
   saveNewsletterPoll, sendNewsletter, fetchPollForNewsletter,
   fetchNewsletterRecipients, fetchPollStateForNewsletter,
-} from '../../lib/newsletterBroadcast'
-import type { BroadcastNewsletter, NewsletterRecipient, PollState } from '../../types/messaging'
+} from '../../lib/newsletters'
+import type { Newsletter, NewsletterRecipient, PollState } from '../../types/messaging'
 import PollWidget from '../../components/messaging/PollWidget'
 import { ROLE_LABEL } from '../../components/messaging/messagingUi'
 import DemoBanner from '../../components/dashboard/DemoBanner'
 import NewsletterLeadsPanel from './NewsletterLeadsPanel'
 
 /**
- * Write a newsletter, attach a poll, send it.
+ * THE newsletter desk. Everything staff do to a newsletter happens here: write
+ * it, attach a poll, save it as a draft, send it, and read back who received it
+ * and who has opened it. There is deliberately no second screen that does a
+ * slice of this.
  *
- * Delivery is IN-APP. A send fans the newsletter out as one private broadcast
- * conversation per recipient, which is the point: everybody gets their own
- * copy with their own unread flag rather than a line on a mailing list. A
- * newsletter is an announcement and takes no replies, so the question a sender
- * actually has afterwards is who has read it. That is what opening a sent row
- * answers. Nothing here sends email, and the "Email signups" list at the bottom
- * is a separate, older thing kept in the same room because that is where people
- * look for it.
+ * Delivery is IN-APP. A send fans the newsletter out as one private
+ * conversation per recipient, which is the point: everybody gets their own copy
+ * with their own unread flag rather than a line on a mailing list. A newsletter
+ * is an announcement and takes no replies, so the question a sender actually
+ * has afterwards is who has read it. That is what opening a sent row answers.
+ *
+ * THE EMAIL SIDE IS DIFFERENT AND SITS BELOW. "Email signups" is the
+ * lead-capture list from the public site: addresses people left on a guide or a
+ * calculator. It does not touch the newsletter above, and it is folded away in
+ * this room because this is the room people look in for a mailing list.
+ * Insights ▸ Marketing counts the same signups and composes nothing.
  *
  * Two writes, not one. The draft saves first because the poll RPC needs a
  * newsletter id to hang options off, so a poll is always the second step
@@ -35,7 +41,7 @@ import NewsletterLeadsPanel from './NewsletterLeadsPanel'
 
 const ACCENT = '#272C84'
 
-type Audience = BroadcastNewsletter['audience']
+type Audience = Newsletter['audience']
 
 const AUDIENCE_LABEL: Record<Audience, string> = {
   all:      'Everyone',
@@ -125,7 +131,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
   const { isAdmin } = useAuth()
   const { ready, can } = usePermissions()
 
-  const [rows, setRows] = useState<BroadcastNewsletter[]>([])
+  const [rows, setRows] = useState<Newsletter[]>([])
   const [hasPoll, setHasPoll] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [outage, setOutage] = useState(false)
@@ -224,7 +230,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
     setPollOptions(['', ''])
   }
 
-  const editDraft = async (n: BroadcastNewsletter) => {
+  const editDraft = async (n: Newsletter) => {
     setFeedback(null)
     setDraftId(n.id)
     setSubject(n.subject)
@@ -287,7 +293,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
     return res.id
   }
 
-  const send = async (n: BroadcastNewsletter) => {
+  const send = async (n: Newsletter) => {
     if (sendingId) return
     setFeedback(null)
 
@@ -606,7 +612,7 @@ export default function NewsletterPanel({ isDemo = false }: { isDemo?: boolean }
         )}
       </section>
 
-      {/* ── Email signups (the older, separate list) ──────────────────────── */}
+      {/* ── The email side, folded away ───────────────────────────────────── */}
       <EmailSignups isDemo={isDemo} />
     </div>
   )
@@ -638,7 +644,7 @@ function SeenPill({ seen }: { seen: boolean }) {
 function SentDetailView({
   newsletter, detail, onRefresh,
 }: {
-  newsletter: BroadcastNewsletter
+  newsletter: Newsletter
   detail: SentDetail | undefined
   onRefresh: () => void
 }) {

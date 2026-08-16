@@ -86,10 +86,12 @@ export const stateOf = (granted: boolean): PermissionState => (granted ? 'allow'
  * IT HAD FALLEN A LONG WAY BEHIND, and that is worse than it sounds: this copy
  * is what draws the editor in demo mode, and it is the ONLY thing drawn if the
  * catalog fetch fails, so a permission missing from here has no switch on any
- * screen a person can reach. 016 seeded sixteen and this list matched them;
- * 022 through 029 added eighteen more and 040 six more. All forty are below,
- * with the label and description transcribed from the migration that defines
- * each key, so the fallback and the table say the same words.
+ * screen a person can reach. 016 seeded the first set and later migrations
+ * kept adding; every key the database defines is below, with the label and
+ * description transcribed from the migration that defines each key, so the
+ * fallback and the table say the same words. Deliberately no count here: a
+ * number in a comment is wrong the first time a migration adds or retires a
+ * key, and the trailing comment on each row names its migration instead.
  *
  * ORDER IS BY AREA, not alphabetical, because this array is also the reading
  * order of the editor: calendar and bookings, then the people work, then
@@ -128,8 +130,12 @@ export const PERMISSION_CATALOG: Permission[] = [
 
   // ── Reach: the numbers, the list, and what goes out ────────────────────
   { key: 'view_analytics',          label: 'See analytics',                 description: 'Bookings, conversion, and where applications are coming from.', is_sensitive: false },                                                                                              // 016
-  { key: 'view_marketing',          label: 'See marketing data',            description: 'Newsletter leads and signups, broadcast history and the marketing insights. Read-only: it sends nothing.', is_sensitive: false },                                                   // 040
-  { key: 'send_marketing',          label: 'Send marketing',                description: 'Newsletters and broadcast email.', is_sensitive: false },                                                                                                                          // 016
+  // These two read "newsletter" where 016 and 040 wrote "broadcast": one
+  // feature, one word, and the word a person uses is newsletter. Migration 050
+  // updates the same two rows in the database, so this fallback and the live
+  // catalogue now say the same thing. Change one and you must change the other.
+  { key: 'view_marketing',          label: 'See marketing data',            description: 'Newsletter leads and signups, newsletter history and the marketing insights. Read-only: it sends nothing.', is_sensitive: false },                                                 // 040
+  { key: 'send_marketing',          label: 'Send marketing',                description: 'Newsletters, delivered inside the app.', is_sensitive: false },                                                                                                                     // 016
   { key: 'manage_announcements',    label: 'Manage announcements',          description: 'Create, schedule and retire the site-wide announcement banner.', is_sensitive: false },                                                                                            // 028
 
   // ── The shop ───────────────────────────────────────────────────────────
@@ -150,7 +156,6 @@ export const PERMISSION_CATALOG: Permission[] = [
   { key: 'manage_resources',        label: 'Manage rooms & equipment',      description: 'The rooms and equipment a booking can occupy, and how many of each exist.', is_sensitive: false },                                                                                 // 029
   { key: 'manage_waitlist',         label: 'Manage the waitlist',           description: 'Whether cancellations auto-offer to the waitlist, how long a hold lasts, and how long the list may grow.', is_sensitive: false },                                                   // 029
   { key: 'manage_notifications',    label: 'Manage client notifications',   description: 'Which booking emails go out, confirmation, reminders and cancellation, and how far ahead the reminders fire.', is_sensitive: false },                                               // 029
-  { key: 'manage_commission',       label: 'Manage commission',             description: 'The commission rules that pay coaches on bookings and sales.', is_sensitive: false },                                                                                              // 029
   { key: 'manage_locations',        label: 'Manage locations',              description: 'The studio locations, their addresses, time zones and which one is primary.', is_sensitive: false },                                                                               // 029
   { key: 'manage_legal',            label: 'Manage legal documents',        description: 'The privacy policy, terms of service and liability waiver shown on the site.', is_sensitive: false },                                                                              // 029
 

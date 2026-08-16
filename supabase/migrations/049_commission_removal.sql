@@ -1,0 +1,257 @@
+-- ============================================================
+-- Axis Training Systems, 049: commission, removed
+-- ============================================================
+--
+-- Commission was built ahead of anything that could pay out against it, and
+-- 029's own section header says so in as many words:
+--
+--   "The rules only. What they pay OUT against (time_entries, orders) is a
+--    later migration's job."
+--
+-- That later migration was never written, and the studio does not want it
+-- written. Two other files already point at the same absent thing: 022:23 says
+-- "Commission will read: whole minutes on the clock per person per range", and
+-- 022:318 calls `timeclock_totals` "the Commission hook". Nothing ever read it.
+-- Since 029 landed, `public.commission_rules` has been a table an admin can
+-- write rules into that no query anywhere computes a payment from, gated by a
+-- permission key whose only job was to reveal the panel that writes them.
+--
+-- A half-feature is worse than an absent one, because it makes a promise on
+-- screen. An admin who set "Seth earns 60% of the bookings he takes" got a saved
+-- row, a confirmation, and no money moving anywhere, forever. So the rules table
+-- goes, rather than sitting in the schema waiting for a payout engine nobody
+-- intends to build. If commission is ever wanted, it arrives as one change with
+-- its payout side attached, and it can have a table then.
+--
+-- WHAT SURVIVES, AND WHY THE HOURS ARE NOT AFFECTED. 022's time tracking is a
+-- payroll and records surface in its own right: who was on the clock, for how
+-- long, closed entries only. Every line of that is untouched here. What changes
+-- is the copy around it. The admin rollup used to say the totals were "the
+-- figures commission reads" and the athlete-facing clock said your hours "feed
+-- commission", and after this file both sentences would be untrue, so both are
+-- reworded in the same round to say what is actually true: the hours roll up for
+-- the admin's records.
+--
+-- 022's own header still names Commission as its future reader. That is a true
+-- statement about what 022 intended on the day it was written, migrations are
+-- append-only here, and it is left exactly as it stands. The same goes for
+-- 029's section 5. Neither file is edited; this one reverses that one section of
+-- 029 and nothing else.
+--
+-- THE CLIENT GOES IN THE SAME ROUND, so nothing is left calling a table that has
+-- gone: the commission block in `src/lib/settings.ts` (the types, the demo store,
+-- the four reads and writes and `fmtCommission`), `CommissionPanel.tsx`, the
+-- Settings sub-tab that mounted it, the `manage_commission` entry in
+-- `TAB_KEYS.settings`, and the catalogue row in `src/lib/userManagement.ts` that
+-- gives the portal a label for the key when the database read is unavailable.
+--
+-- Re-runnable: one if-exists drop and three deletes that match nothing on a
+-- second run.
+-- ============================================================
+
+
+-- ── 1. The rules table ──────────────────────────────────────────────────────
+--
+-- One statement takes the whole of 029 section 5 with it: the two named CHECK
+-- constraints (`commission_rules_slug_shape`,
+-- `commission_rules_amount_matches_kind`), the index
+-- `commission_rules_slug_idx`, the trigger `commission_rules_touch_trg`, the
+-- policy "staff manage commission rules", and the table's grants. Constraints,
+-- indexes, triggers, policies and privileges cannot outlive their table, so
+-- unlike 038 there is no list of dependent objects to name separately.
+--
+-- NO CASCADE, deliberately. Nothing in this schema carries a foreign key to
+-- commission_rules, so a plain DROP succeeds. If some later object did depend on
+-- it, a bare DROP fails loudly and this file gets read again, where a CASCADE
+-- would quietly take that object out too.
+--
+-- No nulling pass either, and that IS different from 038. 038 nulled its two
+-- columns before dropping them because `alter table drop column` is a catalogue
+-- edit that leaves the old bytes in the heap until each row is next rewritten.
+-- `drop table` unlinks the relation itself, so no rule text survives anywhere to
+-- be reached later.
+--
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │ `public.settings_touch_at()` MUST SURVIVE THIS FILE.                     │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- It is SHARED. Dropping a table drops its triggers and never the function they
+-- call, so this is a statement about a line that must NOT be added below rather
+-- than a thing to do: no `drop function public.settings_touch_at()` belongs
+-- here. After this migration it still backs `resources_touch_trg` (029:132-135)
+-- and `locations_touch_trg` (029:311-314), and its sibling
+-- `settings_touch_at_by()` still backs waitlist_settings, notification_settings
+-- and legal_documents (029), calculator_settings (042) and the rotation plan
+-- (046). Dropping either would take the `updated_at` stamp off every one of
+-- those tables, silently, because a trigger's absence raises nothing. Section 3
+-- checks both are still there and still wired to their remaining tables.
+
+drop table if exists public.commission_rules;
+
+
+-- ── 2. The permission key, children before the parent ───────────────────────
+--
+-- WHY THIS ORDER. Both mapping tables point INTO the catalogue:
+--
+--   role_permissions.permission  text not null references public.permissions (key)
+--                                on delete cascade                       (016:139)
+--   staff_permissions.permission text not null references public.permissions (key)
+--                                on delete cascade                       (016:146)
+--
+-- The catalogue row is the parent, so it goes LAST. Deleting it first would not
+-- error today, because both foreign keys cascade, but then this file would be
+-- removing two rows it never names and leaning on a cascade rule to do it. 038's
+-- rule applies: a removal lists everything it takes with it. It also means the
+-- statements stay correct if a later migration ever tightens either key to
+-- `restrict`, where a parent-first delete would fail outright.
+--
+-- role_permissions before staff_permissions is not a constraint at all: they are
+-- siblings with no reference between them. It is 016's own reading order, the
+-- role default first and then the per-person override that beats it.
+--
+-- THE GUARD TRIGGERS ALL THREE PASS THROUGH. `permission_catalogue_guard`
+-- (016:492) fires before delete on permissions and role_permissions and raises
+-- unless auth.uid() is null or the caller is an admin; `staff_permissions_guard`
+-- (016:381) has a DELETE branch that returns early on a null auth.uid(). A
+-- migration has no JWT, so auth.uid() is null and all three statements apply.
+-- Pasted into an authenticated SQL session by a non-admin, the first two raise
+-- "Only an admin can change permissions" instead, which is the guard doing its
+-- job rather than a fault in this file.
+--
+-- The table went first on purpose. Its policy was the only SQL anywhere that
+-- named this key, and it died with the table in section 1. Had the key gone
+-- first the policy would have survived a moment naming a key that no longer
+-- existed, which is legal (016 has `has_permission` answer false to an unknown
+-- name rather than raise) and pointless.
+--
+-- A per-person grant of this key does NOT come back on a replay of 029, unlike
+-- the catalogue row and the admin default. That is intended: an individual
+-- override was a decision about one person and one panel, and both are gone.
+
+delete from public.role_permissions  where permission = 'manage_commission';
+delete from public.staff_permissions where permission = 'manage_commission';
+delete from public.permissions       where key        = 'manage_commission';
+
+
+-- ── 3. Verify ───────────────────────────────────────────────────────────────
+--
+-- Every query below was run against a scratch PostgreSQL 17 replaying the real
+-- 016 and 029 onto a stand-in for 001-015, seeded with two commission rules and
+-- one per-person grant of the key, then this file. The three deletes reported
+-- DELETE 1 each, in the order they are written, so the cascade was never the
+-- thing doing the work.
+--
+-- (a) THE TABLE IS GONE, and so is everything that hung off it:
+--
+--   select to_regclass('public.commission_rules');            -- null
+--   select * from public.commission_rules limit 1;            -- ERROR 42P01
+--
+--   select conname from pg_catalog.pg_constraint
+--    where conname like 'commission_rules%';                  -- 0 rows
+--   select indexname from pg_catalog.pg_indexes
+--    where schemaname = 'public' and indexname = 'commission_rules_slug_idx';
+--   -- 0 rows
+--   select polname from pg_catalog.pg_policy
+--    where polname = 'staff manage commission rules';         -- 0 rows
+--
+-- (b) THE KEY IS GONE FROM ALL THREE TABLES. Run as one query so a stray row in
+--     any of them is impossible to miss:
+--
+--   select 'permissions'       as t, count(*) from public.permissions
+--    where key = 'manage_commission'
+--   union all
+--   select 'role_permissions',       count(*) from public.role_permissions
+--    where permission = 'manage_commission'
+--   union all
+--   select 'staff_permissions',      count(*) from public.staff_permissions
+--    where permission = 'manage_commission';
+--   -- three rows, every count 0
+--
+--     The other six keys 029 added are untouched:
+--
+--   select count(*) from public.permissions
+--    where key in ('manage_scheduling','manage_resources','manage_waitlist',
+--                  'manage_notifications','manage_locations','manage_legal');  -- 6
+--
+--     And the admin column still holds every key that still exists, which is the
+--     invariant 016:783-785 and 029 both assert:
+--
+--   select count(*) from public.permissions
+--    where key not in (select permission from public.role_permissions
+--                       where role = 'admin');                                 -- 0
+--
+-- (c) THE SHARED TOUCH FUNCTIONS SURVIVED, with their other triggers intact.
+--     This is the check that matters most, because losing one of these is
+--     silent: an `updated_at` simply stops moving.
+--
+--   select proname, proconfig from pg_catalog.pg_proc
+--    where proname in ('settings_touch_at', 'settings_touch_at_by')
+--    order by proname;
+--   -- settings_touch_at    | {"search_path=\"\""}
+--   -- settings_touch_at_by | {"search_path=\"\""}
+--
+--   select p.proname, t.tgname, c.relname
+--     from pg_catalog.pg_trigger t
+--     join pg_catalog.pg_proc  p on p.oid = t.tgfoid
+--     join pg_catalog.pg_class c on c.oid = t.tgrelid
+--    where p.proname in ('settings_touch_at', 'settings_touch_at_by')
+--    order by p.proname, c.relname;
+--   -- settings_touch_at    | locations_touch_trg             | locations
+--   -- settings_touch_at    | resources_touch_trg             | resources
+--   -- settings_touch_at_by | legal_documents_touch_trg       | legal_documents
+--   -- settings_touch_at_by | notification_settings_touch_trg | notification_settings
+--   -- settings_touch_at_by | waitlist_settings_touch_trg     | waitlist_settings
+--   -- (plus calculator_settings from 042 and the rotation plan from 046 on a
+--   --  database that has them; commission_rules_touch_trg is absent)
+--
+--     And it still fires, which no catalogue query can prove:
+--
+--   begin;
+--     insert into public.resources (name, kind) values ('verify-049', 'room');
+--     update public.resources set updated_at = 'epoch'
+--      where name = 'verify-049';
+--     select updated_at > now() - interval '1 minute' from public.resources
+--      where name = 'verify-049';                              -- t
+--   rollback;
+--
+-- (d) THE REST OF 029 IS UNHARMED:
+--
+--   select to_regclass('public.resources'),
+--          to_regclass('public.waitlist_settings'),
+--          to_regclass('public.notification_settings'),
+--          to_regclass('public.locations'),
+--          to_regclass('public.legal_documents');   -- five non-null
+--   select count(*) from public.legal_documents;    -- 3
+--
+-- (e) RE-RUNNABLE. The second pass drops nothing and deletes nothing:
+--
+--   \i supabase/migrations/049_commission_removal.sql   -- no error
+--
+-- (f) THE REPLAY HAZARD, stated plainly because 029 is re-runnable and puts BOTH
+--     halves of this back:
+--
+--       `create table if not exists public.commission_rules` finds no table and
+--       creates it again, empty, with its index, trigger, policy and grants.
+--
+--       the permission insert is `on conflict (key) do update`, so it re-inserts
+--       manage_commission, and 029's next statement
+--       (`insert into role_permissions select 'admin', key from permissions`)
+--       hands it straight back to the admin column. 016 section 11 runs the same
+--       statement, so replaying 016 after that restores the admin row too, though
+--       016 alone never restores the key: it does not name it.
+--
+--     So RE-APPLY THIS FILE AFTER ANY HAND-RUN OF 029. Applying the directory in
+--     filename order is the normal case and lands in the right state: 016 seeds
+--     the catalogue, 029 adds commission, 049 removes it.
+--
+--   \i supabase/migrations/029_settings.sql
+--   select to_regclass('public.commission_rules');             -- back, not null
+--   select count(*) from public.permissions
+--    where key = 'manage_commission';                          -- 1
+--   \i supabase/migrations/049_commission_removal.sql
+--   select to_regclass('public.commission_rules');             -- null again
+--   select count(*) from public.permissions
+--    where key = 'manage_commission';                          -- 0
+--
+-- Re-runnable.
+-- ============================================================

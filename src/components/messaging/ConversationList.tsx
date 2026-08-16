@@ -139,6 +139,7 @@ export default function ConversationList({
                     >
                       {title}
                     </span>
+                    {/* 'broadcast' is the enum's name for the newsletter kind (023). */}
                     {conversation.kind === 'broadcast' && <Pill label="Newsletter" tone="accent" />}
                     {conversation.kind === 'channel' && <Pill label="Channel" />}
                   </span>

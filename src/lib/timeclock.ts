@@ -61,7 +61,7 @@ export interface OpenEntry {
   elapsed_minutes: number
 }
 
-/** One person's hours over a range — the shape Commission will read later. */
+/** One person's hours over a range, the shape the admin rollup reports. */
 export interface TimeTotal {
   profile_id: string
   name: string | null
@@ -357,7 +357,7 @@ export async function fetchAllEntries(
   return (data ?? []) as unknown as TimeReportEntry[]
 }
 
-/** Hours per person over [from, to). Feeds Commission later. `null` is an outage. */
+/** Hours per person over [from, to), for the admin's records. `null` is an outage. */
 export async function fetchTotals(
   from: Date, to: Date, kind: TimeEntryKind | null = null, isDemo = false,
 ): Promise<TimeTotal[] | null> {
@@ -429,7 +429,7 @@ export function formatMinutes(mins: number): string {
   return `${h}h ${rem}m`
 }
 
-/** Minutes as decimal hours, the shape a commission or payroll export wants. */
+/** Minutes as decimal hours, the shape a payroll or records export wants. */
 export function minutesToHours(mins: number): number {
   return Math.round((Math.max(0, mins) / 60) * 100) / 100
 }

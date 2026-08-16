@@ -2,16 +2,16 @@ import { supabase, supabaseConfigured } from './supabase.ts'
 import {
   cleanMessageBody,
   cleanTitle,
-  deliverDemoBroadcast,
+  deliverDemoNewsletter,
   demoNewsletterRecipients,
-  fetchBroadcastSummaries,
+  fetchNewsletterConversations,
   CONVERSATION_TITLE_LIMIT,
   DEMO_VIEWER_ID,
   MESSAGE_BODY_LIMIT,
 } from './messagingApi.ts'
 import type {
-  BroadcastNewsletter,
   ConversationSummary,
+  Newsletter,
   NewsletterRecipient,
   NewsletterThread,
   Poll,
@@ -25,16 +25,22 @@ import type {
  *
  * There is no email in this file and there is not meant to be. Sending a
  * newsletter fans it out IN THE APP: `send_newsletter` (030) writes one
- * broadcast conversation per recipient and drops the body into it as the first
- * message. That is the whole reason the feature is worth having over a mail
- * merge, and it is why `newsletters.body` and `messages.body` share one 8000
- * character cap. A body that fits the first table and not the second would fail
- * halfway through a fan-out and roll the entire send back.
+ * conversation per recipient and drops the body into it as the first message.
+ * That is the whole reason the feature is worth having over a mail merge, and
+ * it is why `newsletters.body` and `messages.body` share one 8000 character
+ * cap. A body that fits the first table and not the second would fail halfway
+ * through a fan-out and roll the entire send back.
+ *
+ * ONE NAME, TWO SPELLINGS, AND ONLY ONE OF THEM IS OURS. Those conversations
+ * carry `kind = 'broadcast'`, which is what 023 named the enum value and what
+ * 030, 033 and 040 reference in policies and functions. It is a database fact,
+ * not a second feature: nothing a person reads says broadcast, and neither does
+ * anything in this file beyond the literal the query has to send.
  *
  * WHAT THE FAN-OUT IS FOR, since 033. Not the reply: a newsletter is an
- * announcement and the messages INSERT policy now refuses one into a broadcast
- * outright. What one conversation per recipient still buys is per-person
- * unread, per-person realtime, and a delivery record, which is exactly what
+ * announcement and the messages INSERT policy now refuses one outright. What
+ * one conversation per recipient still buys is per-person unread, per-person
+ * realtime, and a delivery record, which is exactly what
  * `fetchNewsletterThreads` reads back for the recipient and what
  * `fetchNewsletterRecipients` reads back for the sender. Somebody who needs to
  * ask their coach something has a DM with them one tab away.
@@ -63,7 +69,7 @@ export const NEWSLETTER_COLUMNS =
 const POLL_COLUMNS = 'id,newsletter_id,question,closes_at,created_at'
 const POLL_OPTION_COLUMNS = 'id,poll_id,label,position'
 
-export type NewsletterAudience = BroadcastNewsletter['audience']
+export type NewsletterAudience = Newsletter['audience']
 
 /** The three audiences, said the way a person would say them. */
 export const AUDIENCE_LABELS: Record<NewsletterAudience, string> = {
@@ -175,16 +181,16 @@ export function composePollState(
 /**
  * One thread per newsletter, keeping the newest.
  *
- * A RECIPIENT never needs this: the fan-out writes one broadcast conversation
- * per person and `send_newsletter` refuses to run twice on the same newsletter,
+ * A RECIPIENT never needs this: the fan-out writes one conversation per
+ * person and `send_newsletter` refuses to run twice on the same newsletter,
  * so their list is already one to one. The SENDER does. They are a member of
  * every conversation the fan-out created, which is what makes the reply thread
  * theirs and what `newsletter_recipients` counts, so a send to forty people
  * puts forty identically titled rows in their own Newsletters tab.
  *
- * Broadcasts with no newsletter behind them are all kept. Their newsletter was
- * deleted (`on delete set null`), there is no id to group on, and dropping all
- * but one would silently hide announcements that are still perfectly readable.
+ * Conversations with no newsletter row behind them are all kept. That newsletter
+ * was deleted (`on delete set null`), there is no id to group on, and dropping
+ * all but one would silently hide announcements that are still readable.
  *
  * Pure, and takes the list in the order it should keep, which is newest first.
  */
@@ -218,7 +224,7 @@ const demoIso = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_00
 const demoId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`
 
 interface DemoNewsState {
-  newsletters: BroadcastNewsletter[]
+  newsletters: Newsletter[]
   polls: Poll[]
   options: PollOption[]
   /** Votes cast by everybody else, by option id. The viewer's own vote is added on top. */
@@ -233,7 +239,7 @@ interface DemoNewsState {
  * list, the sent list and the news feed all have something to render, and the
  * poll has an unvoted state to click.
  *
- * The sent one shares its id with the broadcast conversation seeded in
+ * The sent one shares its id with the newsletter conversation seeded in
  * `messagingApi`, so opening it from the news feed and finding it in the inbox
  * are the same newsletter.
  */
@@ -331,7 +337,7 @@ function demoPollState(newsletterId: string): PollState | null {
  * screen lists. For anybody else the policy narrows it to sent newsletters they
  * actually received, so the same call is safe to make from either place.
  */
-export async function fetchNewsletters(isDemo = false): Promise<BroadcastNewsletter[] | null> {
+export async function fetchNewsletters(isDemo = false): Promise<Newsletter[] | null> {
   if (offline(isDemo)) {
     return [...newsStore().newsletters]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -345,7 +351,7 @@ export async function fetchNewsletters(isDemo = false): Promise<BroadcastNewslet
     .limit(200)
 
   if (error) return null
-  return (data ?? []) as unknown as BroadcastNewsletter[]
+  return (data ?? []) as unknown as Newsletter[]
 }
 
 /**
@@ -403,7 +409,7 @@ async function loadPollStates(newsletterIds: string[]): Promise<Map<string, Poll
  * STILL EXPORTED, and deliberately. 033 moved the athlete-facing surface into
  * the messaging workspace's Newsletters tab, which reads
  * `fetchNewsletterThreads` below because it needs the per-person unread flag
- * and the delivery record that only the broadcast conversation carries. This
+ * and the delivery record that only the newsletter conversation carries. This
  * one answers a different question, "everything sent that I may read", with no
  * conversation behind it, and it is the shape any future digest or archive
  * screen wants. Deleting an export because today's only caller went away is how
@@ -416,7 +422,7 @@ async function loadPollStates(newsletterIds: string[]): Promise<Map<string, Poll
  */
 export async function fetchNewsFeed(
   isDemo = false,
-): Promise<Array<{ newsletter: BroadcastNewsletter; poll: PollState | null }> | null> {
+): Promise<Array<{ newsletter: Newsletter; poll: PollState | null }> | null> {
   if (offline(isDemo)) {
     return newsStore()
       .newsletters.filter(n => n.status === 'sent')
@@ -432,7 +438,7 @@ export async function fetchNewsFeed(
     .limit(NEWS_FEED_LIMIT)
 
   if (error) return null
-  const newsletters = (data ?? []) as unknown as BroadcastNewsletter[]
+  const newsletters = (data ?? []) as unknown as Newsletter[]
   if (newsletters.length === 0) return []
 
   const polls = await loadPollStates(newsletters.map(n => n.id))
@@ -444,7 +450,7 @@ export async function fetchNewsFeed(
  *
  * The recipient's surface, and the reason the fan-out is still one conversation
  * per person: the unread flag, the delivery time and the realtime ping all live
- * on the broadcast conversation, not on the newsletter. So the conversations
+ * on the newsletter conversation, not on the newsletter row. So the conversations
  * come first, from `messagingApi`, and the newsletters are joined onto them.
  *
  * THREE LAYERS OF DEGRADATION, in the order that matters. `null` only when the
@@ -459,7 +465,7 @@ export async function fetchNewsFeed(
  * leaves its conversations behind on purpose.
  */
 export async function fetchNewsletterThreads(isDemo = false): Promise<NewsletterThread[] | null> {
-  const rows = await fetchBroadcastSummaries(isDemo)
+  const rows = await fetchNewsletterConversations(isDemo)
   if (!rows) return null
   // The cap counts NEWSLETTERS, so it must land after the collapse: capping
   // the raw rows would spend the whole window on the latest send's fan-out
@@ -485,7 +491,7 @@ export async function fetchNewsletterThreads(isDemo = false): Promise<Newsletter
   if (ids.length === 0) return summaries.map(summary => ({ summary, newsletter: null, poll: null }))
 
   const { data } = await supabase.from('newsletters').select(NEWSLETTER_COLUMNS).in('id', ids)
-  const newsletters = (data ?? []) as unknown as BroadcastNewsletter[]
+  const newsletters = (data ?? []) as unknown as Newsletter[]
   const byId = new Map(newsletters.map(n => [n.id, n]))
 
   const polls = await loadPollStates(ids)
@@ -631,7 +637,7 @@ export async function saveNewsletterDraft(
       existing.audience = input.audience
       return { ok: true, id: existing.id }
     }
-    const created: BroadcastNewsletter = {
+    const created: Newsletter = {
       id: demoId('demo-news'),
       author_id: DEMO_VIEWER_ID,
       subject,
@@ -765,14 +771,14 @@ export async function saveNewsletterPoll(
  * Send it.
  *
  * One RPC, and everything that matters happens inside it: the audience is
- * resolved from `newsletters.audience`, a broadcast conversation is created per
+ * resolved from `newsletters.audience`, a conversation is created per
  * recipient, the body lands as the first message, and 023's rollup trigger
  * flips each recipient's unread flag on the way past. It answers with the
  * number actually delivered, which is the only honest thing to put on screen.
  *
- * `send_newsletter` is SECURITY DEFINER, so 033's "no replies into a broadcast"
+ * `send_newsletter` is SECURITY DEFINER, so 033's "no replies into a newsletter"
  * policy does not apply to its own message insert. The fan-out is the one
- * writer a broadcast ever has.
+ * writer one of those conversations ever has.
  *
  * The demo half takes the audience too. It used to fan every send out to all
  * four demo contacts, which made "Athletes" and "Coaches and admins" pick
@@ -790,7 +796,7 @@ export async function sendNewsletter(
     if (!newsletter) return { ok: false, message: 'That newsletter is no longer in the list.' }
     if (newsletter.status !== 'draft') return { ok: false, message: 'Newsletter was already sent.' }
 
-    const sent = deliverDemoBroadcast(
+    const sent = deliverDemoNewsletter(
       newsletter.id,
       newsletter.subject,
       newsletter.body,

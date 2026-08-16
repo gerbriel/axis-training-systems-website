@@ -11,7 +11,7 @@ import {
   fetchMessagingProfiles,
   markConversationRead,
 } from '../../lib/messagingApi'
-import { fetchNewsletterThreads } from '../../lib/newsletterBroadcast'
+import { fetchNewsletterThreads } from '../../lib/newsletters'
 import type { ConversationSummary, MessagingContact, NewsletterThread } from '../../types/messaging'
 import DemoBanner from '../dashboard/DemoBanner'
 import ChannelModal from './ChannelModal'

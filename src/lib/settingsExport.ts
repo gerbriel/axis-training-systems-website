@@ -14,6 +14,12 @@ import { supabase, supabaseConfigured } from './supabase'
 import { DEMO_LEADS, DEMO_BOOKINGS } from '../data/demoData'
 import { fetchPeople } from './userManagement'
 import { BOOKING_STAFF_COLUMNS } from '../types/database'
+import { downloadText } from './fileDownload'
+// The escaping moved to `dataImport.ts`, next to the reader that has to undo
+// exactly it. A writer and a reader of the same format in two files drift the
+// moment one of them is touched, and the drift shows up as somebody's export
+// refusing to import.
+import { toCsv } from './dataImport'
 
 export type ExportKind = 'leads' | 'bookings' | 'clients'
 
@@ -21,27 +27,12 @@ export interface ExportResult { ok: boolean; count: number; message?: string }
 
 const offline = (isDemo: boolean) => isDemo || !supabaseConfigured
 
-/** One CSV cell, escaped for the file format AND the spreadsheet that opens it. */
-function csvCell(value: unknown): string {
-  const raw = String(value ?? '')
-  const escaped = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
-  return `"${escaped.replace(/"/g, '""')}"`
-}
-
-function toCsv(headers: string[], rows: (unknown[])[]): string {
-  const head = headers.map(csvCell).join(',')
-  const body = rows.map(r => r.map(csvCell).join(',')).join('\n')
-  return body ? `${head}\n${body}` : head
-}
-
 function download(filenameBase: string, csv: string): void {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `axis_${filenameBase}_${new Date().toISOString().split('T')[0]}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadText(
+    `axis_${filenameBase}_${new Date().toISOString().split('T')[0]}.csv`,
+    csv,
+    'text/csv;charset=utf-8;',
+  )
 }
 
 const date = (v: unknown) => (v ? new Date(String(v)).toLocaleString('en-US') : '')

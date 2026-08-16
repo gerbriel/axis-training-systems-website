@@ -103,7 +103,7 @@ export default function TimeClock({
   const inLabel = isShift ? 'Clock in' : "I'm here"
   const outLabel = isShift ? 'Clock out' : 'Head out'
   const idleCopy = isShift
-    ? 'Clock in when your shift starts. Your hours roll up for the admin and feed commission.'
+    ? "Clock in when your shift starts. Your hours roll up for the admin's records."
     : 'Tap in when you get to the gym and out when you leave. It is just for you and your coach.'
 
   return (

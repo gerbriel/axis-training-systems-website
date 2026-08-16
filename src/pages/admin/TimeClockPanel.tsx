@@ -56,8 +56,8 @@ function Badge({ role }: { role: keyof typeof ROLE_LABELS }) {
 
 /**
  * The admin rollup: who is on the clock right now, and hours per person over a
- * range. The totals here are the number Commission will read later — closed
- * entries only, whole minutes, so an open shift never inflates a pay figure.
+ * range. The totals are the studio's record of hours worked: closed entries
+ * only, whole minutes, so an open shift never inflates the number.
  *
  * This is a READ. `view_timeclock_all` (022) is what the database checks; an
  * admin holds it by definition, a coach only if it was handed to them. A caller
@@ -294,7 +294,7 @@ export default function TimeClockPanel({ isDemo = false }: { isDemo?: boolean })
           )}
 
           <p style={{ color: 'var(--text-4)', fontSize: '.7rem', lineHeight: 1.55, marginTop: '.9rem', maxWidth: 560 }}>
-            Totals count closed entries only — an open shift shows on the clock above but adds nothing to the hours until it is clocked out. These are the figures commission reads.
+            Totals count closed entries only — an open shift shows on the clock above but adds nothing to the hours until it is clocked out. These are the hours that roll up for your records.
           </p>
         </section>
       </div>

@@ -15,6 +15,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 import { sanitize, sanitizeStrict, sanitizeEmail, isValidEmail } from '../utils/sanitize'
 import { DEMO_NEWSLETTER_LEADS } from '../data/demoData'
+import { downloadText } from './fileDownload'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -217,11 +218,9 @@ export function exportNewsletterCsv(leads: NewsletterLead[]) {
   ].join(','))
 
   const csv = [headers, ...rows].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `axis_newsletter_${new Date().toISOString().split('T')[0]}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadText(
+    `axis_newsletter_${new Date().toISOString().split('T')[0]}.csv`,
+    csv,
+    'text/csv;charset=utf-8;',
+  )
 }

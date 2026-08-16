@@ -21,6 +21,16 @@
  * so a count never carries the identities behind it.
  */
 
+/**
+ * The three kinds of room, exactly as `conversation_kind` (023) spells them.
+ *
+ * 'broadcast' IS THE NEWSLETTER KIND. The database has called it that since 023
+ * and four shipped migrations (023, 030, 033, 040) name the value in policies
+ * and functions, so the enum keeps its historical spelling; the product calls
+ * it a newsletter everywhere a person can read. Compare against 'broadcast'
+ * where the value is what Postgres will return, and say "newsletter" in every
+ * label, sentence and identifier around it.
+ */
 export type ConversationKind = 'dm' | 'channel' | 'broadcast'
 
 /**
@@ -87,11 +97,12 @@ export interface CoachAssignment {
 }
 
 /**
- * One row of `newsletters`. Named for what it is rather than `Newsletter`,
- * because `src/types/newsletter.ts` already owns that word for email signups
- * and the two have nothing to do with each other.
+ * One row of `newsletters`: what staff compose and send.
+ *
+ * `src/types/newsletter.ts` is the email SIGNUP side and owns `NewsletterLead`
+ * and `NewsletterAccess`, not this word, so the two never collide on an import.
  */
-export interface BroadcastNewsletter {
+export interface Newsletter {
   id: string
   author_id: string | null
   subject: string
@@ -148,9 +159,8 @@ export interface NewsletterRecipient {
 }
 
 /**
- * A received newsletter as the Newsletters tab renders it: the broadcast
- * conversation it arrived in, the newsletter behind it, and its poll if it has
- * one.
+ * A received newsletter as the Newsletters tab renders it: the conversation it
+ * arrived in, the newsletter behind it, and its poll if it has one.
  *
  * `newsletter` is nullable because the join can legitimately come back empty.
  * The row is readable through 030's recipient policy, which asks whether the
@@ -161,7 +171,7 @@ export interface NewsletterRecipient {
  */
 export interface NewsletterThread {
   summary: ConversationSummary
-  newsletter: BroadcastNewsletter | null
+  newsletter: Newsletter | null
   poll: PollState | null
 }
 
