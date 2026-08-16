@@ -512,6 +512,37 @@ test('a guide keeps the newsletter source its built-in has always reported', () 
   assert.equal(composeGuideRegistry(custom)[0].source, 'resource_peaking_notes')
 })
 
+// A guide row used to need a builtin_key, because a guide WAS a component. It
+// can now be content instead (guideContent.ts), which is what a duplicated or
+// owner-written guide is, so the drop rule is "neither of the two" rather than
+// "no builtin_key".
+
+test('a guide row with content but no built-in survives, and one with neither is dropped', () => {
+  const content = { type: 'checklist', sections: [{ title: 'Night before', items: ['Pack the bag'] }] }
+  const rows = [
+    item({ slug: 'checklist-copy', kind: 'guide', title: 'My checklist', config: { content } }),
+    item({ slug: 'orphan', kind: 'guide', builtin_key: null, sort_order: 10 }),
+    item({ slug: 'mystery', kind: 'guide', builtin_key: 'time_machine', sort_order: 20 }),
+  ]
+  const guides = composeGuideRegistry(rows)
+  assert.deepEqual(guides.map(g => g.id), ['guide:checklist-copy'])
+  // Content alone, so there is no component to name and the config rides through
+  // for the page to render.
+  assert.equal(guides[0].builtin, null)
+  assert.deepEqual(guides[0].config.content, content)
+})
+
+test('a guide row whose content is malformed is dropped unless a built-in can carry it', () => {
+  const rows = [
+    // A checklist with no sections in it is not a checklist, so this row has
+    // nothing to render and nothing to fall back to.
+    item({ slug: 'half-typed', kind: 'guide', config: { content: { type: 'checklist' } } }),
+    // The same broken content on a built-in row keeps the built-in.
+    item({ slug: 'checklist', kind: 'guide', builtin_key: 'checklist', sort_order: 10, config: { content: { type: 'nope' } } }),
+  ]
+  assert.deepEqual(composeGuideRegistry(rows).map(g => g.builtin), ['checklist'])
+})
+
 // ---------------------------------------------------------------------------
 // 10. The shape the rest of the app depends on
 // ---------------------------------------------------------------------------

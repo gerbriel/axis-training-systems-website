@@ -1,14 +1,18 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  ATTACHMENT_LIMIT,
   BUILTIN_RESOURCES,
   CUSTOM_KINDS,
+  SLUG_LIMIT,
   SORT_STEP,
   compareResources,
   createResource,
   deleteResource,
+  duplicateResource,
   fetchAllResources,
   isValidSlug,
+  nextCopySlug,
   nextSortOrder,
   planReorder,
   reorderResource,
@@ -18,9 +22,11 @@ import {
   slugFromTitle,
   sortResources,
   updateResource,
+  validateAttachments,
   validateConfig,
   type ResourceItem,
 } from '../src/lib/resourceLibrary.ts'
+import { defaultContentFor } from '../src/lib/guideContent.ts'
 
 // Pure functions and the in-memory demo store. Everything else in that module
 // is a Supabase call gated by the RLS in migration 041, and belongs to an
@@ -462,4 +468,393 @@ test('every kind an owner can create renders from config alone', () => {
   for (const kind of CUSTOM_KINDS) {
     assert.equal(validateConfig(kind, {}).ok, false, kind)
   }
+})
+
+// ---------------------------------------------------------------------------
+// 8. Guide content and attached files — the two things a config now carries
+// ---------------------------------------------------------------------------
+//
+// The content itself is guideContent.ts's to judge; what is checked here is
+// that validateConfig DELEGATES to it, keeps what comes back, and applies its
+// own two rules on top: a file has to be a file, and the whole thing has to fit.
+
+/** A file record shaped the way an upload produces one. */
+const file = (over: Record<string, unknown> = {}) => ({
+  label: 'USAPL rulebook',
+  url: 'https://usapl.com/rulebook.pdf',
+  kind: 'pdf',
+  size: 24000,
+  ...over,
+})
+
+test('a guide keeps the content it is given, and gives it back unchanged', () => {
+  const content = defaultContentFor('checklist')
+  assert.ok(content, 'the checklist guide ships with content')
+
+  const res = validateConfig('guide', { content })
+  assert.equal(res.ok, true)
+  // Round-tripping matters: the copy stored on a duplicate has to render the
+  // same as the original it was taken from.
+  if (res.ok) assert.deepEqual(res.value.content, content)
+})
+
+test('a guide with nothing written into it still stores nothing', () => {
+  // The built-in case, unchanged by any of this: no content key means the page
+  // reads its copy out of the bundle.
+  const res = validateConfig('guide', {})
+  assert.equal(res.ok, true)
+  if (res.ok) assert.deepEqual(res.value, {})
+})
+
+test('every kind that sends a visitor somewhere can carry files', () => {
+  const cases: [Parameters<typeof validateConfig>[0], Record<string, unknown>][] = [
+    ['guide', { content: defaultContentFor('checklist'), attachments: [file()] }],
+    ['article', { body: 'Read the rulebook.', attachments: [file()] }],
+    ['link', { url: 'https://usapl.com', attachments: [file()] }],
+    ['download', { url: '/files/checklist.pdf', attachments: [file()] }],
+  ]
+  for (const [kind, config] of cases) {
+    const res = validateConfig(kind, config)
+    assert.equal(res.ok, true, kind)
+    if (res.ok) {
+      const files = res.value.attachments as Record<string, unknown>[]
+      assert.equal(files.length, 1, kind)
+      assert.equal(files[0].label, 'USAPL rulebook', kind)
+      assert.equal(files[0].size, 24000, kind)
+    }
+  }
+})
+
+test('an empty file list is stored as no list at all', () => {
+  // Same reason the other unused keys are dropped: a row that has never had a
+  // file attached should not grow a key that reads as "zero files".
+  const res = validateConfig('link', { url: 'https://usapl.com', attachments: [] })
+  assert.equal(res.ok, true)
+  if (res.ok) assert.deepEqual(res.value, { url: 'https://usapl.com' })
+})
+
+test("a file's address goes through the same allow-list as everything else", () => {
+  const bad = validateConfig('link', {
+    url: 'https://usapl.com',
+    attachments: [file({ url: 'javascript:alert(1)' })],
+  })
+  assert.equal(bad.ok, false)
+  if (!bad.ok) assert.match(bad.message, /File 1/)
+
+  // And the position is named, because a person with six files needs to know
+  // which one to fix.
+  const second = validateConfig('link', {
+    url: 'https://usapl.com',
+    attachments: [file(), file({ url: '//evil.com' })],
+  })
+  assert.equal(second.ok, false)
+  if (!second.ok) assert.match(second.message, /File 2/)
+})
+
+test('a browser-local file address is refused unless the caller is the demo store', () => {
+  // A demo upload has nowhere to upload to, so it mints URL.createObjectURL and
+  // the value is a `blob:` url that only the tab holding it can open. The demo
+  // store is in that tab too, so it takes them; the column must not, because a
+  // stored blob: is a dead link for every other visitor.
+  const local = [file({ url: 'blob:https://axis.local/6f1c-9a2b' })]
+
+  const refused = validateAttachments(local)
+  assert.equal(refused.ok, false)
+  if (!refused.ok) assert.match(refused.message, /File 1/)
+
+  const allowed = validateAttachments(local, true)
+  assert.equal(allowed.ok, true)
+  if (allowed.ok) assert.equal(allowed.value[0].url, 'blob:https://axis.local/6f1c-9a2b')
+
+  // The flag opens one scheme, not the gate: the allow-list still runs.
+  const script = validateAttachments([file({ url: 'javascript:alert(1)' })], true)
+  assert.equal(script.ok, false)
+
+  // And validateConfig hands the flag through rather than having its own idea.
+  assert.equal(validateConfig('guide', { attachments: local }).ok, false)
+  assert.equal(validateConfig('guide', { attachments: local }, true).ok, true)
+})
+
+test('a file has to be one of the types the site knows how to show', () => {
+  const res = validateConfig('guide', { attachments: [file({ kind: 'exe' })] })
+  assert.equal(res.ok, false)
+  if (!res.ok) assert.match(res.message, /pdf/)
+})
+
+test('a file needs a name, and a size that is a number of bytes', () => {
+  const nameless = validateConfig('guide', { attachments: [file({ label: '   ' })] })
+  assert.equal(nameless.ok, false)
+
+  const nonsense = validateConfig('guide', { attachments: [file({ size: 'big' })] })
+  assert.equal(nonsense.ok, false)
+
+  // No size at all is legitimate: a file linked rather than uploaded has none.
+  const unknown = validateConfig('guide', { attachments: [file({ size: null })] })
+  assert.equal(unknown.ok, true)
+  if (unknown.ok) assert.equal((unknown.value.attachments as Record<string, unknown>[])[0].size, null)
+})
+
+test('there is a ceiling on how many files one resource carries', () => {
+  const many = Array.from({ length: ATTACHMENT_LIMIT + 1 }, (_, i) => file({ label: `File ${i}` }))
+  const res = validateConfig('guide', { attachments: many })
+  assert.equal(res.ok, false)
+  if (!res.ok) assert.match(res.message, new RegExp(String(ATTACHMENT_LIMIT)))
+})
+
+test('a config too heavy to store is refused by weight, before anything else', () => {
+  // Every read of this table pulls the whole config: the admin list, the public
+  // page, the homepage strip. A quiz is a few kilobytes of text, so something
+  // measured in hundreds of them is a paste accident, and it is turned away on
+  // the way in rather than walked item by item first.
+  const fat = {
+    type: 'checklist',
+    sections: Array.from({ length: 50 }, (_, s) => ({
+      title: `Section ${s}`,
+      items: Array.from({ length: 60 }, () => 'x'.repeat(120)),
+    })),
+  }
+  const res = validateConfig('guide', { content: fat })
+  assert.equal(res.ok, false)
+  if (!res.ok) assert.match(res.message, /too much|KB/i)
+})
+
+// ---------------------------------------------------------------------------
+// 9. nextCopySlug — a free address for a copy, inside the shape constraint
+// ---------------------------------------------------------------------------
+
+test('nextCopySlug counts up until it finds one nobody is using', () => {
+  assert.equal(nextCopySlug('checklist', []), 'checklist-2')
+  assert.equal(nextCopySlug('checklist', ['checklist-2']), 'checklist-3')
+  assert.equal(nextCopySlug('checklist', ['checklist-2', 'checklist-3']), 'checklist-4')
+  // A copy of a copy is a copy of whatever it was called.
+  assert.equal(nextCopySlug('checklist-2', ['checklist-2']), 'checklist-2-2')
+})
+
+test('nextCopySlug trims the head so the suffix fits, and stays a legal slug', () => {
+  const long = 'a'.repeat(SLUG_LIMIT)
+  const copy = nextCopySlug(long, [])
+  assert.ok(copy)
+  assert.ok(copy!.length <= SLUG_LIMIT)
+  assert.equal(isValidSlug(copy!), true)
+
+  // A trim that lands on a hyphen must not leave it dangling, which the shape
+  // constraint would reject.
+  const hyphenated = `${'a'.repeat(SLUG_LIMIT - 3)}-bb`
+  const trimmed = nextCopySlug(hyphenated, [])
+  assert.ok(trimmed)
+  assert.equal(isValidSlug(trimmed!), true)
+})
+
+test('nextCopySlug gives up rather than inventing something', () => {
+  const taken = Array.from({ length: 200 }, (_, i) => `x-${i}`)
+  assert.equal(nextCopySlug('x', taken), null)
+})
+
+// ---------------------------------------------------------------------------
+// 10. duplicateResource — a draft to change without touching the original
+// ---------------------------------------------------------------------------
+
+test('a copy of a built-in guide is not a built-in, and carries its content', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const checklist = rows!.find(r => r.kind === 'guide' && r.slug === 'checklist')!
+  assert.ok(checklist)
+
+  const res = await duplicateResource(checklist, true)
+  assert.equal(res.ok, true)
+
+  const after = await fetchAllResources(true)
+  assert.equal(after?.length, 12)
+  const copy = after!.find(r => r.slug === 'checklist-2')!
+  assert.ok(copy)
+
+  assert.equal(copy.kind, 'guide')
+  assert.equal(copy.title, 'Copy of Meet Day Checklist')
+  // The whole point of the null key: "built in" has to mean "one of the eleven
+  // the migration seeded", or the delete guard refuses a row made this
+  // afternoon. Dropping the key means the content has to come with it.
+  assert.equal(copy.builtin_key, null)
+  assert.deepEqual(copy.config.content, defaultContentFor('checklist'))
+  // Hidden, at the bottom of its own group.
+  assert.equal(copy.is_published, false)
+  assert.ok(copy.sort_order > checklist.sort_order)
+  // And everything else about it came along.
+  assert.equal(copy.tag, checklist.tag)
+  assert.equal(copy.requires_signup, checklist.requires_signup)
+
+  // The original is untouched, still built in, still live.
+  const original = after!.find(r => r.id === checklist.id)!
+  assert.equal(original.builtin_key, 'checklist')
+  assert.equal(original.is_published, true)
+  assert.deepEqual(original.config, {})
+})
+
+test('copying twice counts up rather than colliding', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const quiz = rows!.find(r => r.kind === 'guide' && r.slug === 'quiz')!
+
+  assert.equal((await duplicateResource(quiz, true)).ok, true)
+  assert.equal((await duplicateResource(quiz, true)).ok, true)
+
+  const after = await fetchAllResources(true)
+  const copies = after!.filter(r => r.slug.startsWith('quiz-')).map(r => r.slug).sort()
+  assert.deepEqual(copies, ['quiz-2', 'quiz-3'])
+})
+
+test('a copy can be deleted, while the built-in it came from still refuses', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const big3 = rows!.find(r => r.kind === 'guide' && r.slug === 'big3')!
+
+  assert.equal((await duplicateResource(big3, true)).ok, true)
+  const copy = (await fetchAllResources(true))!.find(r => r.slug === 'big3-2')!
+  assert.ok(copy)
+
+  // This is the pair that matters. Same kind, same content, opposite answers,
+  // and the difference is builtin_key — which is exactly what the trigger in
+  // 041 keys on, so the demo store and the database say the same thing.
+  const removed = await deleteResource(copy, true)
+  assert.equal(removed.ok, true)
+
+  const refused = await deleteResource(big3, true)
+  assert.equal(refused.ok, false)
+  if (!refused.ok) assert.match(refused.message, /unpublish/i)
+
+  const after = await fetchAllResources(true)
+  assert.equal(after?.length, 11)
+})
+
+test('a copy of a custom resource brings its config with it', async () => {
+  resetDemoResources()
+  const created = await createResource({
+    kind: 'download',
+    title: 'Attempt card',
+    description: 'Print it and hand it to your handler.',
+    tag: 'PDF',
+    config: { url: '/files/attempts.pdf', file_label: 'Get the card', attachments: [file()] },
+  }, true)
+  assert.equal(created.ok, true)
+
+  const made = (await fetchAllResources(true))!.find(r => r.slug === 'attempt-card')!
+  const res = await duplicateResource(made, true)
+  assert.equal(res.ok, true)
+
+  const copy = (await fetchAllResources(true))!.find(r => r.slug === 'attempt-card-2')!
+  assert.ok(copy)
+  assert.deepEqual(copy.config, made.config)
+  assert.equal(copy.title, 'Copy of Attempt card')
+  assert.equal(copy.description, made.description)
+  assert.equal(copy.is_published, false)
+})
+
+test('a tool cannot be copied, because there is only one of each calculator', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const rpe = rows!.find(r => r.kind === 'tool' && r.slug === 'rpe')!
+
+  const res = await duplicateResource(rpe, true)
+  assert.equal(res.ok, false)
+  if (!res.ok) assert.match(res.message, /only one/i)
+  assert.equal((await fetchAllResources(true))?.length, 11)
+})
+
+test('the attempt planner guide cannot be copied either, and says why', async () => {
+  // It is the one guide with no content on the row: its numbers are the
+  // calculator's. A copy with builtin_key dropped would have nothing in it at
+  // all, so it is refused rather than made and puzzled over.
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const attempts = rows!.find(r => r.kind === 'guide' && r.slug === 'attempts')!
+
+  const res = await duplicateResource(attempts, true)
+  assert.equal(res.ok, false)
+  if (!res.ok) assert.match(res.message, /calculator/i)
+  assert.equal((await fetchAllResources(true))?.length, 11)
+})
+
+// ---------------------------------------------------------------------------
+// 11. Guides made here — the kind that is content and nothing else
+// ---------------------------------------------------------------------------
+
+test('a guide can be created, but only with the content it is made of', async () => {
+  resetDemoResources()
+
+  const bare = await createResource({ kind: 'guide', title: 'Meet Prep' }, true)
+  assert.equal(bare.ok, false)
+  if (!bare.ok) assert.match(bare.message, /content|built into the site/i)
+
+  const made = await createResource({
+    kind: 'guide',
+    title: 'Meet Prep',
+    is_published: false,
+    config: { content: defaultContentFor('checklist') },
+  }, true)
+  assert.equal(made.ok, true)
+
+  const row = (await fetchAllResources(true))!.find(r => r.slug === 'meet-prep')!
+  assert.ok(row)
+  assert.equal(row.kind, 'guide')
+  assert.equal(row.builtin_key, null)
+  assert.equal(row.is_published, false)
+  assert.deepEqual(row.config.content, defaultContentFor('checklist'))
+
+  // And unlike the six that shipped, it can be thrown away again.
+  assert.equal((await deleteResource(row, true)).ok, true)
+  assert.equal((await fetchAllResources(true))?.length, 11)
+})
+
+test('an override on a built-in guide is a key that comes and goes', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const rpe = rows!.find(r => r.kind === 'guide' && r.slug === 'rpe')!
+  const content = defaultContentFor('rpe')
+  assert.ok(content)
+
+  const saved = await updateResource(rpe.id, { kind: 'guide', config: { content } }, true)
+  assert.equal(saved.ok, true)
+  const edited = (await fetchAllResources(true))!.find(r => r.id === rpe.id)!
+  assert.deepEqual(edited.config.content, content)
+  assert.equal(edited.builtin_key, 'rpe', 'editing the content does not un-build-in the row')
+
+  // Restoring writes a config WITHOUT the key rather than the defaults into it,
+  // so a later correction in the bundle still reaches the page.
+  const restored = await updateResource(rpe.id, { kind: 'guide', config: {} }, true)
+  assert.equal(restored.ok, true)
+  const back = (await fetchAllResources(true))!.find(r => r.id === rpe.id)!
+  assert.deepEqual(back.config, {})
+})
+
+test('files survive a save that was only ever about the files', async () => {
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const audit = rows!.find(r => r.kind === 'guide' && r.slug === 'audit')!
+
+  const saved = await updateResource(audit.id, { kind: 'guide', config: { attachments: [file()] } }, true)
+  assert.equal(saved.ok, true)
+
+  const after = (await fetchAllResources(true))!.find(r => r.id === audit.id)!
+  assert.equal((after.config.attachments as unknown[]).length, 1)
+  // No content key was written, so the guide still renders what it shipped with.
+  assert.equal(after.config.content, undefined)
+})
+
+test('a demo upload saves, object URL and all', async () => {
+  // The walk-through: attach a file with no Supabase behind it, press Save. The
+  // uploader answers a blob: url, the demo store is the same tab that minted it,
+  // and the save has to go through or the demo dead-ends on its own upload.
+  resetDemoResources()
+  const rows = await fetchAllResources(true)
+  const checklist = rows!.find(r => r.kind === 'guide' && r.slug === 'checklist')!
+
+  const url = 'blob:https://axis.local/6f1c-9a2b'
+  const saved = await updateResource(
+    checklist.id,
+    { kind: 'guide', config: { attachments: [file({ url })] } },
+    true,
+  )
+  assert.equal(saved.ok, true, saved.ok ? '' : saved.message)
+
+  const after = (await fetchAllResources(true))!.find(r => r.id === checklist.id)!
+  assert.equal((after.config.attachments as Record<string, unknown>[])[0].url, url)
 })

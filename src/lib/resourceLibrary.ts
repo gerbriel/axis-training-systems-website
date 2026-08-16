@@ -1,6 +1,8 @@
 import { supabase, supabaseConfigured } from './supabase.ts'
 import { sanitizeText, clampInt } from '../utils/sanitize.ts'
+import { validateGuideContent, defaultContentFor } from './guideContent.ts'
 import type { WriteResult } from '../types/messaging.ts'
+import type { ResourceAttachment } from './resourceFiles.ts'
 
 /**
  * resourceLibrary.ts
@@ -14,6 +16,14 @@ import type { WriteResult } from '../types/messaging.ts'
  * calculator is code, so a built-in row carries `builtin_key` and the page
  * looks the component up by it. The three custom kinds (link, download,
  * article) have no component at all and render from `config` alone.
+ *
+ * What a row CARRIES grew after the first cut. A guide's interactive part is
+ * still a component, but the words inside it — the checklist items, the quiz
+ * questions, the RPE table — are content, and they live at `config.content` in
+ * the shape `guideContent.ts` describes. A built-in guide with no content there
+ * renders the copy it shipped with; one with content renders that instead, so
+ * an override is a key an owner can add and take away again. Any resource may
+ * also carry `config.attachments`, the files uploaded against it.
  *
  * Two contracts, deliberately different:
  *
@@ -63,9 +73,19 @@ export interface ResourceItem {
 
 export const RESOURCE_KINDS: ResourceKind[] = ['tool', 'guide', 'link', 'download', 'article']
 
-/** The kinds an owner can create. A tool or a guide needs a component in the
- *  bundle, so those eleven are seeded and edited, never added from a form. */
+/** The kinds that render from `config` alone, with no component behind them. */
 export const CUSTOM_KINDS: ResourceKind[] = ['link', 'download', 'article']
+
+/**
+ * The kinds an owner can add from a form.
+ *
+ * The three custom kinds, plus a guide — but only a guide that arrives with its
+ * own `config.content`, which is what a new one is made of. A tool is not on the
+ * list and will not be: an RPE calculator is a component in the bundle, and a
+ * row claiming to be one that has nothing behind it renders as a card that goes
+ * nowhere. Adding a real calculator is a deploy, and the migration seeds its row.
+ */
+export const CREATABLE_KINDS: ResourceKind[] = [...CUSTOM_KINDS, 'guide']
 
 export const KIND_LABELS: Record<ResourceKind, string> = {
   tool: 'Tool',
@@ -123,6 +143,19 @@ export const DESCRIPTION_LIMIT = 600
 export const TAG_LIMIT = 60
 export const ARTICLE_BODY_LIMIT = 50000
 export const URL_LIMIT = 2000
+export const ATTACHMENT_LIMIT = 20
+export const ATTACHMENT_LABEL_LIMIT = 120
+
+/**
+ * The most one row's `config` may weigh, serialized.
+ *
+ * `config` is a jsonb column with no size opinion of its own, and every read of
+ * this table pulls all of it: the admin list, the public page, the homepage
+ * strip. A quiz is a few kilobytes of text. Two hundred is room for a guide an
+ * order of magnitude longer than anything on the site, and a wall well short of
+ * the point where one pasted row makes every page slow.
+ */
+export const CONFIG_BYTE_LIMIT = 200000
 
 /** A PostgREST error, in a sentence a person can act on. */
 function writeMessage(error: { message?: string; code?: string } | null, fallback: string): string {
@@ -177,6 +210,34 @@ export function normalizeSlug(input: string): string {
   return slugFromTitle(input)
 }
 
+/** How many copies of one row can exist before the suffix stops being useful. */
+const COPY_LIMIT = 99
+
+/**
+ * A free slug for a copy of `slug`: `checklist` → `checklist-2`, then `-3`.
+ *
+ * `taken` is the slugs already in use WITHIN THE KIND, because that is what the
+ * unique index covers — the RPE guide and the RPE tool have always both been
+ * `rpe` and neither is in the other's way.
+ *
+ * The head is trimmed rather than the suffix dropped when the two together
+ * would run past SLUG_LIMIT, and any hyphen the trim exposes goes with it, so
+ * what comes back is a slug the CHECK constraint accepts. Null when every
+ * number up to COPY_LIMIT is spoken for, which is a person who needs to rename
+ * something rather than a case worth inventing an answer for.
+ */
+export function nextCopySlug(slug: string, taken: Iterable<string>): string | null {
+  const used = new Set(taken)
+  const base = normalizeSlug(slug) || 'copy'
+  for (let n = 2; n <= COPY_LIMIT; n++) {
+    const suffix = `-${n}`
+    const head = base.slice(0, SLUG_LIMIT - suffix.length).replace(/-+$/, '') || 'copy'
+    const candidate = `${head}${suffix}`
+    if (!used.has(candidate)) return candidate
+  }
+  return null
+}
+
 // ── URLs ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -224,41 +285,183 @@ export type ConfigResult =
   | { ok: true; value: Record<string, unknown> }
   | { ok: false; message: string }
 
+// ── Attachments ──────────────────────────────────────────────────────────────
+
+/** The five buckets an uploaded file falls into. Mirrors `ResourceAttachment`
+ *  in resourceFiles.ts, written out because a type is erased at runtime and
+ *  this list is checked against a stored value. */
+export const ATTACHMENT_KINDS = ['pdf', 'image', 'csv', 'doc', 'other'] as const
+
+export type AttachmentResult =
+  | { ok: true; value: ResourceAttachment[] }
+  | { ok: false; message: string }
+
+/**
+ * The files hanging off a resource, checked one at a time.
+ *
+ * Every kind may carry these, because "here is the PDF of the thing" is an
+ * answer to a link, a download, an article and a guide alike. The url goes
+ * through `safeResourceUrl` for the reason that function exists: a stored
+ * `javascript:` is a working script link the moment React renders it in an
+ * anchor, and an upload's url is the one field of these four that ends up in
+ * an href.
+ *
+ * `allowBlob` is the demo path and only the demo path. An upload with nothing
+ * to upload to mints `URL.createObjectURL(file)` (see resourceFiles.ts), which
+ * is a `blob:` url local to the tab that made it — and the demo store it would
+ * be written to is local to that tab too, so the two belong together: without
+ * this flag a demo walk-through can attach a file and then watch Save refuse
+ * it. Live mode never passes it, because a stored `blob:` is a dead link for
+ * every other visitor, and `safeResourceUrl` has no reason to learn a scheme
+ * that must never reach the database.
+ *
+ * The first problem is named, with its position, because a person looking at a
+ * list of files needs to know which one to fix.
+ */
+export function validateAttachments(value: unknown, allowBlob = false): AttachmentResult {
+  if (value === undefined || value === null) return { ok: true, value: [] }
+  if (!Array.isArray(value)) {
+    return { ok: false, message: 'The files on that resource are not stored as a list. Reload the page and attach them again.' }
+  }
+  if (value.length > ATTACHMENT_LIMIT) {
+    return { ok: false, message: `A resource can carry ${ATTACHMENT_LIMIT} files. Remove one before you add another.` }
+  }
+
+  const out: ResourceAttachment[] = []
+  for (const [i, raw] of value.entries()) {
+    const at = `File ${i + 1}`
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return { ok: false, message: `${at} is not a file. Remove it and upload the file again.` }
+    }
+    const row = raw as Record<string, unknown>
+
+    const label = sanitizeText(typeof row.label === 'string' ? row.label : '', ATTACHMENT_LABEL_LIMIT)
+    if (!label) return { ok: false, message: `${at} needs a name. Type what it is, so a visitor knows what they are clicking.` }
+
+    // A demo object URL is taken as it stands, capped at the same length as any
+    // other address. Everything else meets the allow-list.
+    const blob = allowBlob && typeof row.url === 'string'
+      && row.url.startsWith('blob:') && row.url.length <= URL_LIMIT
+    const url = blob ? (row.url as string) : safeResourceUrl(row.url)
+    if (!url) return { ok: false, message: `${at} needs a file address starting with https://, or a path on this site starting with /.` }
+
+    const kind = ATTACHMENT_KINDS.find(k => k === row.kind)
+    if (!kind) return { ok: false, message: `${at} has a type this site does not know about. It has to be one of ${ATTACHMENT_KINDS.join(', ')}.` }
+
+    // A missing size is legitimate — a file linked rather than uploaded has no
+    // byte count — but a size that is not a positive number is a bad record.
+    const rawSize = row.size
+    const known = rawSize !== null && rawSize !== undefined
+    if (known && !(typeof rawSize === 'number' && Number.isFinite(rawSize) && rawSize > 0)) {
+      return { ok: false, message: `${at} has a size that is not a number of bytes.` }
+    }
+
+    out.push({ label, url, kind, size: known ? Math.round(rawSize as number) : null })
+  }
+  return { ok: true, value: out }
+}
+
+/**
+ * The gate a config passes twice: it has to fit.
+ *
+ * Checked on the serialized bytes rather than on the object, because that is
+ * what the column stores and what every read of this table pays for.
+ *
+ * It runs on the way IN, before anything is looked at in detail — there is no
+ * point walking a megabyte of quiz questions to find out which one is malformed
+ * when the answer is no either way, and a size refusal is the more useful of
+ * the two sentences. It runs again on the cleaned value, which is the one that
+ * actually reaches the column.
+ */
+function sized(value: Record<string, unknown>): ConfigResult {
+  let bytes: number
+  try {
+    bytes = new TextEncoder().encode(JSON.stringify(value)).length
+  } catch {
+    return { ok: false, message: 'That content could not be saved. Something in it is not text this site can store.' }
+  }
+  if (bytes > CONFIG_BYTE_LIMIT) {
+    return {
+      ok: false,
+      message: `There is too much in that resource to save. Everything on one row has to fit inside ${Math.round(CONFIG_BYTE_LIMIT / 1000)} KB, which is hundreds of checklist items or quiz questions but not a megabyte of them. Take some out and save again.`,
+    }
+  }
+  return { ok: true, value }
+}
+
+// ── Per-kind config ──────────────────────────────────────────────────────────
+
 /**
  * The payload a kind needs, checked and cleaned.
  *
- * A tool or a guide keeps nothing here: the component is the content. The
- * three custom kinds each need exactly one or two fields, and a row missing
- * them renders as a card that does nothing when clicked, so they are refused
- * at the form rather than stored and puzzled over later.
+ * A tool keeps nothing here: the calculator is the content, and its numbers are
+ * a different table (042). A guide keeps whatever a person has written into it
+ * — `content`, in the shape guideContent.ts describes — and nothing when they
+ * have not, which is what makes a built-in guide fall back to the copy it
+ * shipped with. The three custom kinds each need exactly one or two fields, and
+ * a row missing them renders as a card that does nothing when clicked, so they
+ * are refused at the form rather than stored and puzzled over later.
+ *
+ * All four of the kinds that a visitor can be sent away from may carry files.
  *
  * Unknown keys are dropped rather than carried, so an article that used to be
  * a link does not keep a stale url in it.
+ *
+ * `allowBlob` rides through to the attachment check and means one thing: this
+ * config is on its way to the demo store rather than to the column. See
+ * validateAttachments.
  */
-export function validateConfig(kind: ResourceKind, config: Record<string, unknown> | undefined): ConfigResult {
+export function validateConfig(
+  kind: ResourceKind,
+  config: Record<string, unknown> | undefined,
+  allowBlob = false,
+): ConfigResult {
   const c = config ?? {}
+
+  const weight = sized(c)
+  if (!weight.ok) return weight
+
+  // Every kind but 'tool' reaches this the same way, so it is written once.
+  const files = validateAttachments(c.attachments, allowBlob)
+  const withFiles = (value: Record<string, unknown>): ConfigResult => {
+    if (!files.ok) return files
+    // An empty list is stored as no key at all: a resource that never had a
+    // file attached should not grow one that reads as "zero files", and it
+    // keeps the stored shape identical to what 041 documents.
+    return sized(files.value.length > 0 ? { ...value, attachments: files.value } : value)
+  }
+
   switch (kind) {
     case 'tool':
-    case 'guide':
       return { ok: true, value: {} }
+
+    case 'guide': {
+      const value: Record<string, unknown> = {}
+      if (c.content !== undefined && c.content !== null) {
+        const content = validateGuideContent(c.content)
+        if (!content.ok) return { ok: false, message: content.message }
+        value.content = content.content
+      }
+      return withFiles(value)
+    }
 
     case 'article': {
       const body = sanitizeText(typeof c.body === 'string' ? c.body : '', ARTICLE_BODY_LIMIT)
       if (!body) return { ok: false, message: 'An article needs some body text.' }
-      return { ok: true, value: { body } }
+      return withFiles({ body })
     }
 
     case 'link': {
       const url = safeResourceUrl(c.url)
       if (!url) return { ok: false, message: 'Give the link a web address starting with https://, or a path on this site starting with /.' }
-      return { ok: true, value: { url } }
+      return withFiles({ url })
     }
 
     case 'download': {
       const url = safeResourceUrl(c.url)
       if (!url) return { ok: false, message: 'Give the download a file address starting with https://, or a path on this site starting with /.' }
       const file_label = sanitizeText(typeof c.file_label === 'string' ? c.file_label : '', 80) || 'Download'
-      return { ok: true, value: { url, file_label } }
+      return withFiles({ url, file_label })
     }
 
     default:
@@ -492,17 +695,26 @@ export async function fetchAllResources(isDemo = false): Promise<ResourceItem[] 
 // ── Writing ──────────────────────────────────────────────────────────────────
 
 /**
- * A new custom resource.
+ * A new resource.
  *
- * Only the three custom kinds: a tool or a guide is half a React component,
- * and a row claiming to be one that has nothing behind it renders as a card
- * that goes nowhere. Adding a real calculator is a deploy, and the migration
- * seeds its row.
+ * The three custom kinds, and a guide that brings its own content. A tool is
+ * half a React component and a row claiming to be one has nothing behind it, so
+ * it renders as a card that goes nowhere; adding a real calculator is a deploy,
+ * and the migration seeds its row.
+ *
+ * A guide is the case that changed. The six that shipped are components reading
+ * their copy from `guideContent.ts`, and they stay that way. A guide made HERE
+ * has no `builtin_key` at all — it is its `config.content` and nothing else,
+ * rendered by the same five components the built-ins use. So the content is not
+ * optional on the way in: without it there is no guide, only an empty card.
  */
 export async function createResource(input: NewResourceInput, isDemo = false): Promise<WriteResult> {
   const kind = input.kind
-  if (!CUSTOM_KINDS.includes(kind)) {
-    return { ok: false, message: 'Tools and guides are built into the site. You can edit the ones that exist, but new ones need a developer.' }
+  if (!CREATABLE_KINDS.includes(kind)) {
+    return { ok: false, message: 'The calculators are built into the site. You can edit the ones that exist, but a new one needs a developer.' }
+  }
+  if (kind === 'guide' && (input.config?.content === undefined || input.config?.content === null)) {
+    return { ok: false, message: 'A new guide is made out of one of the interactive types, so it needs its content to be created. The six guides that shipped are built into the site and are edited rather than added again.' }
   }
 
   const title = sanitizeText(input.title ?? '', TITLE_LIMIT)
@@ -513,7 +725,8 @@ export async function createResource(input: NewResourceInput, isDemo = false): P
     return { ok: false, message: 'The web address needs lowercase letters or numbers. Type one in the slug box.' }
   }
 
-  const cfg = validateConfig(kind, input.config)
+  // The demo store takes a demo upload's object URL; the column never does.
+  const cfg = validateConfig(kind, input.config, offline(isDemo))
   if (!cfg.ok) return cfg
 
   const row = {
@@ -540,6 +753,104 @@ export async function createResource(input: NewResourceInput, isDemo = false): P
 
   const { error } = await supabase.from(TABLE).insert(row)
   return error ? { ok: false, message: writeMessage(error, 'Could not add that resource.') } : { ok: true }
+}
+
+/**
+ * A copy of a row, unpublished, at the bottom of its own group.
+ *
+ * The point of it is a starting draft: "the meet day checklist, but the powerlifting
+ * one" is ninety percent of an existing guide and none of a blank form. So the
+ * copy takes the description, the badge and the gate along with the content,
+ * and arrives HIDDEN, because a duplicate of a live card appearing on the site
+ * the moment it is made is the one behaviour nobody wants.
+ *
+ * Three things the copy is deliberately not:
+ *
+ *   NOT a built-in. `builtin_key` is null on every copy, and the delete guard
+ *   in 041 keys on exactly that column. "Built in" has to mean "one of the
+ *   eleven the migration seeded" for the refusal to make sense — a duplicate
+ *   an owner made this afternoon must be one they can throw away this evening.
+ *
+ *   NOT dependent on the original. Dropping builtin_key would leave a guide
+ *   with no component to look up, so the content it would have inherited is
+ *   copied INTO it: `config.content` from the source if it has been edited,
+ *   otherwise the shipped default for the key it used to carry. The copy is a
+ *   whole guide from the first second, editable without touching the original.
+ *
+ *   NOT available for a tool. There is one RPE calculator, and a second row
+ *   pointing at it renders the same component twice on the same page.
+ *
+ * The slug is de-duplicated within the kind rather than left to the unique
+ * index, so the answer is a working copy rather than an error message.
+ */
+export async function duplicateResource(item: ResourceItem, isDemo = false): Promise<WriteResult> {
+  if (item.kind === 'tool') {
+    return { ok: false, message: 'There is only one of each calculator, so a tool cannot be copied. A second row would put the same calculator on the page twice.' }
+  }
+  if (!RESOURCE_KINDS.includes(item.kind)) {
+    return { ok: false, message: 'That is not a kind of resource this site knows about.' }
+  }
+
+  const source = item.config ?? {}
+  const config: Record<string, unknown> = { ...source }
+
+  if (item.kind === 'guide') {
+    const content = source.content ?? defaultContentFor(item.builtin_key)
+    if (content === null || content === undefined) {
+      return {
+        ok: false,
+        message: 'That guide is driven by the attempt calculator rather than by content stored on the row, so there is nothing to copy. Its numbers are on the Calculators tab.',
+      }
+    }
+    config.content = content
+  }
+
+  // offline(isDemo) for the same reason create/update pass it: a demo row may
+  // carry a blob: attachment, and its copy lives in the same tab-local store.
+  const cfg = validateConfig(item.kind, config, offline(isDemo))
+  if (!cfg.ok) return cfg
+
+  const tooMany = 'There are already too many copies of that one. Rename one of them and try again.'
+
+  /** The row to insert, given everything currently in that kind. */
+  const build = (group: ResourceItem[]) => {
+    const slug = nextCopySlug(item.slug, group.map(r => r.slug))
+    if (!slug) return null
+    return {
+      kind: item.kind,
+      slug,
+      builtin_key: null as string | null,
+      title: sanitizeText(`Copy of ${item.title}`, TITLE_LIMIT),
+      description: sanitizeText(item.description ?? '', DESCRIPTION_LIMIT),
+      tag: sanitizeText(item.tag ?? '', TAG_LIMIT) || null,
+      sort_order: nextSortOrder(group, item.kind),
+      is_published: false,
+      requires_signup: item.requires_signup,
+      config: cfg.value,
+    }
+  }
+
+  if (offline(isDemo)) {
+    await beat()
+    const row = build(store().filter(r => r.kind === item.kind))
+    if (!row) return { ok: false, message: tooMany }
+    store().push({ id: genId(), ...row, updated_at: nowIso() })
+    return { ok: true }
+  }
+
+  // The read is scoped to the kind because that is the scope of both questions
+  // being asked of it: which slugs are spoken for, and where the bottom is.
+  const { data, error } = await supabase.from(TABLE).select(COLUMNS).eq('kind', item.kind)
+  if (error || !Array.isArray(data)) {
+    return { ok: false, message: writeMessage(error, 'Could not read the other resources to work out an address for the copy. Nothing was changed.') }
+  }
+  const row = build((data as Record<string, unknown>[]).map(toItem))
+  if (!row) return { ok: false, message: tooMany }
+
+  const inserted = await supabase.from(TABLE).insert(row)
+  return inserted.error
+    ? { ok: false, message: writeMessage(inserted.error, 'Could not copy that resource.') }
+    : { ok: true }
 }
 
 /**
@@ -580,7 +891,8 @@ export async function updateResource(id: string, patch: ResourcePatch, isDemo = 
     // unchecked, because an unvalidated url is the one that ends up in an href.
     const kind = patch.kind ?? (offline(isDemo) ? store().find(r => r.id === id)?.kind : undefined)
     if (!kind) return { ok: false, message: 'Could not tell what kind of resource that is. Reload the list and try again.' }
-    const cfg = validateConfig(kind, patch.config)
+    // The demo store takes a demo upload's object URL; the column never does.
+    const cfg = validateConfig(kind, patch.config, offline(isDemo))
     if (!cfg.ok) return cfg
     clean.config = cfg.value
   }

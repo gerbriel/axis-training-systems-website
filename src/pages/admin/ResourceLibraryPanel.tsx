@@ -3,12 +3,19 @@ import DemoBanner from '../../components/dashboard/DemoBanner'
 import { clampInt } from '../../utils/sanitize'
 import { usePermissions } from '../../lib/usePermissions'
 import {
-  fetchAllResources, createResource, updateResource, deleteResource,
+  fetchAllResources, createResource, updateResource, deleteResource, duplicateResource,
   setPublished, reorderResource, planReorder,
   slugFromTitle, nextSortOrder, sortResources,
-  CUSTOM_KINDS, KIND_LABELS,
+  CREATABLE_KINDS, KIND_LABELS,
   type ResourceItem, type ResourceKind,
 } from '../../lib/resourceLibrary'
+import {
+  parseGuideContent, defaultContentFor, blankContentFor, CONTENT_TYPE_LABELS,
+  type GuideContent, type GuideContentType,
+} from '../../lib/guideContent'
+import type { ResourceAttachment } from '../../lib/resourceFiles'
+import AttachmentManager from '../../components/admin/AttachmentManager'
+import GuideContentEditor from '../../components/admin/guide-editors'
 
 /**
  * The free resources area, managed.
@@ -26,6 +33,21 @@ import {
  *
  *   A custom resource (link, download, article) is wholly content. Everything
  *   about it is editable and it can be removed.
+ *
+ * Two things a row now carries beyond its own copy, both under `config` and
+ * both edited in the expandable panel behind the Content button rather than in
+ * the metadata form:
+ *
+ *   A guide's CONTENT — the checklist items, the quiz questions, the reference
+ *   table. A built-in guide with nothing stored renders what it shipped with,
+ *   so opening the editor shows those defaults and saving turns them into an
+ *   override the owner keeps. Restore original takes the override away again;
+ *   it does not write the defaults back, it removes the key, which is what
+ *   makes a later correction in the bundle still reach the page.
+ *
+ *   FILES, on a guide or an article. Same panel, same save. Not on a link or a
+ *   download: those cards are anchors that leave the site rather than expanding
+ *   in place, so there is nowhere on the page for the list to appear.
  *
  * The permission notice is SIGNAGE. RLS in 041 is what actually refuses a
  * write from someone without manage_resource_library; this only spares them a
@@ -98,12 +120,14 @@ interface Draft {
   url: string
   fileLabel: string
   body: string
+  /** New interactive guides only: which of the five a blank one is built from. */
+  contentType: GuideContentType
 }
 
 const BLANK: Draft = {
   kind: 'link', title: '', slug: '', description: '', tag: '',
   sortOrder: 0, requiresSignup: false, isPublished: true,
-  url: '', fileLabel: '', body: '',
+  url: '', fileLabel: '', body: '', contentType: 'checklist',
 }
 
 function draftOf(item: ResourceItem): Draft {
@@ -120,15 +144,77 @@ function draftOf(item: ResourceItem): Draft {
     url: typeof c.url === 'string' ? c.url : '',
     fileLabel: typeof c.file_label === 'string' ? c.file_label : '',
     body: typeof c.body === 'string' ? c.body : '',
+    contentType: 'checklist',
   }
 }
 
-function configOf(d: Draft): Record<string, unknown> {
-  if (d.kind === 'article') return { body: d.body }
-  if (d.kind === 'link') return { url: d.url }
-  if (d.kind === 'download') return { url: d.url, file_label: d.fileLabel }
-  return {}
+/**
+ * The draft as a config, with the parts this form does not edit carried over.
+ *
+ * `base` is the row's config as it stands. A guide's content and any resource's
+ * files are edited in the other panel, and a metadata save must not be the
+ * thing that removes them — an update writes `config` whole, so anything left
+ * out of this object is deleted from the row.
+ */
+function configOf(d: Draft, base: Record<string, unknown> = {}): Record<string, unknown> {
+  const carried: Record<string, unknown> = {}
+  if (base.content !== undefined) carried.content = base.content
+  if (Array.isArray(base.attachments) && base.attachments.length > 0) carried.attachments = base.attachments
+
+  if (d.kind === 'article') return { ...carried, body: d.body }
+  if (d.kind === 'link') return { ...carried, url: d.url }
+  if (d.kind === 'download') return { ...carried, url: d.url, file_label: d.fileLabel }
+  return carried
 }
+
+/** The files on a row, as the manager wants them. */
+function filesOf(item: ResourceItem): ResourceAttachment[] {
+  const raw = item.config?.attachments
+  return Array.isArray(raw) ? (raw as ResourceAttachment[]) : []
+}
+
+/**
+ * What the content editor should open with, or null for a guide that has none.
+ *
+ * The order matters: what the owner has written, then what the guide ships
+ * with, then nothing. Null is the attempt planner, whose numbers live in the
+ * calculator settings rather than on this row.
+ */
+function contentOf(item: ResourceItem): GuideContent | null {
+  if (item.kind !== 'guide') return null
+  return parseGuideContent(item.config) ?? defaultContentFor(item.builtin_key)
+}
+
+/** A built-in guide whose shipped content has been written over. */
+function hasOverride(item: ResourceItem): boolean {
+  return item.kind === 'guide' && item.builtin_key !== null && parseGuideContent(item.config) !== null
+}
+
+/** Every kind but a tool can be copied, and a guide only if there is content to
+ *  copy: see duplicateResource, which refuses both with a sentence. */
+function canCopy(item: ResourceItem): boolean {
+  if (item.kind === 'tool') return false
+  return item.kind !== 'guide' || contentOf(item) !== null
+}
+
+/**
+ * Which rows have something behind the Content / Files button.
+ *
+ * A guide and an article, because those are the two whose card OPENS on the
+ * public page and so has somewhere to put a list of files under it. A link and
+ * a download are plain anchors that go straight off the site: a file attached
+ * to one saves and then renders nowhere, which is a promise this panel should
+ * not make. `validateConfig` still accepts attachments on all four, so a row
+ * that already carries one stays valid and nothing is thrown away behind
+ * anyone's back.
+ */
+function hasEditor(item: ResourceItem): boolean {
+  return item.kind === 'guide' || item.kind === 'article'
+}
+
+const KIND_ADD_LABELS: Partial<Record<ResourceKind, string>> = { guide: 'Interactive guide' }
+
+const CONTENT_TYPES: GuideContentType[] = ['checklist', 'quiz', 'reference', 'sections', 'worksheet']
 
 const GROUPS: { key: string; label: string; blurb: string; kinds: ResourceKind[] }[] = [
   {
@@ -137,7 +223,7 @@ const GROUPS: { key: string; label: string; blurb: string; kinds: ResourceKind[]
   },
   {
     key: 'guides', label: 'Guides', kinds: ['guide'],
-    blurb: 'The guides on the free stuff page. All six ask for an email today, which you can now change one at a time.',
+    blurb: 'The guides on the free stuff page, and what is inside them. Content opens the checklist, the questions or the table behind a guide; Copy makes an independent draft of one. New guides are added with the button at the bottom of this page.',
   },
   {
     key: 'custom', label: 'Custom resources', kinds: ['link', 'download', 'article'],
@@ -162,6 +248,19 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
   const [busy, setBusy] = useState(false)
   const [armedDelete, setArmedDelete] = useState<string | null>(null)
 
+  // The content and files panel, which is a second expandable on the same rows
+  // rather than a page of its own: what is being edited only makes sense next
+  // to the row it belongs to.
+  const [contentId, setContentId] = useState<string | null>(null)
+  const [contentDraft, setContentDraft] = useState<GuideContent | null>(null)
+  const [fileDraft, setFileDraft] = useState<ResourceAttachment[]>([])
+  // A refusal from THIS panel stays in it. The banner at the top of the page is
+  // level with the first row, and a guide edited eight rows down is a screen and
+  // a half away from it: pressing Save and seeing nothing happen is how a person
+  // decides the button is broken. Row-level operations keep the banner, because
+  // their button is up there with it.
+  const [contentError, setContentError] = useState<string | null>(null)
+
   const say = (msg: string) => { setFlash(msg); window.setTimeout(() => setFlash(null), 2500) }
 
   const load = useCallback(async (quiet = false) => {
@@ -182,6 +281,7 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
     setError(null)
     setArmedDelete(null)
     setAdding(false)
+    setContentId(null)
   }
 
   const saveEdit = async (item: ResourceItem) => {
@@ -196,13 +296,90 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
       sort_order: draft.sortOrder,
       requires_signup: draft.requiresSignup,
       is_published: draft.isPublished,
-      // A built-in keeps its slug (a route the bundle knows) and has no config.
-      ...(isBuiltin ? {} : { slug: draft.slug || slugFromTitle(draft.title), config: configOf(draft) }),
+      // A built-in keeps its slug: it is the route the bundle knows, and this
+      // form is not where a live URL gets renamed. The config goes with the
+      // slug for built-ins because a built-in's content is edited in the other
+      // panel, and configOf carries the rest of it across for everyone else.
+      ...(isBuiltin ? {} : {
+        slug: draft.slug || slugFromTitle(draft.title),
+        config: configOf(draft, item.config ?? {}),
+      }),
     }, isDemo)
     setBusy(false)
     if (!res.ok) { setError(res.message); return }
     setEditingId(null)
     say('Saved.')
+    await load(true)
+  }
+
+  // ── Content and files ──────────────────────────────────────────────────────
+
+  const startContent = (item: ResourceItem) => {
+    setContentId(item.id)
+    setContentDraft(contentOf(item))
+    setFileDraft(filesOf(item))
+    setEditingId(null)
+    setAdding(false)
+    setError(null)
+    setContentError(null)
+    setArmedDelete(null)
+  }
+
+  const closeContent = () => {
+    setContentId(null)
+    setContentDraft(null)
+    setFileDraft([])
+    setError(null)
+    setContentError(null)
+  }
+
+  /** Both halves of the panel go in one write, on top of whatever else the row
+   *  is carrying, because `config` is replaced whole rather than merged. */
+  const saveContent = async (item: ResourceItem) => {
+    if (busy) return
+    setBusy(true); setContentError(null)
+    const next: Record<string, unknown> = { ...(item.config ?? {}) }
+    if (contentDraft) next.content = contentDraft
+    if (fileDraft.length > 0) next.attachments = fileDraft
+    else delete next.attachments
+
+    const res = await updateResource(item.id, { kind: item.kind, config: next }, isDemo)
+    setBusy(false)
+    if (!res.ok) { setContentError(res.message); return }
+    closeContent()
+    say('Saved.')
+    await load(true)
+  }
+
+  /**
+   * Back to the guide as it shipped.
+   *
+   * The content KEY is removed rather than the defaults written into it. A row
+   * with no content reads its copy out of the bundle every time, so a later
+   * correction there still reaches the page; a row storing today's defaults is
+   * frozen at today.
+   */
+  const restoreContent = async (item: ResourceItem) => {
+    if (busy) return
+    setBusy(true); setContentError(null)
+    const next: Record<string, unknown> = { ...(item.config ?? {}) }
+    delete next.content
+
+    const res = await updateResource(item.id, { kind: item.kind, config: next }, isDemo)
+    setBusy(false)
+    if (!res.ok) { setContentError(res.message); return }
+    closeContent()
+    say('Back to the guide as it shipped.')
+    await load(true)
+  }
+
+  const copy = async (item: ResourceItem) => {
+    if (busy) return
+    setBusy(true); setError(null)
+    const res = await duplicateResource(item, isDemo)
+    setBusy(false)
+    if (!res.ok) { setError(res.message); return }
+    say('Copied. The copy is hidden until you publish it.')
     await load(true)
   }
 
@@ -237,13 +414,18 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
       sort_order: newDraft.sortOrder,
       is_published: newDraft.isPublished,
       requires_signup: newDraft.requiresSignup,
-      config: configOf(newDraft),
+      // A new guide is born empty in the shape it was asked for, and is filled
+      // in from its own Content button once it exists. Everything it needs to
+      // render is in there, which is what lets it have no builtin_key at all.
+      config: newDraft.kind === 'guide'
+        ? { content: blankContentFor(newDraft.contentType) }
+        : configOf(newDraft),
     }, isDemo)
     setBusy(false)
     if (!res.ok) { setError(res.message); return }
     setNewDraft(BLANK)
     setAdding(false)
-    say('Resource added.')
+    say(newDraft.kind === 'guide' ? 'Guide added. Open Content to write it.' : 'Resource added.')
     await load(true)
   }
 
@@ -254,6 +436,7 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
     setBusy(false)
     setArmedDelete(null)
     if (!res.ok) { setError(res.message); return }
+    if (contentId === item.id) closeContent()
     say('Resource removed.')
     await load(true)
   }
@@ -261,8 +444,29 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
   const openAdd = () => {
     setAdding(true)
     setEditingId(null)
+    setContentId(null)
     setError(null)
     setNewDraft({ ...BLANK, sortOrder: nextSortOrder(items, 'link') })
+  }
+
+  /**
+   * Picking a kind in the add form re-homes the new row at the bottom of that
+   * kind's group and rebuilds every default that depends on the kind, rather
+   * than layering one kind's answers over another's.
+   *
+   * A guide arrives hidden, because it has no content in it yet. Everything
+   * else arrives live. Switching Guide → Link has to put the switch BACK, or
+   * the link inherits a guide's reason for being hidden and the owner adds a
+   * card they cannot find on the site. What a person typed (title, badge,
+   * description, address) is theirs and is carried across untouched.
+   */
+  const pickNewKind = (kind: ResourceKind) => {
+    setNewDraft({
+      ...newDraft,
+      kind,
+      sortOrder: nextSortOrder(items, kind),
+      isPublished: kind === 'guide' ? false : BLANK.isPublished,
+    })
   }
 
   // ── Form fields ────────────────────────────────────────────────────────────
@@ -361,6 +565,92 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
     </>
   )
 
+  // ── The content and files panel ────────────────────────────────────────────
+  //
+  // One expandable, two jobs, because they save together: a guide's content and
+  // the files hanging off any row both live in `config` and both go through one
+  // update. A guide with no content of its own (the attempt planner) gets the
+  // note instead of a form, and keeps its files.
+
+  const renderContentPanel = (item: ResourceItem) => {
+    const editable = contentDraft !== null
+    const isGuide = item.kind === 'guide'
+
+    return (
+      <div style={{
+        marginTop: '.9rem', borderTop: '1px solid var(--surface-2)', paddingTop: '.9rem',
+        display: 'flex', flexDirection: 'column', gap: '.9rem',
+      }}>
+        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
+          <p style={microLabel}>{isGuide ? 'Guide content' : 'Files'}</p>
+          {editable && contentDraft && (
+            <span style={{ color: 'var(--text-4)', fontSize: '.7rem' }}>
+              {CONTENT_TYPE_LABELS[contentDraft.type]}
+            </span>
+          )}
+        </div>
+
+        {isGuide && !editable && (
+          <p style={{ color: 'var(--text-3)', fontSize: '.78rem', lineHeight: 1.65, maxWidth: 560 }}>
+            {item.builtin_key === 'attempts' ? (
+              <>
+                This one is the attempt planner, and it has no words to edit: it is built out of the
+                percentages the calculator uses. Change those on the Calculators tab and this guide
+                follows them. Its title, badge and gate are still yours, on the Edit button above.
+              </>
+            ) : (
+              <>
+                There is nothing stored on this guide to edit, and no shipped version to fall back on.
+                Reload the page, and if it is still empty it needs a developer. You can still attach
+                files to it below.
+              </>
+            )}
+          </p>
+        )}
+
+        {editable && contentDraft && (
+          <GuideContentEditor value={contentDraft} onChange={setContentDraft} disabled={!canManage} />
+        )}
+
+        <div>
+          {isGuide && <p style={{ ...microLabel, marginBottom: '.5rem' }}>Attached files</p>}
+          <AttachmentManager
+            attachments={fileDraft}
+            onChange={setFileDraft}
+            isDemo={isDemo}
+            disabled={!canManage}
+          />
+        </div>
+
+        {canManage && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button onClick={() => void saveContent(item)} disabled={busy} style={btn(ACCENT, '#fff')}>
+                {busy ? 'Saving…' : 'Save'}
+              </button>
+              <button onClick={closeContent} style={btnGhost('var(--text-3)')}>Cancel</button>
+              {hasOverride(item) && (
+                <>
+                  <button onClick={() => void restoreContent(item)} disabled={busy} style={btnGhost(DANGER)}>
+                    Restore original
+                  </button>
+                  <span style={{ color: 'var(--text-4)', fontSize: '.68rem' }}>
+                    Puts back the version this guide shipped with and drops your edits.
+                  </span>
+                </>
+              )}
+            </div>
+            {contentError && (
+              <div role="alert" style={{ background: 'rgba(200,16,46,.08)', border: '1px solid rgba(200,16,46,.35)', borderRadius: '.25rem', padding: '.6rem .8rem' }}>
+                <span style={{ color: DANGER, fontSize: '.78rem', lineHeight: 1.55 }}>{contentError}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // ── One row ────────────────────────────────────────────────────────────────
 
   const renderRow = (item: ResourceItem) => {
@@ -368,9 +658,10 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
     const canUp = !!planReorder(sorted, item.id, 'up')
     const canDown = !!planReorder(sorted, item.id, 'down')
     const editing = editingId === item.id
+    const openContent = contentId === item.id
 
     return (
-      <div key={item.id} style={{ borderBottom: '1px solid var(--surface)', padding: '.9rem 1.1rem', background: editing ? 'var(--surface)' : 'transparent' }}>
+      <div key={item.id} style={{ borderBottom: '1px solid var(--surface)', padding: '.9rem 1.1rem', background: editing || openContent ? 'var(--surface)' : 'transparent' }}>
         {editing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
             {commonFields(draft, setDraft, `edit-${item.id}`, { slug: !isBuiltin })}
@@ -386,40 +677,57 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ color: item.is_published ? 'var(--text)' : 'var(--text-4)', fontWeight: 700, fontSize: '.9rem' }}>{item.title}</span>
-                {item.tag && <span style={chip('var(--text-3)')}>{item.tag}</span>}
-                {!item.is_published && <span style={chip('var(--text-4)')}>Hidden</span>}
-                {item.requires_signup && <span style={chip(ACCENT)}>Email first</span>}
+          <>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ color: item.is_published ? 'var(--text)' : 'var(--text-4)', fontWeight: 700, fontSize: '.9rem' }}>{item.title}</span>
+                  {item.tag && <span style={chip('var(--text-3)')}>{item.tag}</span>}
+                  {!item.is_published && <span style={chip('var(--text-4)')}>Hidden</span>}
+                  {item.requires_signup && <span style={chip(ACCENT)}>Email first</span>}
+                  {hasOverride(item) && <span style={chip(ACCENT)}>Edited</span>}
+                </div>
+                <span style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>
+                  {KIND_LABELS[item.kind]} · /{item.slug} · order {item.sort_order}
+                  {isBuiltin ? ' · built in' : ''}
+                  {filesOf(item).length > 0 ? ` · ${filesOf(item).length} file${filesOf(item).length === 1 ? '' : 's'}` : ''}
+                </span>
               </div>
-              <span style={{ color: 'var(--text-4)', fontSize: '.72rem' }}>
-                {KIND_LABELS[item.kind]} · /{item.slug} · order {item.sort_order}
-                {isBuiltin ? ' · built in' : ''}
-              </span>
+
+              {canManage && armedDelete === item.id ? (
+                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-2)', fontSize: '.72rem' }}>Remove it?</span>
+                  <button onClick={() => void remove(item)} disabled={busy} style={btn(DANGER, '#fff')}>Remove</button>
+                  <button onClick={() => setArmedDelete(null)} style={btnGhost('var(--text-3)')}>Cancel</button>
+                </div>
+              ) : canManage ? (
+                <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0, flexWrap: 'wrap' }}>
+                  <button onClick={() => void move(item, 'up')} disabled={!canUp || busy} style={arrowBtn(canUp)} aria-label={`Move ${item.title} up`}>↑</button>
+                  <button onClick={() => void move(item, 'down')} disabled={!canDown || busy} style={arrowBtn(canDown)} aria-label={`Move ${item.title} down`}>↓</button>
+                  <button onClick={() => startEdit(item)} style={btnGhost('var(--text-2)')}>Edit</button>
+                  {hasEditor(item) && (
+                    <button
+                      onClick={() => (openContent ? closeContent() : startContent(item))}
+                      style={btnGhost(openContent ? ACCENT : 'var(--text-2)')}
+                    >
+                      {item.kind === 'guide' ? 'Content' : 'Files'}
+                    </button>
+                  )}
+                  {canCopy(item) && (
+                    <button onClick={() => void copy(item)} disabled={busy} style={btnGhost('var(--text-2)')}>Copy</button>
+                  )}
+                  <button onClick={() => void togglePublished(item)} disabled={busy} style={btnGhost(item.is_published ? 'var(--text-3)' : GREEN)}>
+                    {item.is_published ? 'Unpublish' : 'Publish'}
+                  </button>
+                  {isBuiltin
+                    ? <span style={{ color: 'var(--text-4)', fontSize: '.65rem', alignSelf: 'center' }}>Unpublish instead</span>
+                    : <button onClick={() => setArmedDelete(item.id)} style={btnGhost(DANGER)}>Delete</button>}
+                </div>
+              ) : null}
             </div>
 
-            {canManage && armedDelete === item.id ? (
-              <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-2)', fontSize: '.72rem' }}>Remove it?</span>
-                <button onClick={() => void remove(item)} disabled={busy} style={btn(DANGER, '#fff')}>Remove</button>
-                <button onClick={() => setArmedDelete(null)} style={btnGhost('var(--text-3)')}>Cancel</button>
-              </div>
-            ) : canManage ? (
-              <div style={{ display: 'flex', gap: '.4rem', flexShrink: 0, flexWrap: 'wrap' }}>
-                <button onClick={() => void move(item, 'up')} disabled={!canUp || busy} style={arrowBtn(canUp)} aria-label={`Move ${item.title} up`}>↑</button>
-                <button onClick={() => void move(item, 'down')} disabled={!canDown || busy} style={arrowBtn(canDown)} aria-label={`Move ${item.title} down`}>↓</button>
-                <button onClick={() => startEdit(item)} style={btnGhost('var(--text-2)')}>Edit</button>
-                <button onClick={() => void togglePublished(item)} disabled={busy} style={btnGhost(item.is_published ? 'var(--text-3)' : GREEN)}>
-                  {item.is_published ? 'Unpublish' : 'Publish'}
-                </button>
-                {isBuiltin
-                  ? <span style={{ color: 'var(--text-4)', fontSize: '.65rem', alignSelf: 'center' }}>Unpublish instead</span>
-                  : <button onClick={() => setArmedDelete(item.id)} style={btnGhost(DANGER)}>Delete</button>}
-              </div>
-            ) : null}
-          </div>
+            {openContent && renderContentPanel(item)}
+          </>
         )}
       </div>
     )
@@ -434,6 +742,8 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
       <p style={{ color: 'var(--text-3)', fontSize: '.8rem', lineHeight: 1.65, marginBottom: '1.25rem', maxWidth: 620 }}>
         Every card under Free Stuff: what it is called, what it says, what badge it wears, where it sits, and whether
         a visitor has to leave an email first. Unpublishing takes something off the site without losing the copy.
+        Content opens what is inside a guide, Files attaches a PDF to a guide or an article, and Copy gives you a
+        draft to change without touching the original.
       </p>
 
       {ready && !canManage && (
@@ -478,16 +788,39 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
                       <div style={{ border: `1px solid ${ACCENT}55`, borderRadius: '.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
                         <p style={microLabel}>New resource</p>
                         <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
-                          {CUSTOM_KINDS.map(k => (
+                          {CREATABLE_KINDS.map(k => (
                             <button
                               key={k}
-                              onClick={() => setNewDraft({ ...newDraft, kind: k, sortOrder: nextSortOrder(items, k) })}
+                              onClick={() => pickNewKind(k)}
                               style={newDraft.kind === k ? btn(ACCENT, '#fff') : btnGhost('var(--text-3)')}
                             >
-                              {KIND_LABELS[k]}
+                              {KIND_ADD_LABELS[k] ?? KIND_LABELS[k]}
                             </button>
                           ))}
                         </div>
+
+                        {newDraft.kind === 'guide' && (
+                          <div>
+                            <label className="field-label">What kind of guide</label>
+                            <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginTop: '.35rem' }}>
+                              {CONTENT_TYPES.map(t => (
+                                <button
+                                  key={t}
+                                  onClick={() => setNewDraft({ ...newDraft, contentType: t })}
+                                  style={newDraft.contentType === t ? btn(ACCENT, '#fff') : btnGhost('var(--text-3)')}
+                                >
+                                  {CONTENT_TYPE_LABELS[t]}
+                                </button>
+                              ))}
+                            </div>
+                            <p style={{ color: 'var(--text-4)', fontSize: '.7rem', marginTop: '.5rem', lineHeight: 1.6, maxWidth: 520 }}>
+                              This picks how the guide behaves on the page, and it is the one thing you cannot change
+                              later. The guide arrives empty and hidden. Open Content on its row to write it, then
+                              publish it when it reads the way you want.
+                            </p>
+                          </div>
+                        )}
+
                         {commonFields(newDraft, setNewDraft, 'new', { slug: true })}
                         <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
                           <button
@@ -495,7 +828,7 @@ export default function ResourceLibraryPanel({ isDemo = false }: { isDemo?: bool
                             disabled={busy || !newDraft.title.trim()}
                             style={btn(newDraft.title.trim() ? ACCENT : 'var(--surface-2)', newDraft.title.trim() ? '#fff' : 'var(--text-4)')}
                           >
-                            {busy ? 'Adding…' : 'Add resource'}
+                            {busy ? 'Adding…' : newDraft.kind === 'guide' ? 'Add guide' : 'Add resource'}
                           </button>
                           <button onClick={() => { setAdding(false); setNewDraft(BLANK); setError(null) }} style={btnGhost('var(--text-3)')}>Cancel</button>
                         </div>

@@ -47,6 +47,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, supabaseConfigured } from './supabase.ts'
 import { fetchPublishedResources } from './resourceLibrary.ts'
+import { parseGuideContent } from './guideContent.ts'
 import type { ResourceItem, ResourceKind } from './resourceLibrary.ts'
 import type { WriteResult } from '../types/messaging.ts'
 
@@ -722,14 +723,19 @@ export interface ToolEntry {
 
 export interface GuideEntry {
   id: string
-  /** 'guide' renders a built-in component; the other three render from config. */
+  /** What the card renders. Every kind reads `config` first; a 'guide' with
+   *  nothing in it falls back to the component `builtin` names. */
   kind: ResourceKind
   label: string
   description: string
   tag: string
   /** The newsletter signup source recorded when this card opens the gate. */
   source: string
+  /** The component behind a built-in guide. Null for a guide that is content
+   *  alone, which is what a duplicate or an owner-written one is. */
   builtin: BuiltinGuideKey | null
+  /** The row's config, unread: `content`, `body` and `url` are the page's to
+   *  interpret, because it is the one that knows how to render each. */
   config: Record<string, unknown>
   requiresSignup: boolean
 }
@@ -911,9 +917,14 @@ const KIND_TAGS: Record<ResourceKind, string> = {
 /**
  * The guides page, from the library.
  *
- * Four kinds render here. 'guide' is a built-in component and is dropped if its
- * builtin_key names nothing; 'article', 'link' and 'download' carry everything
- * they need in `config` and need no component at all.
+ * Four kinds render here. 'article', 'link' and 'download' carry everything they
+ * need in `config` and need no component at all. A 'guide' needs one of two
+ * things: a builtin_key naming a component in the bundle, or content in
+ * `config.content` that one of the five views can render. A row with neither is
+ * dropped rather than shown as a card that opens onto nothing.
+ *
+ * The two together are what lets an owner duplicate the meet day checklist: the
+ * copy has no builtin_key of its own and survives on its content alone.
  */
 export function composeGuideRegistry(rows: ResourceItem[] | null): GuideEntry[] {
   // The id is kind-qualified because the library's uniqueness is (kind, slug):
@@ -925,7 +936,8 @@ export function composeGuideRegistry(rows: ResourceItem[] | null): GuideEntry[] 
   return publishedInOrder(rows, ['guide', 'article', 'link', 'download'])
     .map(r => {
       const builtin = r.kind === 'guide' ? guideBuiltin(r.builtin_key) : null
-      if (r.kind === 'guide' && !builtin) return null
+      const config = (r.config && typeof r.config === 'object' ? r.config : {}) as Record<string, unknown>
+      if (r.kind === 'guide' && !builtin && !parseGuideContent(config)) return null
       return {
         id: `${r.kind}:${r.slug || r.id}`,
         kind: r.kind,
@@ -934,7 +946,7 @@ export function composeGuideRegistry(rows: ResourceItem[] | null): GuideEntry[] 
         tag: r.tag || KIND_TAGS[r.kind],
         source: sourceForGuide(builtin, r.slug),
         builtin,
-        config: (r.config && typeof r.config === 'object' ? r.config : {}) as Record<string, unknown>,
+        config,
         requiresSignup: !!r.requires_signup,
       } satisfies GuideEntry
     })
