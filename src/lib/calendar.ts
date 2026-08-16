@@ -7,6 +7,7 @@ import {
   zonedDateTimeToUtc,
 } from './tz'
 import { COACHES } from '../data/coaches'
+import { fetchContentDeadlines } from './deadlines'
 
 /**
  * The calendar read layer.
@@ -19,9 +20,14 @@ import { COACHES } from '../data/coaches'
  *
  * In demo mode (isDemo, or no Supabase configured) the same shape is produced
  * from an in-memory seed — no network, no crash.
+ *
+ * Deadlines are the one layer that is NOT in the calendar_events RPC. They come
+ * from public.content_deadlines (047) as DATES and are anchored to the VIEWER's
+ * zone here, so a due date lands on exactly the cell that bears its name. See
+ * src/lib/deadlines.ts.
  */
 
-export type CalendarEventKind = 'booking' | 'block' | 'busy' | 'available' | 'clock'
+export type CalendarEventKind = 'booking' | 'block' | 'busy' | 'available' | 'clock' | 'deadline'
 
 export interface CalendarEvent {
   eventId: string
@@ -50,9 +56,10 @@ export const KIND_META: Record<CalendarEventKind, { label: string; color: string
   block:     { label: 'Blocked',     color: '#c8102e' }, // red — time off
   busy:      { label: 'Busy',        color: '#eab308' }, // amber — external (Google)
   clock:     { label: 'Clocked in',  color: '#0ea5e9' }, // blue — time-clock overlay
+  deadline:  { label: 'Blog due',    color: '#8b5cf6' }, // violet — blog rotation (047)
 }
 
-export const KIND_ORDER: CalendarEventKind[] = ['booking', 'available', 'block', 'busy', 'clock']
+export const KIND_ORDER: CalendarEventKind[] = ['booking', 'available', 'block', 'busy', 'deadline', 'clock']
 
 /** The shape the RPC returns (snake_case). */
 interface CalendarEventRow {
@@ -100,8 +107,44 @@ function mapRow(r: CalendarEventRow): CalendarEvent {
  * zone. `coachSlug` null = all calendars the caller may see (admin); a slug =
  * that coach. The server pins a coach to their own slug regardless, so passing a
  * slug is a UI convenience, never the security boundary.
+ *
+ * Two reads, one stream. The four-and-a-bit layers of `calendar_events` and the
+ * blog rotation deadlines arrive from different functions and land in the same
+ * array, so the panel, and anything built on it later, sees one kind of thing.
+ *
+ * `timeZone` is the zone the caller will RENDER in, and it is the deadlines
+ * half that needs it: a due date is a date, and it is turned into an instant
+ * against the display zone so it lands on exactly one day cell (047's header
+ * carries the worked example). It defaults to the browser zone.
  */
 export async function fetchCalendarEvents(
+  fromDateKey: string,
+  toDateKey: string,
+  coachSlug: string | null,
+  isDemo = false,
+  timeZone?: string,
+): Promise<CalendarEvent[]> {
+  const tz = timeZone ?? browserTimeZone()
+
+  // Promise.all rather than allSettled is safe because both halves already
+  // swallow everything and resolve to an array. Running them independently is a
+  // real gain and not just a speed one: a rotation outage cannot blank the
+  // bookings, and a booking outage cannot blank the deadlines.
+  const [base, deadlines] = await Promise.all([
+    fetchBaseCalendarEvents(fromDateKey, toDateKey, coachSlug, isDemo),
+    fetchContentDeadlines(fromDateKey, toDateKey, coachSlug, isDemo, tz),
+  ])
+
+  // Forward compatibility. If a later migration ever teaches calendar_events to
+  // emit deadlines itself, the server wins and this overlay stands down rather
+  // than drawing every due date twice.
+  if (base.some(e => e.kind === 'deadline')) return base
+
+  return [...base, ...deadlines]
+}
+
+/** The `calendar_events` RPC on its own: bookings, blocks, working windows, busy, clock. */
+async function fetchBaseCalendarEvents(
   fromDateKey: string,
   toDateKey: string,
   coachSlug: string | null,

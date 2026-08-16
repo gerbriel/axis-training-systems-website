@@ -135,10 +135,12 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
 
   const load = useCallback(async () => {
     setLoading(true)
-    const rows = await fetchCalendarEvents(rangeFrom, rangeTo, queryCoach, isDemo)
+    // `tz` is the zone this panel renders in, and the deadlines layer needs it to
+    // anchor a date-only due date to exactly the day cell that bears its name.
+    const rows = await fetchCalendarEvents(rangeFrom, rangeTo, queryCoach, isDemo, tz)
     setEvents(rows)
     setLoading(false)
-  }, [rangeFrom, rangeTo, queryCoach, isDemo])
+  }, [rangeFrom, rangeTo, queryCoach, isDemo, tz])
 
   useEffect(() => { void load() }, [load])
 
@@ -154,6 +156,8 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
 
   const showCoach = !locked && coachFilter === 'all'
   const hasClock = events.some(e => e.kind === 'clock')
+  // Same gating as 'clock': a coach with no cycle in view gets no orphan swatch.
+  const hasDeadline = events.some(e => e.kind === 'deadline')
 
   // ── Navigation ──
   const step = (dir: -1 | 1) => {
@@ -213,12 +217,22 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
       ? (showCoach ? `${coachFirst(ev.coachSlug)} · ${ev.title}` : ev.title)
       : ev.kind === 'available'
         ? (showCoach ? coachFirst(ev.coachSlug) : 'Available')
-        : ev.title
+        : ev.kind === 'deadline'
+          ? (showCoach ? `${coachFirst(ev.coachSlug)} · ${ev.title}` : ev.title)
+          : ev.title
+    // A deadline has no time of day, so 'All day' tells the reader nothing. Its
+    // tooltip carries the writing window instead, which is the fact a coach
+    // actually wants when they see the chip.
+    // `reason` already opens with the title, so prefixing `label` would say
+    // "Blog post due" twice. The banner in the week view reads it the same way.
+    const tip = ev.kind === 'deadline'
+      ? (showCoach ? `${coachFirst(ev.coachSlug)} · ${ev.reason ?? ev.title}` : (ev.reason ?? ev.title))
+      : `${label} · ${fmtRange(ev)}`
     return (
       <button
         key={ev.eventId}
         onClick={() => openIfBooking(ev)}
-        title={`${label} · ${fmtRange(ev)}`}
+        title={tip}
         style={{
           display: 'flex', alignItems: 'center', gap: '.3rem', width: '100%',
           background: meta.color + '1f', border: `1px solid ${meta.color}66`,
@@ -262,7 +276,14 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
             const isToday = key === today
             const dayEvents = eventsOnDay(key)
             const hasAvail = dayEvents.some(e => e.kind === 'available')
-            const solid = dayEvents.filter(e => e.kind !== 'available')
+            // Deadlines are drawn outside the chip budget, not sorted to the top
+            // of it. That does two jobs at once: a deadline can never be hidden
+            // behind '+N more' (solid is capped at 2 chips on mobile, 3 on
+            // desktop, and the merge appends deadlines last), and it can never
+            // displace a real booking chip. `solid.length > shown.length` stays
+            // correct because deadlines were never in `solid`.
+            const deadlines = dayEvents.filter(e => e.kind === 'deadline')
+            const solid = dayEvents.filter(e => e.kind !== 'available' && e.kind !== 'deadline')
             const shown = solid.slice(0, isMobile ? 2 : 3)
             const dayNum = Number(key.split('-')[2])
             return (
@@ -288,6 +309,7 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
                     {!isMobile && 'Available'}
                   </span>
                 )}
+                {deadlines.map(ev => chip(ev, true))}
                 {shown.map(ev => chip(ev, true))}
                 {solid.length > shown.length && (
                   <button onClick={() => openDay(key)} style={{ background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '.58rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '0 .3rem' }}>
@@ -307,6 +329,15 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
   const gridHeight = (endHour - startHour) * HOUR_PX
   const hourRows: number[] = []
   for (let h = startHour; h <= endHour; h++) hourRows.push(h)
+
+  // Every column's all-day banner is the SAME height, sized to the busiest day
+  // on screen. The columns are flex siblings, so a banner that grows to fit its
+  // own contents pushes only its own time grid down and 9am stops being one
+  // straight line across the week. Deadlines made this reachable: blocks used to
+  // be the only all-day kind, and two of them on one day was rare.
+  const ALL_DAY_ROW_PX = 15
+  const bannerRows = Math.max(1, ...weekDays.map(k => eventsOnDay(k).filter(e => e.allDay).length))
+  const bannerHeight = 12 + bannerRows * ALL_DAY_ROW_PX
 
   const dayColumn = (key: string) => {
     const { start: dayStart } = dayBoundsMs(key, tz)
@@ -332,13 +363,20 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
     return (
       <div key={key} style={{ flex: 1, minWidth: 0, borderLeft: '1px solid var(--surface)' }}>
         {/* All-day banner */}
-        <div style={{ borderBottom: '1px solid var(--surface)', padding: '.2rem', minHeight: 26, display: 'flex', flexDirection: 'column', gap: '.15rem' }}>
-          {allDayBlocks.map(ev => (
-            <div key={ev.eventId} title={ev.reason ?? ev.title}
-              style={{ background: KIND_META.block.color + '26', border: `1px solid ${KIND_META.block.color}66`, borderRadius: '.2rem', padding: '.1rem .3rem', color: 'var(--text)', fontSize: '.58rem', fontWeight: 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-              {showCoach ? `${coachFirst(ev.coachSlug)} · ` : ''}{ev.title}
-            </div>
-          ))}
+        <div style={{ borderBottom: '1px solid var(--surface)', padding: '.2rem', height: bannerHeight, boxSizing: 'border-box', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '.15rem' }}>
+          {allDayBlocks.map(ev => {
+            // Coloured by KIND, not by the block red this banner used to hardcode.
+            // Behaviour-preserving while blocks are the only all-day kind, and
+            // required now that they are not: a blog deadline painted red reads
+            // as time off.
+            const meta = KIND_META[ev.kind]
+            return (
+              <div key={ev.eventId} title={ev.reason ?? ev.title}
+                style={{ background: meta.color + '26', border: `1px solid ${meta.color}66`, borderRadius: '.2rem', padding: '.1rem .3rem', color: 'var(--text)', fontSize: '.58rem', fontWeight: 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {showCoach ? `${coachFirst(ev.coachSlug)} · ` : ''}{ev.title}
+              </div>
+            )
+          })}
         </div>
 
         {/* Time grid */}
@@ -481,7 +519,7 @@ export default function CalendarPanel({ isDemo = false, coachSlug = null, lockCo
 
       {/* Legend */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '.9rem' }}>
-        {KIND_ORDER.filter(k => k !== 'clock' || hasClock).map(k => (
+        {KIND_ORDER.filter(k => (k !== 'clock' || hasClock) && (k !== 'deadline' || hasDeadline)).map(k => (
           <span key={k} style={{ display: 'flex', alignItems: 'center', gap: '.35rem', color: 'var(--text-3)', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>
             <span style={{ width: 10, height: 10, borderRadius: '.15rem', background: KIND_META[k as CalendarEventKind].color, flexShrink: 0 }} />
             {KIND_META[k as CalendarEventKind].label}
